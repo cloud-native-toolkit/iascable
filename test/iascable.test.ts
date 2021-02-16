@@ -1,4 +1,4 @@
-import DummyClass from "../src/catalog-builder"
+import DummyClass from "../src/iascable"
 
 /**
  * Dummy test
