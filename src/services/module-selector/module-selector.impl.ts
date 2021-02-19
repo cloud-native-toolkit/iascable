@@ -82,8 +82,6 @@ export class ModuleSelector implements ModuleSelectorApi {
         return questionBuilder;
       }, new QuestionBuilderImpl<QuestionResult>());
 
-    console.log('Built prompt', {hasQuestions: questionBuilder.hasQuestions()});
-
     return Object.values(await questionBuilder.prompt())
       .map((value: Module | Module[]) => isModuleArray(value) ? value : [value])
       .reduce((result: Module[], current: Module[]) => {
