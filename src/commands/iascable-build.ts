@@ -75,7 +75,6 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput>)
   const bom: BillOfMaterialModel | undefined = await loadBillOfMaterial(argv.input, argv.name);
   const options: IascableOptions = buildCatalogBuilderOptions(argv);
 
-  console.log('Building catalog');
   try {
     const result = await cmd.build(argv.catalogUrl, bom, options);
 
