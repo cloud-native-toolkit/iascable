@@ -1,0 +1,26 @@
+name: NPM publish
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '14'
+          registry-url: https://registry.npmjs.org/
+
+      - name: Publish to npm
+        run: |
+          npm install
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
