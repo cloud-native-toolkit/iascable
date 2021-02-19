@@ -91,7 +91,7 @@ function matchingPlatforms(platform?: string): (m: Module) => boolean {
 }
 
 function matchingProviders(provider?: string): (m: Module) => boolean {
-  return (m: Module) => provider === 'ibm' || determineModuleProvider(m) !== 'ibm';
+  return (m: Module) => !provider || provider === 'ibm' || determineModuleProvider(m) !== 'ibm';
 }
 
 function matchingModules(modules?: Array<{id: string, version?: string}>): (m: Module) => boolean {

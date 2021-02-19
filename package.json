@@ -127,6 +127,8 @@
     "compare-versions": "^3.6.0",
     "inquirer": "^7.3.3",
     "inquirer-checkbox-plus": "^1.0.2",
+    "inquirer-checkbox-plus-prompt": "^1.0.1",
+    "inquirer-prompt-suggest": "^0.1.0",
     "js-yaml": "^4.0.0",
     "superagent": "^6.1.0",
     "typescript-ioc": "^3.2.2"

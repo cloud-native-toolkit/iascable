@@ -72,13 +72,15 @@ export class BillOfMaterial implements BillOfMaterialModel {
     return modules.map(m => isBillOfMaterialModule(m) ? m : {id: m});
   }
 
-  constructor(name: string | Partial<BillOfMaterialModel> = {}) {
-    if (typeof name === 'string') {
+  constructor(nameOrValue: string | Partial<BillOfMaterialModel> = {}, name?: string) {
+    if (typeof nameOrValue === 'string') {
       this.metadata = {
-        name
+        name: nameOrValue
       };
     } else {
-      Object.assign(this, name);
+      const metadata = Object.assign({}, nameOrValue.metadata, name ? {name} : {name: nameOrValue.metadata?.name || 'default'});
+
+      Object.assign(this, nameOrValue, {metadata});
     }
   }
 

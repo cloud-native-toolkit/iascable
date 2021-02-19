@@ -44,7 +44,7 @@ export class ModuleSelector implements ModuleSelectorApi {
             type: 'list',
             message: `Which ${category.category} module should be used?`,
             choices,
-          }, '', true);
+          }, undefined, true);
         } else if (category.selection === 'single') {
           const choices = category.modules.map(m => ({
             name: `${m.name}: ${m.description} `,
@@ -62,7 +62,7 @@ export class ModuleSelector implements ModuleSelectorApi {
             type: 'list',
             message: `Which ${category.category} module should be used?`,
             choices,
-          }, '', true);
+          }, undefined, true);
         } else if (category.selection === 'multiple') {
           const choices = category.modules.map(m => ({
             name: `${m.name}: ${m.description} `,
@@ -76,11 +76,13 @@ export class ModuleSelector implements ModuleSelectorApi {
             message: `Which ${category.category} module(s) should be used?`,
             choices,
             source: async (answers: QuestionResult, input: any): Promise<any[]> => choices,
-          }, '', true);
+          }, undefined, true);
         }
 
         return questionBuilder;
       }, new QuestionBuilderImpl<QuestionResult>());
+
+    console.log('Built prompt', {hasQuestions: questionBuilder.hasQuestions()});
 
     return Object.values(await questionBuilder.prompt())
       .map((value: Module | Module[]) => isModuleArray(value) ? value : [value])

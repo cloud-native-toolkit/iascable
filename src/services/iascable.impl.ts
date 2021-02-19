@@ -31,6 +31,7 @@ export class CatalogBuilder implements IascableApi {
     const interactive: boolean = !!(options?.interactive);
     const filter: {platform?: string; provider?: string} = options?.filter ? options.filter : {};
 
+    console.log('Building bill of materials', {interactive, filter});
     const billOfMaterial: BillOfMaterialModel | undefined = interactive ? await this.moduleSelector.buildBillOfMaterial(catalog, input, filter) : input;
     if (!billOfMaterial) {
       throw new Error('Bill of Material is required');

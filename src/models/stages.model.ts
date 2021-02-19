@@ -3,7 +3,7 @@ import {
   fromBaseVariable,
   IBaseVariable,
   StagePrinter,
-  TerraformVariable
+  TerraformVariable, TerraformVariableImpl
 } from './variables.model';
 import {OutputFile} from './file.model';
 import {SingleModuleVersion} from './module.model';
@@ -23,7 +23,7 @@ export interface Stage extends IStage, StagePrinter {
 export interface TerraformComponentModel {
   stages: { [source: string]: Stage };
   baseVariables: IBaseVariable[];
-  readonly files: OutputFile[];
+  files: OutputFile[];
 }
 
 export class TerraformStageFile implements OutputFile {
@@ -56,6 +56,10 @@ export class TerraformVariablesFile implements OutputFile {
 
   get contents(): string {
     const buffer: Buffer = this.variables.reduce((previousBuffer: Buffer, variable: TerraformVariable) => {
+      if (!variable.asString) {
+        variable = new TerraformVariableImpl(variable);
+      }
+
       return Buffer.concat([
         previousBuffer,
         Buffer.from(variable.asString())
@@ -72,6 +76,10 @@ export class TerraformComponent implements TerraformComponentModel {
 
   constructor(model: TerraformComponentModel) {
     Object.assign(this, model);
+  }
+
+  set files(f: OutputFile[]) {
+    // nothing to do
   }
 
   get files(): OutputFile[] {

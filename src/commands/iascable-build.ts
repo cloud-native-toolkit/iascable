@@ -7,10 +7,13 @@ import {join} from 'path';
 import {IascableInput} from './inputs/iascable.input';
 import {CommandLineInput} from './inputs/command-line.input';
 import {
+  BillOfMaterial,
   BillOfMaterialModel,
   isBillOfMaterialModel,
   isTileConfig,
-  TerraformComponent, OutputFile, TileModel, Tile
+  OutputFile,
+  TerraformComponent,
+  Tile
 } from '../models';
 import {IascableApi, IascableOptions, IascableResult} from '../services';
 import {LoggerApi} from '../util/logger';
@@ -64,12 +67,15 @@ export const builder = (yargs: Argv<any>) => {
 export const handler = async (argv: Arguments<IascableInput & CommandLineInput>) => {
   process.env.LOG_LEVEL = argv.debug ? 'debug' : 'info';
 
+  console.log('Name:', argv.name);
+
   const cmd: IascableApi = Container.get(IascableApi);
   const logger: LoggerApi = Container.get(LoggerApi).child('build');
 
-  const bom: BillOfMaterialModel | undefined = await loadBillOfMaterial(argv.input);
+  const bom: BillOfMaterialModel | undefined = await loadBillOfMaterial(argv.input, argv.name);
   const options: IascableOptions = buildCatalogBuilderOptions(argv);
 
+  console.log('Building catalog');
   try {
     const result = await cmd.build(argv.catalogUrl, bom, options);
 
@@ -79,19 +85,20 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput>)
   }
 };
 
-async function loadBillOfMaterial(input?: string): Promise<BillOfMaterialModel | undefined> {
-  if (!input) {
-    return undefined;
+async function loadBillOfMaterial(input?: string, name?: string): Promise<BillOfMaterialModel | undefined> {
+
+  async function loadInput(input: string, name?: string): Promise<BillOfMaterialModel> {
+    const buffer: Buffer = await promises.readFile(input);
+
+    const content: any = jsYaml.load(buffer.toString());
+    if (!isBillOfMaterialModel(content)) {
+      throw new Error('Input file is not a valid Bill of Material');
+    }
+
+    return new BillOfMaterial(content, name);
   }
 
-  const buffer: Buffer = await promises.readFile(input);
-
-  const content: any = jsYaml.load(buffer.toString());
-  if (!isBillOfMaterialModel(content)) {
-    throw new Error('Input file is not a valid Bill of Material');
-  }
-
-  return content;
+  return input ? loadInput(input, name) : new BillOfMaterial(name);
 }
 
 function buildCatalogBuilderOptions(input: IascableInput): IascableOptions {
@@ -112,10 +119,14 @@ function buildCatalogBuilderOptions(input: IascableInput): IascableOptions {
 }
 
 async function outputBillOfMaterial(rootPath: string, billOfMaterial: BillOfMaterialModel) {
+  await promises.mkdir(rootPath, {recursive: true})
+
   return promises.writeFile(join(rootPath, 'bom.yaml'), jsYaml.dump(billOfMaterial));
 }
 
 async function outputTerraform(rootPath: string, terraformComponent: TerraformComponent) {
+  await promises.mkdir(rootPath, {recursive: true})
+
   return Promise.all(terraformComponent.files.map((file: OutputFile) => {
     return promises.writeFile(join(rootPath, file.name), file.contents);
   }));
@@ -126,9 +137,9 @@ async function outputTile(rootPath: string, tile: Tile | undefined) {
     return;
   }
 
-  const file: OutputFile = tile.file;
+  await promises.mkdir(rootPath, {recursive: true})
 
-  return promises.writeFile(join(rootPath, file.name), file.contents);
+  return promises.writeFile(join(rootPath, tile.file.name), tile.file.contents);
 }
 
 async function outputResult(rootPath: string, result: IascableResult): Promise<void> {

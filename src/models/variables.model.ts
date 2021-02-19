@@ -133,7 +133,7 @@ export class TerraformVariableImpl implements TerraformVariable {
   private _description: string = '';
   private _value: string = '';
 
-  constructor(values: {name: string, value: string, type?: string, description?: string}) {
+  constructor(values: {name: string, value?: string, type?: string, description?: string}) {
     Object.assign(this, values);
   }
 

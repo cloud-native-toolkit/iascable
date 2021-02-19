@@ -1,6 +1,8 @@
-import inquirer, {ChoiceOptions, ListQuestion, Question} from 'inquirer';
+import {ChoiceOptions, ListQuestion, Question} from 'inquirer';
 import {QuestionBuilder, QuestionTypes} from './question-builder.api';
-import {isUndefined} from '../object-util';
+import {isUndefined, isUndefinedOrNull} from '../object-util';
+
+import * as inquirer from 'inquirer';
 
 function isChoiceOption<T>(choice: ChoiceOptions<T>): choice is ChoiceOptions<T> {
   return choice && !!(choice as ChoiceOptions<T>).value;
@@ -14,14 +16,22 @@ export class QuestionBuilderImpl<T = any> implements QuestionBuilder<T> {
   readonly answers: T = {} as any;
 
   question(question: QuestionTypes<T>, value?: string, alwaysPrompt?: boolean): QuestionBuilder<T> {
+    console.log('Adding question: ');
+
     if (this.singleChoice(question) && !alwaysPrompt) {
+      console.log('  Single choice');
+
       const choiceValue = this.getChoiceValues(question)[0];
 
       // @ts-ignore
       this.answers[question.name as string] = choiceValue;
     } else if (!this.valueProvided(question, value)) {
+      console.log('  Value not provided');
+
       this._questions.push(question);
     } else {
+      console.log('  Value provided: ', {name: question.name, value});
+
       // @ts-ignore
       this.answers[question.name as string] = value;
     }
@@ -46,10 +56,10 @@ export class QuestionBuilderImpl<T = any> implements QuestionBuilder<T> {
 
     const choiceValues: string[] = this.getChoiceValues(question);
 
-    if (choiceValues.length > 0 && value) {
+    if (choiceValues.length > 0 && !isUndefined(value)) {
       return choiceValues.includes(value);
     } else {
-      return value !== undefined && value !== null;
+      return !isUndefinedOrNull(value);
     }
   }
 
@@ -81,6 +91,8 @@ export class QuestionBuilderImpl<T = any> implements QuestionBuilder<T> {
   }
 
   async prompt(): Promise<T> {
+    console.log('prompting for values: ' + this._questions.length);
+
     const promptValues = this._questions.length > 0 ? await inquirer.prompt(this._questions) : {};
 
     return Object.assign({}, this.answers, promptValues);
