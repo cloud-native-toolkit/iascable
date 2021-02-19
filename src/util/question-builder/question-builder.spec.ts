@@ -1,11 +1,13 @@
 import {Container} from 'typescript-ioc';
-import {prompt} from 'inquirer';
+import * as inquirer from 'inquirer';
 
 import {QuestionBuilderImpl} from './question-builder.impl';
 import Mock = jest.Mock;
 import {mockField} from '../../testHelper';
 
 jest.mock('inquirer');
+
+const prompt = inquirer.prompt;
 
 describe('question-builder', () => {
   test('canary verifies test infrastructure', () => {
