@@ -3,6 +3,22 @@
 Library and CLI used to generate Infrastructure as Code installable components composed from a catalog of 
 modules.
 
+### CLI Usage
+
+#### Installation
+
+```shell
+npm i -g @cloudnativetoolkit/iascable
+```
+
+#### Commands
+
+```shell
+iascable build [-u {CATALOG_URL}] [-i {BOM_INPUT}] [--name {COMPONENT_NAME}]
+```
+
+### API Usage
+
 ### NPM scripts
 
  - `npm t`: Run test suite
