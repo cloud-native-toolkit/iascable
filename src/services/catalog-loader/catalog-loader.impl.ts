@@ -1,9 +1,7 @@
 import {Container} from 'typescript-ioc';
 import {promises} from 'fs';
-import {Response} from 'superagent';
+import {default as superagent, Response} from 'superagent';
 import {JSON_SCHEMA, load} from 'js-yaml';
-
-import * as superagent from 'superagent';
 
 import {Catalog, CatalogLoaderApi} from './catalog-loader.api';
 import {LoggerApi} from '../../util/logger';

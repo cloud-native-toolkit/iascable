@@ -1,5 +1,5 @@
 import {Container} from 'typescript-ioc';
-import * as inquirer from 'inquirer';
+import {default as inquirer} from 'inquirer';
 
 import {QuestionBuilderImpl} from './question-builder.impl';
 import Mock = jest.Mock;

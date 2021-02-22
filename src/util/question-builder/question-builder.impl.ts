@@ -1,8 +1,6 @@
-import {ChoiceOptions, ListQuestion, Question} from 'inquirer';
+import {default as inquirer, ChoiceOptions, ListQuestion, Question} from 'inquirer';
 import {QuestionBuilder, QuestionTypes} from './question-builder.api';
 import {isUndefined, isUndefinedOrNull} from '../object-util';
-
-import * as inquirer from 'inquirer';
 
 function isChoiceOption<T>(choice: ChoiceOptions<T>): choice is ChoiceOptions<T> {
   return choice && !!(choice as ChoiceOptions<T>).value;
