@@ -1,5 +1,4 @@
-import * as compareVersions from 'compare-versions';
-import {CompareOperator} from 'compare-versions';
+import {default as compareVersions, CompareOperator} from 'compare-versions';
 import {VersionComparison, versionComparisonFromString, VersionMatcher} from '../../models';
 import {concat} from '../array-util';
 

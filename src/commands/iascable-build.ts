@@ -1,7 +1,7 @@
 import {Container} from 'typescript-ioc';
 import {Arguments, Argv} from 'yargs';
 import {promises} from 'fs';
-import * as jsYaml from 'js-yaml';
+import {default as jsYaml} from 'js-yaml';
 import {join} from 'path';
 
 import {IascableInput} from './inputs/iascable.input';
