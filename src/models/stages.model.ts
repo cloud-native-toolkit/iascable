@@ -3,9 +3,10 @@ import {
   fromBaseVariable,
   IBaseVariable,
   StagePrinter,
-  TerraformVariable, TerraformVariableImpl
+  TerraformVariable,
+  TerraformVariableImpl
 } from './variables.model';
-import {OutputFile} from './file.model';
+import {OutputFile, OutputFileType, UrlFile} from './file.model';
 import {SingleModuleVersion} from './module.model';
 
 export * from './module.model';
@@ -23,6 +24,7 @@ export interface Stage extends IStage, StagePrinter {
 export interface TerraformComponentModel {
   stages: { [source: string]: Stage };
   baseVariables: IBaseVariable[];
+  modules?: SingleModuleVersion[];
   files: OutputFile[];
 }
 
@@ -31,6 +33,7 @@ export class TerraformStageFile implements OutputFile {
   }
 
   name = 'stages.tf';
+  type = OutputFileType.terraform;
 
   get contents(): string {
     const buffer: Buffer = Object.values(this.stages).reduce((previousBuffer: Buffer, stage: Stage) => {
@@ -53,6 +56,7 @@ export class TerraformVariablesFile implements OutputFile {
   }
 
   name = 'variables.tf';
+  type = OutputFileType.terraform;
 
   get contents(): string {
     const buffer: Buffer = this.variables.reduce((previousBuffer: Buffer, variable: TerraformVariable) => {
@@ -73,6 +77,7 @@ export class TerraformVariablesFile implements OutputFile {
 export class TerraformComponent implements TerraformComponentModel {
   stages: { [source: string]: Stage } = {};
   baseVariables: TerraformVariable[] = [];
+  modules?: SingleModuleVersion[];
 
   constructor(model: TerraformComponentModel) {
     Object.assign(this, model);
@@ -83,11 +88,38 @@ export class TerraformComponent implements TerraformComponentModel {
   }
 
   get files(): OutputFile[] {
-    return [
+    const files: OutputFile[] = [
       new TerraformStageFile(this.stages),
       new TerraformVariablesFile(this.baseVariables),
+      ...buildModuleReadmes(this.modules),
     ];
+
+    return files;
   }
+}
+
+function buildModuleReadmes(modules: SingleModuleVersion[] = []): OutputFile[] {
+  return modules.map(module => {
+    const url = getModuleDocumentationUrl(module);
+
+    return new UrlFile({
+      name: `docs/${module.name}.md`,
+      type: OutputFileType.documentation,
+      url
+    });
+  });
+}
+
+function getModuleDocumentationUrl(module: SingleModuleVersion): string {
+  if (module.documentation) {
+    return module.documentation;
+  }
+
+  const regex = new RegExp('[^/]+/(.*)')
+  const gitSlug = module.id.replace(regex, '$1');
+  const branch = 'main';
+
+  return `https://raw.githubusercontent.com/${gitSlug}/${branch}/README.md`;
 }
 
 export class StageImpl implements Stage, StagePrinter {

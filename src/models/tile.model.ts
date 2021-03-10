@@ -1,4 +1,4 @@
-import {OutputFile} from './file.model';
+import {OutputFile, OutputFileType} from './file.model';
 import {omit} from '../util/object-util';
 
 export interface TileVariable {
@@ -83,6 +83,7 @@ export class Tile implements TileModel {
   get file(): OutputFile {
     return {
       name: `offering-${this.name}.json`,
+      type: OutputFileType.tileConfig,
       contents: JSON.stringify(omit(this, 'file')),
     }
   }

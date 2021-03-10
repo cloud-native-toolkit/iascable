@@ -2,7 +2,7 @@ import {Container} from 'typescript-ioc';
 import {Arguments, Argv} from 'yargs';
 import {promises} from 'fs';
 import {default as jsYaml} from 'js-yaml';
-import {join} from 'path';
+import {join, dirname} from 'path';
 
 import {IascableInput} from './inputs/iascable.input';
 import {CommandLineInput} from './inputs/command-line.input';
@@ -11,7 +11,7 @@ import {
   BillOfMaterialModel,
   isBillOfMaterialModel,
   isTileConfig,
-  OutputFile,
+  OutputFile, OutputFileType,
   TerraformComponent,
   Tile
 } from '../models';
@@ -124,10 +124,13 @@ async function outputBillOfMaterial(rootPath: string, billOfMaterial: BillOfMate
 }
 
 async function outputTerraform(rootPath: string, terraformComponent: TerraformComponent) {
-  await promises.mkdir(rootPath, {recursive: true})
+  return Promise.all(terraformComponent.files.map(async (file: OutputFile) => {
+    const path = join(rootPath, file.name);
+    await promises.mkdir(dirname(path), {recursive: true})
 
-  return Promise.all(terraformComponent.files.map((file: OutputFile) => {
-    return promises.writeFile(join(rootPath, file.name), file.contents);
+    const fileContents = await file.contents;
+
+    return promises.writeFile(path, fileContents);
   }));
 }
 
@@ -138,7 +141,7 @@ async function outputTile(rootPath: string, tile: Tile | undefined) {
 
   await promises.mkdir(rootPath, {recursive: true})
 
-  return promises.writeFile(join(rootPath, tile.file.name), tile.file.contents);
+  return promises.writeFile(join(rootPath, tile.file.name), await tile.file.contents);
 }
 
 async function outputResult(rootPath: string, result: IascableResult): Promise<void> {
