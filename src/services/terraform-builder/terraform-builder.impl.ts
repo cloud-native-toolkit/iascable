@@ -1,30 +1,25 @@
+import {Inject} from 'typescript-ioc';
 import {TerraformBuilderApi} from './terraform-builder.api';
 import {
+  BaseVariable,
+  GlobalRefVariable,
+  IBaseVariable,
+  isPlaceholderVariable,
   ModuleDependency,
   ModuleOutputRef,
+  ModuleRefVariable,
   ModuleVariable,
   ModuleVersion,
-  SingleModuleVersion
-} from '../../models/module.model';
-import {
+  PlaceholderVariable,
+  SingleModuleVersion,
   Stage,
   StageImpl,
-  TerraformComponent,
-  TerraformComponentModel
-} from '../../models/stages.model';
-import {Inject} from 'typescript-ioc';
+  TerraformComponent
+} from '../../models';
 import {ModuleSelectorApi} from '../module-selector';
-import {
-  BaseVariable, GlobalRefVariable,
-  IBaseVariable, isPlaceholderVariable,
-  ModuleRefVariable,
-  PlaceholderVariable
-} from '../../models/variables.model';
-import {of as arrayOf} from '../../util/array-util';
-import {isUndefined, isUndefinedOrNull} from '../../util/object-util';
-import {CatalogModel} from '../../models/catalog.model';
-import {BillOfMaterialModel} from '../../models/bill-of-material.model';
 import {ModuleNotFound} from '../../errors';
+import {of as arrayOf} from '../../util/array-util';
+import {isUndefined} from '../../util/object-util';
 
 export class TerraformBuilder implements TerraformBuilderApi {
   constructor(@Inject private selector: ModuleSelectorApi) {
@@ -43,7 +38,7 @@ export class TerraformBuilder implements TerraformBuilderApi {
       stages[stageSources[i]] = await processStageVariables(stages[stageSources[i]], baseVariables);
     }
 
-    return new TerraformComponent({stages, baseVariables, files: []});
+    return new TerraformComponent({stages, baseVariables, modules: selectedModules, files: []});
   }
 }
 

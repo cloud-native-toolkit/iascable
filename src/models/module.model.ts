@@ -22,6 +22,7 @@ export interface ModuleTemplate {
   tags?: string[];
   ibmCatalogId?: string;
   fsReady?: string;
+  documentation?: string;
 }
 
 export interface Module extends ModuleTemplate {

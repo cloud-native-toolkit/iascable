@@ -3,7 +3,7 @@ import {promises} from 'fs';
 import {default as superagent, Response} from 'superagent';
 import {JSON_SCHEMA, load} from 'js-yaml';
 
-import {Catalog, CatalogLoaderApi} from './catalog-loader.api';
+import {Catalog, CatalogLoaderApi, CatalogModel} from './catalog-loader.api';
 import {LoggerApi} from '../../util/logger';
 
 export class CatalogLoader implements CatalogLoaderApi {
