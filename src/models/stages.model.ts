@@ -35,7 +35,7 @@ export class TerraformStageFile implements OutputFile {
   name = 'stages.tf';
   type = OutputFileType.terraform;
 
-  get contents(): string {
+  get contents(): Promise<string | Buffer> {
     const buffer: Buffer = Object.values(this.stages).reduce((previousBuffer: Buffer, stage: Stage) => {
       if (!stage.asString) {
         stage = new StageImpl(stage);
@@ -47,7 +47,7 @@ export class TerraformStageFile implements OutputFile {
       ]);
     }, Buffer.from(''));
 
-    return buffer.toString();
+    return Promise.resolve(buffer);
   }
 }
 
@@ -58,7 +58,7 @@ export class TerraformVariablesFile implements OutputFile {
   name = 'variables.tf';
   type = OutputFileType.terraform;
 
-  get contents(): string {
+  get contents(): Promise<string | Buffer> {
     const buffer: Buffer = this.variables.reduce((previousBuffer: Buffer, variable: TerraformVariable) => {
       if (!variable.asString) {
         variable = new TerraformVariableImpl(variable);
@@ -70,7 +70,7 @@ export class TerraformVariablesFile implements OutputFile {
       ]);
     }, Buffer.from(''))
 
-    return buffer.toString();
+    return Promise.resolve(buffer);
   }
 }
 

@@ -9,7 +9,7 @@ export enum OutputFileType {
 export interface OutputFile {
   name: string;
   type?: OutputFileType;
-  readonly contents: string | Promise<string>;
+  readonly contents: Promise<string | Buffer>;
 }
 
 export class UrlFile implements OutputFile {
@@ -23,7 +23,7 @@ export class UrlFile implements OutputFile {
     this.type = type;
   }
 
-  get contents() {
+  get contents(): Promise<string | Buffer> {
     return new Promise<string>(async (resolve) => {
       const req: superagent.Response = await superagent.get(this.url);
 
