@@ -10,9 +10,12 @@ export interface ModuleMatcher {
   version: VersionMatcher[];
 }
 
+export type ModuleType = 'git' | 'registry';
+
 export interface ModuleTemplate {
   id: string;
   name: string;
+  type?: ModuleType;
   alias?: string;
   aliasIds?: string[];
   category: string;
