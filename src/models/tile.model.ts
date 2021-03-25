@@ -84,7 +84,7 @@ export class Tile implements TileModel {
     return {
       name: `offering-${this.name}.json`,
       type: OutputFileType.tileConfig,
-      contents: JSON.stringify(omit(this, 'file')),
+      contents: Promise.resolve(JSON.stringify(omit(this, 'file'))),
     }
   }
 }
