@@ -131,9 +131,9 @@ export class TerraformVariableImpl implements TerraformVariable {
   name: string = '';
   private _type: string = '';
   private _description: string = '';
-  private _value: string = '';
+  private _defaultValue: any;
 
-  constructor(values: {name: string, value?: string, type?: string, description?: string}) {
+  constructor(values: {name: string, defaultValue?: string, type?: string, description?: string}) {
     Object.assign(this, values);
   }
 
@@ -144,11 +144,11 @@ export class TerraformVariableImpl implements TerraformVariable {
     this._type = type;
   }
 
-  get value() {
-    return this._value || '';
+  get defaultValue() {
+    return this._defaultValue;
   }
-  set value(value: string) {
-    this._value = value;
+  set defaultValue(value: string) {
+    this._defaultValue = value;
   }
 
   get description() {
@@ -167,11 +167,11 @@ export class TerraformVariableImpl implements TerraformVariable {
   }
 
   defaultValueProp(): string {
-    if (this._value === undefined || this._value === null) {
+    if (this._defaultValue === undefined || this._defaultValue === null) {
       return '';
     }
 
-    const value = (this.type === 'bool' || this.type === 'number') ? this.value : `"${this.value}"`;
+    const value = (this.type === 'bool' || this.type === 'number') ? this.defaultValue : `"${this.defaultValue}"`;
 
     return `
   default = ${value}`;

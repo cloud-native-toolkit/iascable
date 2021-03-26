@@ -60,7 +60,7 @@ export class Catalog implements CatalogModel {
     this.logger.debug('Extracting modules from catalog');
 
     return this.categories.reduce((result: Module[], current: CatalogCategoryModel) => {
-      if (current.modules.length > 0) {
+      if ((current.modules || []).length > 0) {
         result.push(...current.modules);
       }
 
@@ -73,7 +73,7 @@ export class Catalog implements CatalogModel {
 
     const filteredCategories: CatalogCategoryModel[] = this.categories
       .map((category: CatalogCategoryModel) => {
-        const filteredModules = category.modules
+        const filteredModules = (category.modules || [])
           .filter(matchingPlatforms(platform))
           .filter(matchingProviders(provider))
           .filter(matchingModules(modules));
