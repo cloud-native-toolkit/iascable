@@ -48,6 +48,7 @@ export function isSingleModuleVersion(module: Module | SingleModuleVersion): mod
 export interface ModuleDependency {
   id: string;
   refs: ModuleRef[];
+  optional?: boolean;
 }
 
 export interface ModuleVersion {
