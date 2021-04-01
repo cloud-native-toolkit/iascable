@@ -19,7 +19,8 @@ import {
 import {ModuleSelectorApi} from '../module-selector';
 import {ModuleNotFound} from '../../errors';
 import {of as arrayOf} from '../../util/array-util';
-import {isUndefined} from '../../util/object-util';
+import {isUndefined, isUndefinedOrNull} from '../../util/object-util';
+import {Optional} from '../../util/optional';
 
 export class TerraformBuilder implements TerraformBuilderApi {
   constructor(@Inject private selector: ModuleSelectorApi) {
@@ -65,16 +66,33 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
     if (v.moduleRef) {
       const moduleRef: ModuleOutputRef = v.moduleRef;
 
-      const moduleRefSource: string = getSourceForModuleRef(moduleRef, moduleVersion, stages, modules);
-      const refStage: Stage = getStageFromModuleRef(moduleRefSource, stages, modules);
+      const optional: boolean = v.optional === true || !isUndefinedOrNull(v.default)
 
-      const moduleRefVariable: ModuleRefVariable = new ModuleRefVariable({
-        name: v.name,
-        moduleRef: refStage,
-        moduleOutputName: moduleRef.output
-      });
+      const moduleRefSource: string | undefined = getSourceForModuleRef(moduleRef, moduleVersion, stages, modules, optional);
 
-      return moduleRefVariable;
+      if (!isUndefined(moduleRefSource)) {
+        const refStage: Stage = getStageFromModuleRef(moduleRefSource, stages, modules);
+
+        const moduleRefVariable: ModuleRefVariable = new ModuleRefVariable({
+          name: v.name,
+          moduleRef: refStage,
+          moduleOutputName: moduleRef.output
+        });
+
+        return moduleRefVariable;
+      } else {
+        const placeholderVariable: PlaceholderVariable = new PlaceholderVariable({
+          name: v.name,
+          description: v.description,
+          type: v.type || 'string',
+          scope: v.scope || 'module',
+          defaultValue: defaultValue(v),
+          alias: v.alias,
+          variable: v,
+        });
+
+        return placeholderVariable;
+      }
     } else {
       const placeholderVariable: PlaceholderVariable = new PlaceholderVariable({
         name: v.name,
@@ -93,7 +111,7 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
   return stageVariables;
 }
 
-function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: ModuleVersion, stages: { [p: string]: Stage }, modules: SingleModuleVersion[]): string {
+function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: ModuleVersion, stages: { [p: string]: Stage }, modules: SingleModuleVersion[], optional: boolean): string | undefined {
   const moduleDeps: ModuleDependency = arrayOf(moduleVersion.dependencies)
     .filter(d => d.id === moduleRef.id)
     .first()
@@ -103,12 +121,21 @@ function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: Module
     return moduleDeps.refs[0].source;
   }
 
-  return arrayOf(moduleDeps.refs)
+  const source: Optional<string> = arrayOf(moduleDeps.refs)
     .map((r => stages[r.source]))
     .filter((s: Stage) => !!s)
     .map(s => s.source)
-    .first()
-    .orElseThrow(new ModuleNotFound(moduleDeps.id));
+    .first();
+
+  if (source.isPresent()) {
+    return source.get();
+  }
+
+  if (!optional) {
+    source.orElseThrow(new ModuleNotFound(moduleDeps.id));
+  }
+
+  return;
 }
 
 function getStageFromModuleRef(moduleSource: string, stages: { [p: string]: Stage }, modules: SingleModuleVersion[]): Stage {
