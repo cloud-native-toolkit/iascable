@@ -138,6 +138,8 @@ export class SelectedModules {
       }
 
       this.addModuleRef(moduleRef);
+    } else if (moduleRefs.length === 0 && dep.optional) {
+      // nothing to do
     } else if (moduleRefs.length === 0) {
       throw new Error(`Unable to find dependent module(s) (${moduleId}): ${dep.refs.map(r => r.source)}`);
     } else {

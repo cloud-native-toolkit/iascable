@@ -27,17 +27,19 @@ export class ModuleRefVariable implements IModuleVariable, BaseVariable {
   description?: string;
   type?: string;
   scope?: 'global' | 'module' | 'ignore' = 'module';
+  fallback: PlaceholderVariable;
 
   moduleRef: {source: string};
   moduleOutputName: string;
 
-  constructor(values: IModuleVariable) {
+  constructor(values: IModuleVariable & {fallback: PlaceholderVariable}) {
     this.name = values.name;
     this.description = values.description;
     this.type = values.type;
     this.scope = values.scope;
     this.moduleRef = values.moduleRef;
     this.moduleOutputName = values.moduleOutputName;
+    this.fallback = values.fallback;
   }
 
   asString(stages: {[name: string]: {name: string}}): string {
