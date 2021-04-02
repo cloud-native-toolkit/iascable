@@ -78,7 +78,7 @@ export class BillOfMaterial implements BillOfMaterialModel {
         name: nameOrValue
       };
     } else {
-      const metadata = Object.assign({}, nameOrValue.metadata, name ? {name} : {name: nameOrValue.metadata?.name || 'default'});
+      const metadata = Object.assign({}, nameOrValue.metadata, name ? {name} : {name: nameOrValue.metadata?.name || 'component'});
 
       Object.assign(this, nameOrValue, {metadata});
     }

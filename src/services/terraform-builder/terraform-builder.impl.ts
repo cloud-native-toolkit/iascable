@@ -68,7 +68,7 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
 
       const optional: boolean = v.optional === true || !isUndefinedOrNull(v.default)
 
-      const moduleRefSource: string | undefined = getSourceForModuleRef(moduleRef, moduleVersion, stages, modules, optional);
+      const moduleRefSource: string | undefined = getSourceForModuleRef(moduleRef, moduleVersion, stages, modules, optional, module);
 
       if (!isUndefined(moduleRefSource)) {
         const refStage: Stage = getStageFromModuleRef(moduleRefSource, stages, modules);
@@ -111,7 +111,7 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
   return stageVariables;
 }
 
-function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: ModuleVersion, stages: { [p: string]: Stage }, modules: SingleModuleVersion[], optional: boolean): string | undefined {
+function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: ModuleVersion, stages: { [p: string]: Stage }, modules: SingleModuleVersion[], optional: boolean, module: SingleModuleVersion): string | undefined {
   const moduleDeps: ModuleDependency = arrayOf(moduleVersion.dependencies)
     .filter(d => d.id === moduleRef.id)
     .first()
@@ -132,7 +132,7 @@ function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: Module
   }
 
   if (!optional) {
-    source.orElseThrow(new ModuleNotFound(moduleDeps.id));
+    source.orElseThrow(new ModuleNotFound(moduleDeps.id, module.id));
   }
 
   return;

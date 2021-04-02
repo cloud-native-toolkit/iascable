@@ -27,19 +27,17 @@ export class ModuleRefVariable implements IModuleVariable, BaseVariable {
   description?: string;
   type?: string;
   scope?: 'global' | 'module' | 'ignore' = 'module';
-  fallback: PlaceholderVariable;
 
   moduleRef: {source: string};
   moduleOutputName: string;
 
-  constructor(values: IModuleVariable & {fallback: PlaceholderVariable}) {
+  constructor(values: IModuleVariable) {
     this.name = values.name;
     this.description = values.description;
     this.type = values.type;
     this.scope = values.scope;
     this.moduleRef = values.moduleRef;
     this.moduleOutputName = values.moduleOutputName;
-    this.fallback = values.fallback;
   }
 
   asString(stages: {[name: string]: {name: string}}): string {
@@ -173,9 +171,27 @@ export class TerraformVariableImpl implements TerraformVariable {
       return '';
     }
 
-    const value = (this.type === 'bool' || this.type === 'number') ? this.defaultValue : `"${this.defaultValue}"`;
+    const typeFormatter = getTypeFormatter(this.type);
+
+    const value = typeFormatter(this.defaultValue);
 
     return `
   default = ${value}`;
   }
+}
+
+const getTypeFormatter = (type: string) => {
+  const formatter = typeFormatters[type] || defaultFormatter;
+
+  return formatter;
+}
+
+const defaultFormatter: (value: string) => string = (value: string) => `"${value}"`;
+
+const typeFormatters: {[type: string]: (value: string) => string} = {
+  'bool': (value: string) => value,
+  'number': (value: string) => value,
+  // tslint:disable-next-line:triple-equals
+  'list(string)': (value: any) => value == '' ? '[]' : value,
+  'string': defaultFormatter,
 }

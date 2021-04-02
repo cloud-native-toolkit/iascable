@@ -133,7 +133,9 @@ export class SelectedModules {
 
           this.resolveModuleDependencies(depModule);
         } catch (error) {
-          this.addMissingModule(moduleRef);
+          if (!dep.optional) {
+            this.addMissingModule(moduleRef);
+          }
         }
       }
 
