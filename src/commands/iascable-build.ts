@@ -47,7 +47,6 @@ export const builder = (yargs: Argv<any>) => {
     .option('name', {
       description: 'The name for the tile. Required if you want to generate the tile metadata.',
       demandOption: false,
-      default: 'component'
     })
     .option('tileDescription', {
       description: 'The description of the tile.',
@@ -67,18 +66,20 @@ export const builder = (yargs: Argv<any>) => {
 export const handler = async (argv: Arguments<IascableInput & CommandLineInput>) => {
   process.env.LOG_LEVEL = argv.debug ? 'debug' : 'info';
 
-  console.log('Name:', argv.name);
-
   const cmd: IascableApi = Container.get(IascableApi);
   const logger: LoggerApi = Container.get(LoggerApi).child('build');
 
   const bom: BillOfMaterialModel | undefined = await loadBillOfMaterial(argv.input, argv.name);
+
+  const name = bom?.metadata?.name || 'component';
+  console.log('Name:', name);
+
   const options: IascableOptions = buildCatalogBuilderOptions(argv);
 
   try {
     const result = await cmd.build(argv.catalogUrl, bom, options);
 
-    await outputResult(join('output', argv.name), result);
+    await outputResult(join('output', name), result);
   } catch (err) {
     logger.error('Error building config', {err})
   }
