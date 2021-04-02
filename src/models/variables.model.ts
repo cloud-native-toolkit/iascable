@@ -171,9 +171,27 @@ export class TerraformVariableImpl implements TerraformVariable {
       return '';
     }
 
-    const value = (this.type === 'bool' || this.type === 'number') ? this.defaultValue : `"${this.defaultValue}"`;
+    const typeFormatter = getTypeFormatter(this.type);
+
+    const value = typeFormatter(this.defaultValue);
 
     return `
   default = ${value}`;
   }
+}
+
+const getTypeFormatter = (type: string) => {
+  const formatter = typeFormatters[type] || defaultFormatter;
+
+  return formatter;
+}
+
+const defaultFormatter: (value: string) => string = (value: string) => `"${value}"`;
+
+const typeFormatters: {[type: string]: (value: string) => string} = {
+  'bool': (value: string) => value,
+  'number': (value: string) => value,
+  // tslint:disable-next-line:triple-equals
+  'list(string)': (value: any) => value == '' ? '[]' : value,
+  'string': defaultFormatter,
 }

@@ -1,7 +1,7 @@
 
 export class ModuleNotFound extends Error {
-  constructor(readonly source: string) {
-    super(`Unable to find module: ${source}`);
+  constructor(readonly source: string, readonly module?: string) {
+    super(`Unable to find module (${module}): ${source}`);
   }
 }
 

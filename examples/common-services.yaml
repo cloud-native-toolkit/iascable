@@ -1,0 +1,14 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: common-services
+spec:
+  modules:
+    - github.com/cloud-native-toolkit/terraform-ibm-access-group
+    - github.com/cloud-native-toolkit/terraform-ibm-activity-tracker
+    - github.com/cloud-native-toolkit/terraform-ibm-object-storage
+    - github.com/cloud-native-toolkit/terraform-ibm-key-protect
+    - github.com/cloud-native-toolkit/terraform-ibm-logdna
+    - github.com/cloud-native-toolkit/terraform-ibm-vpc
+    - github.com/cloud-native-toolkit/terraform-ibm-sysdig
+  variables: []
