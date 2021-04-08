@@ -1,4 +1,5 @@
 import {VersionMatcher} from './version-matcher';
+import {BillOfMaterialModule} from './bill-of-material.model';
 
 export interface ModuleRef {
   source: string;
@@ -27,6 +28,7 @@ export interface ModuleTemplate {
 
 export interface Module extends ModuleTemplate {
   versions: ModuleVersion[];
+  bomModule?: BillOfMaterialModule;
 }
 
 export function isModule(module: Module | ModuleRef): module is Module {
@@ -39,6 +41,7 @@ export function isModuleRef(module: Module | ModuleRef): module is ModuleRef {
 
 export interface SingleModuleVersion extends ModuleTemplate {
   version: ModuleVersion;
+  bomModule?: BillOfMaterialModule;
 }
 
 export function isSingleModuleVersion(module: Module | SingleModuleVersion): module is SingleModuleVersion {
@@ -49,6 +52,7 @@ export interface ModuleDependency {
   id: string;
   refs: ModuleRef[];
   optional?: boolean;
+  discriminator?: string;
 }
 
 export interface ModuleVersion {

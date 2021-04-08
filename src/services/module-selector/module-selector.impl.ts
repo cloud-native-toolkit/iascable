@@ -1,16 +1,27 @@
 import {ModuleSelectorApi} from './module-selector.api';
-import {Catalog, CatalogCategoryModel, CatalogModel} from '../../models/catalog.model';
+import {SelectedModules} from './selected-modules.model';
 import {
   BillOfMaterial,
   BillOfMaterialModel,
-  BillOfMaterialModule
-} from '../../models/bill-of-material.model';
-import {SelectedModules} from './selected-modules.model';
-import {Module, SingleModuleVersion} from '../../models/module.model';
+  BillOfMaterialModule,
+  Catalog,
+  CatalogCategoryModel,
+  CatalogModel,
+  Module,
+  SingleModuleVersion
+} from '../../models';
 import {QuestionBuilder} from '../../util/question-builder';
 import {QuestionBuilderImpl} from '../../util/question-builder/question-builder.impl';
+import {LoggerApi} from '../../util/logger';
+import {Container} from 'typescript-ioc';
 
 export class ModuleSelector implements ModuleSelectorApi {
+  logger: LoggerApi;
+
+  constructor() {
+    this.logger = Container.get(LoggerApi).child('ModuleSelector');
+  }
+
   async buildBillOfMaterial(catalogModel: CatalogModel, input?: BillOfMaterialModel, filter?: { platform?: string; provider?: string }): Promise<BillOfMaterialModel> {
     const fullCatalog: Catalog = Catalog.fromModel(catalogModel);
 
@@ -24,7 +35,7 @@ export class ModuleSelector implements ModuleSelectorApi {
   async makeModuleSelections(catalog: Catalog, input?: BillOfMaterialModel): Promise<Module[]> {
     type QuestionResult = { [category: string]: Module | Module[] };
 
-    const moduleIds: string[] = BillOfMaterial.getModuleIds(input);
+    const moduleIds: BillOfMaterialModule[] = BillOfMaterial.getModuleRefs(input);
 
     function isModuleArray(value: Module | Module[]): value is Module[] {
       return !!value && Array.isArray(value as any);
@@ -49,7 +60,7 @@ export class ModuleSelector implements ModuleSelectorApi {
           const choices = category.modules.map(m => ({
             name: `${m.name}: ${m.description} `,
             value: m,
-            checked: moduleIds.includes(m.id)
+            checked: billOfMaterialIncludesModule(moduleIds, m),
           }));
           choices.push({
             name: 'None',
@@ -67,7 +78,7 @@ export class ModuleSelector implements ModuleSelectorApi {
           const choices = category.modules.map(m => ({
             name: `${m.name}: ${m.description} `,
             value: m,
-            checked: moduleIds.includes(m.id)
+            checked: billOfMaterialIncludesModule(moduleIds, m),
           }));
 
           questionBuilder.question({
@@ -98,9 +109,25 @@ export class ModuleSelector implements ModuleSelectorApi {
 
     const bomModules: BillOfMaterialModule[] = BillOfMaterial.getModules(input);
 
-    const modules: Module[] = fullCatalog.filter({modules: bomModules}).modules;
+    const modules: Module[] = bomModules
+      .map(bomModule => {
+        const module: Module | undefined = fullCatalog.lookupModule(bomModule);
 
-    // TODO use bill of material to resolve specific module versions
+        // TODO what should happen if the BOM specifies a module that cannot be found?
+        if (!module) {
+          return undefined as any;
+        }
+
+        return Object.assign({}, module, {alias: bomModule.alias || module.alias, bomModule: Object.assign({}, bomModule)}) as Module;
+      })
+      .filter(m => !!m);
+
+    this.logger.debug('Modules', modules);
+
     return new SelectedModules(fullCatalog).resolveModules(modules);
   }
+}
+
+function billOfMaterialIncludesModule(modules: BillOfMaterialModule[], module: Module): boolean {
+  return modules.filter(m => m.id === module.id || m.name === module.name).length > 0;
 }

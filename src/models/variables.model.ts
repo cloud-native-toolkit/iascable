@@ -18,7 +18,7 @@ export interface BaseVariable extends IBaseVariable, StagePrinter {
 }
 
 export interface IModuleVariable extends IBaseVariable {
-  moduleRef: {source: string};
+  moduleRef: {stageName: string};
   moduleOutputName: string;
 }
 
@@ -28,7 +28,7 @@ export class ModuleRefVariable implements IModuleVariable, BaseVariable {
   type?: string;
   scope?: 'global' | 'module' | 'ignore' = 'module';
 
-  moduleRef: {source: string};
+  moduleRef: {stageName: string};
   moduleOutputName: string;
 
   constructor(values: IModuleVariable) {
@@ -41,7 +41,7 @@ export class ModuleRefVariable implements IModuleVariable, BaseVariable {
   }
 
   asString(stages: {[name: string]: {name: string}}): string {
-    const module: {name: string} = stages[this.moduleRef.source];
+    const module: {name: string} = stages[this.moduleRef.stageName];
 
     return `${this.name} = module.${module.name}.${this.moduleOutputName}\n`;
   }

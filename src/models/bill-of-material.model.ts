@@ -1,13 +1,45 @@
 import {isSingleModuleVersion, Module, SingleModuleVersion} from './module.model';
 import {of} from '../util/optional';
 
-export interface BillOfMaterialModule {
-  id: string;
-  version?: string;
+export interface BillOfMaterialModuleDependency {
+  name: string;
+  ref: string;
 }
 
+export interface BillOfMaterialModuleVariable {
+  name: string;
+  value: any;
+}
+
+export interface BaseBillOfMaterialModule {
+  alias?: string;
+  version?: string;
+  variables?: BillOfMaterialModuleVariable[];
+  dependencies?: BillOfMaterialModuleDependency[];
+}
+
+export interface BillOfMaterialModuleById extends BaseBillOfMaterialModule {
+  id: string;
+  name?: string;
+}
+
+export interface BillOfMaterialModuleByName extends BaseBillOfMaterialModule {
+  name: string;
+  id?: string;
+}
+
+export type BillOfMaterialModule = BillOfMaterialModuleById | BillOfMaterialModuleByName;
+
 export function isBillOfMaterialModule(module: string | BillOfMaterialModule): module is BillOfMaterialModule {
+  return !!module && (!!(module as BillOfMaterialModule).id || !!(module as BillOfMaterialModule).name);
+}
+
+export function isBillOfMaterialModuleById(module: string | BillOfMaterialModule): module is BillOfMaterialModuleById {
   return !!module && !!(module as BillOfMaterialModule).id;
+}
+
+export function isBillOfMaterialModuleByName(module: string | BillOfMaterialModule): module is BillOfMaterialModuleByName {
+  return !!module && !!(module as BillOfMaterialModule).name;
 }
 
 export interface BillOfMaterialVariable {
@@ -54,13 +86,13 @@ export class BillOfMaterial implements BillOfMaterialModel {
     variables: [],
   };
 
-  static getModuleIds(model?: BillOfMaterialModel): string[] {
+  static getModuleRefs(model?: BillOfMaterialModel): BillOfMaterialModule[] {
     const modules: Array<string | BillOfMaterialModule> = of<BillOfMaterialModel>(model)
       .map(m => m.spec)
       .map(s => s.modules)
       .orElse([]);
 
-    return modules.map((module: string | BillOfMaterialModule) => isBillOfMaterialModule(module) ? module.id : module)
+    return modules.map((module: string | BillOfMaterialModule) => isBillOfMaterialModuleById(module) ? {id: module.id} : isBillOfMaterialModuleByName(module) ? {name: module.name} : {id: module})
   }
 
   static getModules(model?: BillOfMaterialModel): BillOfMaterialModule[] {

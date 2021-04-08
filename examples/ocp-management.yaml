@@ -1,0 +1,59 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: ocp-management
+spec:
+  modules:
+    - name: ibm-vpc
+    - name: ibm-vpc-gateways
+    - name: ibm-vpc-subnets
+      alias: cluster-subnets
+      variables:
+        - name: subnet_count
+          value: 3
+        - name: subnet_label
+          value: cluster
+    - name: ibm-ocp-vpc
+      dependencies:
+        - name: subnets
+          ref: cluster-subnets
+    - name: ibm-vpc-subnets
+      alias: bastion-subnets
+      variables:
+        - name: subnet_count
+          value: 2
+        - name: subnet_label
+          value: bastion
+    - name: vsi-bastion
+      dependencies:
+        - name: subnets
+          ref: bastion-subnets
+    - name: namespace
+      variables:
+        - name: name
+          value: tools
+    - name: namespace
+      alias: argocd-namespace
+      variables:
+        - name: name
+          value: argocd
+    - name: ibm-image-registry
+    - name: ibm-logdna-bind
+    - name: ibm-sysdig-bind
+    - name: argocd
+      dependencies:
+        - name: namespace
+          ref: argocd-namespace
+    - name: dashboard
+    - name: pactbroker
+    - name: artifactory
+    - name: swaggereditor
+    - name: sonarqube
+    - name: tekton
+    - name: resources
+    - name: source-control
+  variables:
+    - name: resource_group_name
+    - name: region
+    - name: ibmcloud_api_key
+    - name: name_prefix

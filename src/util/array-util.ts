@@ -15,12 +15,18 @@ export class ArrayUtil<T = any> {
     return new ArrayUtil(array);
   }
 
-  filter(f: (value: T) => boolean): ArrayUtil<T> {
+  filter(f: (value: T, index: number, array: T[]) => boolean): ArrayUtil<T> {
     return new ArrayUtil(this.value.filter(f));
   }
 
-  map<U>(f: (value: T) => U): ArrayUtil<U> {
+  map<U>(f: (value: T, index: number, array: T[]) => U): ArrayUtil<U> {
     return new ArrayUtil(this.value.map(f));
+  }
+
+  forEach(f: (value: T, index: number, array: T[]) => void): ArrayUtil<T> {
+    this.value.forEach(f);
+
+    return this;
   }
 
   first(): Optional<T> {
