@@ -70,6 +70,14 @@ export class GlobalRefVariable implements IGlobalRefVariable, BaseVariable {
   }
 
   asString(): string {
+    if (this.type === 'bool') {
+      return `${this.name} = var.${this.variableName} == "true"\n`;
+    } else if (this.type === 'list(string)') {
+      return `${this.name} = split(",", var.${this.variableName})\n`;
+    } else if (this.type?.match(/list\(object/)) {
+      return `${this.name} = jsondecode(var.${this.variableName})\n`;
+    }
+
     return `${this.name} = var.${this.variableName}\n`;
   }
 }
@@ -160,7 +168,7 @@ export class TerraformVariableImpl implements TerraformVariable {
 
   asString(): string {
     return `variable "${this.name}" {
-  type = ${this.type}
+  type = string
   description = "${this.description}"${this.defaultValueProp()}
 }
 `;
@@ -181,7 +189,9 @@ export class TerraformVariableImpl implements TerraformVariable {
 }
 
 const getTypeFormatter = (type: string) => {
-  const formatter = typeFormatters[type] || defaultFormatter;
+  const lookupType = type.match(/^list\(/) ? 'list' : type.match(/^object\(/) ? 'object' : type;
+
+  const formatter = typeFormatters[lookupType] || defaultFormatter;
 
   return formatter;
 }
@@ -189,9 +199,11 @@ const getTypeFormatter = (type: string) => {
 const defaultFormatter: (value: string) => string = (value: string) => `"${value}"`;
 
 const typeFormatters: {[type: string]: (value: string) => string} = {
-  'bool': (value: string) => value,
+  'bool': defaultFormatter,
   'number': (value: string) => value,
   // tslint:disable-next-line:triple-equals
-  'list(string)': (value: any) => value == '' ? '[]' : value,
+  'list': (value: any) => value == '' ? '"[]"' : `"${value}"`,
+  // tslint:disable-next-line:triple-equals
+  'object': (value: any) => value == '' ? '"{}"' : `"${value}"`,
   'string': defaultFormatter,
 }
