@@ -9,6 +9,11 @@ spec:
     - github.com/cloud-native-toolkit/terraform-ibm-object-storage
     - github.com/cloud-native-toolkit/terraform-ibm-key-protect
     - github.com/cloud-native-toolkit/terraform-ibm-logdna
-    - github.com/cloud-native-toolkit/terraform-ibm-vpc
     - github.com/cloud-native-toolkit/terraform-ibm-sysdig
-  variables: []
+    - github.com/cloud-native-toolkit/terraform-ibm-scc-collector
+  variables:
+    - name: resource_group_name
+    - name: region
+    - name: ibmcloud_api_key
+    - name: name_prefix
+    - name: scc_registration_key

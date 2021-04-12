@@ -2,11 +2,16 @@ import {Inject} from 'typescript-ioc';
 import {TerraformBuilderApi} from './terraform-builder.api';
 import {
   BaseVariable,
+  BillOfMaterial,
+  BillOfMaterialModel,
+  BillOfMaterialModule,
+  BillOfMaterialModuleVariable,
   GlobalRefVariable,
   IBaseVariable,
   isPlaceholderVariable,
   ModuleDependency,
   ModuleOutputRef,
+  ModuleRef,
   ModuleRefVariable,
   ModuleVariable,
   ModuleVersion,
@@ -19,31 +24,31 @@ import {
 import {ModuleSelectorApi} from '../module-selector';
 import {ModuleNotFound} from '../../errors';
 import {of as arrayOf} from '../../util/array-util';
-import {isUndefined, isUndefinedOrNull} from '../../util/object-util';
+import {isDefinedAndNotNull, isUndefined, isUndefinedOrNull} from '../../util/object-util';
 import {Optional} from '../../util/optional';
 
 export class TerraformBuilder implements TerraformBuilderApi {
   constructor(@Inject private selector: ModuleSelectorApi) {
   }
 
-  async buildTerraformComponent(selectedModules: SingleModuleVersion[]): Promise<TerraformComponent> {
-    const stages: { [source: string]: Stage } = selectedModules.reduce((stages: { [source: string]: Stage }, module: SingleModuleVersion) => {
-      moduleToStage(stages, selectedModules, module);
+  async buildTerraformComponent(selectedModules: SingleModuleVersion[], billOfMaterial: BillOfMaterialModel): Promise<TerraformComponent> {
+
+    const stages: { [name: string]: Stage } = selectedModules.reduce((stages: { [name: string]: Stage }, module: SingleModuleVersion) => {
+      moduleToStage(stages, selectedModules, module, billOfMaterial);
       return stages;
     }, {});
 
     const baseVariables: IBaseVariable[] = [];
 
-    const stageSources: string[] = Object.keys(stages);
-    for (let i = 0; i < stageSources.length; i++) {
-      stages[stageSources[i]] = await processStageVariables(stages[stageSources[i]], baseVariables);
-    }
+    await Promise.all(Object.keys(stages).map(async (stageSource) => {
+      stages[stageSource] = await processStageVariables(stages[stageSource], baseVariables);
+    }))
 
     return new TerraformComponent({stages, baseVariables, modules: selectedModules, files: []});
   }
 }
 
-function moduleToStage(stages: {[source: string]: Stage}, modules: SingleModuleVersion[], selectedModule: SingleModuleVersion): Stage {
+function moduleToStage(stages: {[source: string]: Stage}, modules: SingleModuleVersion[], selectedModule: SingleModuleVersion, billOfMaterial: BillOfMaterialModel): Stage {
   const stage: Stage = new StageImpl({
     name: selectedModule.alias || selectedModule.name,
     source: selectedModule.id,
@@ -51,81 +56,76 @@ function moduleToStage(stages: {[source: string]: Stage}, modules: SingleModuleV
     variables: [],
   });
 
-  stages[stage.source] = stage;
+  stages[stage.name] = stage;
 
-  stage.variables = moduleVariablesToStageVariables(selectedModule, stages, modules);
+  stage.variables = moduleVariablesToStageVariables(selectedModule, stages, modules, billOfMaterial);
 
   return stage;
 }
 
-function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[source: string]: Stage}, modules: SingleModuleVersion[]): Array<BaseVariable> {
+function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[source: string]: Stage}, modules: SingleModuleVersion[], billOfMaterial: BillOfMaterialModel): Array<BaseVariable> {
   const moduleVersion: ModuleVersion = module.version;
   const variables: ModuleVariable[] = moduleVersion.variables;
 
   const stageVariables: BaseVariable[] = variables.map(v => {
     if (v.moduleRef) {
-      const moduleRef: ModuleOutputRef = v.moduleRef;
+        const moduleRef: ModuleOutputRef = v.moduleRef;
 
-      const optional: boolean = v.optional === true || !isUndefinedOrNull(v.default)
+        const optional: boolean = v.optional === true || !isUndefinedOrNull(v.default)
 
-      const moduleRefSource: string | undefined = getSourceForModuleRef(moduleRef, moduleVersion, stages, modules, optional, module);
+        const moduleRefSource: {stageName: string} | undefined = getSourceForModuleRef(moduleRef, moduleVersion, stages, modules, optional, module);
 
-      if (!isUndefined(moduleRefSource)) {
-        const refStage: Stage = getStageFromModuleRef(moduleRefSource, stages, modules);
+        if (!isUndefined(moduleRefSource)) {
+          const moduleRefVariable: ModuleRefVariable = new ModuleRefVariable({
+            name: v.name,
+            moduleRef: moduleRefSource,
+            moduleOutputName: moduleRef.output
+          });
 
-        const moduleRefVariable: ModuleRefVariable = new ModuleRefVariable({
-          name: v.name,
-          moduleRef: refStage,
-          moduleOutputName: moduleRef.output
-        });
+          return moduleRefVariable;
+        } else {
+          const placeholderVariable: PlaceholderVariable = new PlaceholderVariable({
+            name: v.name,
+            description: v.description,
+            type: v.type || 'string',
+            scope: v.scope || 'module',
+            defaultValue: defaultValue(v, module.bomModule),
+            alias: v.alias,
+            variable: v,
+          });
 
-        return moduleRefVariable;
+          return placeholderVariable;
+        }
       } else {
         const placeholderVariable: PlaceholderVariable = new PlaceholderVariable({
           name: v.name,
           description: v.description,
           type: v.type || 'string',
           scope: v.scope || 'module',
-          defaultValue: defaultValue(v),
+          defaultValue: defaultValue(v, module.bomModule),
           alias: v.alias,
           variable: v,
         });
 
         return placeholderVariable;
       }
-    } else {
-      const placeholderVariable: PlaceholderVariable = new PlaceholderVariable({
-        name: v.name,
-        description: v.description,
-        type: v.type || 'string',
-        scope: v.scope || 'module',
-        defaultValue: defaultValue(v),
-        alias: v.alias,
-        variable: v,
-      });
-
-      return placeholderVariable;
-    }
   });
 
   return stageVariables;
 }
 
-function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: ModuleVersion, stages: { [p: string]: Stage }, modules: SingleModuleVersion[], optional: boolean, module: SingleModuleVersion): string | undefined {
+function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: ModuleVersion, stages: { [p: string]: Stage }, modules: SingleModuleVersion[], optional: boolean, module: SingleModuleVersion): {stageName: string} | undefined {
+
   const moduleDeps: ModuleDependency = arrayOf(moduleVersion.dependencies)
-    .filter(d => d.id === moduleRef.id)
+    .filter(moduleDep => moduleDep.id === moduleRef.id)
     .first()
     .orElseThrow(new ModuleNotFound(moduleRef.id));
 
-  if (moduleDeps.refs.length === 1) {
-    return moduleDeps.refs[0].source;
-  }
-
-  const source: Optional<string> = arrayOf(moduleDeps.refs)
-    .map((r => stages[r.source]))
-    .filter((s: Stage) => !!s)
-    .map(s => s.source)
-    .first();
+  const source: Optional<{stageName: string}> = arrayOf(moduleDeps.refs)
+    .map(findStageOrModuleName(stages, modules, moduleDeps.discriminator))
+    .filter(isDefinedAndNotNull)
+    .first()
+    .map(stageName => ({stageName}));
 
   if (source.isPresent()) {
     return source.get();
@@ -138,17 +138,32 @@ function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: Module
   return;
 }
 
-function getStageFromModuleRef(moduleSource: string, stages: { [p: string]: Stage }, modules: SingleModuleVersion[]): Stage {
-  if (stages[moduleSource]) {
-    return stages[moduleSource];
-  }
+function findStageOrModuleName(stages: {[name: string]: Stage}, modules: SingleModuleVersion[], discriminator?: string): (ref: ModuleRef) => string {
+  return (ref: ModuleRef): string => {
+    if (discriminator) {
+      const stage = stages[discriminator];
 
-  const filteredModules: SingleModuleVersion[] = modules.filter(m => m.id === moduleSource);
-  if (filteredModules.length === 0) {
-    throw new ModuleNotFound(moduleSource);
-  }
+      if (stage) {
+        return stage.name;
+      }
 
-  return moduleToStage(stages, modules, filteredModules[0]);
+      return arrayOf(modules).filter(m => discriminator === (m.alias || m.name)).first().map(m => discriminator).get();
+    }
+
+    return arrayOf(Object.values(stages))
+      .filter(stage => stage.source === ref.source)
+      .first()
+      .map(s => s.name)
+      .orElse(undefined as any);
+  }
+}
+
+function getStageFromModuleRef(moduleSource: {name: string}, stages: { [p: string]: Stage }, modules: SingleModuleVersion[], billOfMaterial: BillOfMaterialModel): Stage {
+  if (stages[moduleSource.name]) {
+    return stages[moduleSource.name];
+  } else {
+    throw new Error('Stage with name not found: ' + moduleSource.name);
+  }
 }
 
 async function processStageVariables(stage: Stage, globalVariables: IBaseVariable[]): Promise<Stage> {
@@ -205,10 +220,30 @@ function buildModuleVariableName(variable: IBaseVariable, stageName: string) {
   return stageName + '_' + buildGlobalVariableName(variable);
 }
 
-function defaultValue(variable: ModuleVariable) {
-  if (variable.default !== null && variable.default !== undefined) {
-    return variable.default;
+
+function getBomVariable(variable: ModuleVariable, bom?: BillOfMaterialModule): BillOfMaterialModuleVariable | undefined {
+  if (!bom) {
+    return;
   }
 
-  return variable.defaultValue;
+  const optionalBomVariable: Optional<BillOfMaterialModuleVariable> = arrayOf(bom?.variables)
+    .filter(bomVariable => bomVariable.name === variable.name)
+    .first();
+
+  return optionalBomVariable.orElse(undefined as any);
+}
+
+function defaultValue(variable: ModuleVariable, bomModule?: BillOfMaterialModule): any {
+  const bomVariable = arrayOf(bomModule?.variables)
+    .filter(bomVariable => bomVariable.name === variable.name)
+    .first()
+    .map(v => v.value);
+  
+  return bomVariable.orElseGet(() => {
+    if (variable.default !== null && variable.default !== undefined) {
+      return variable.default;
+    }
+
+    return variable.defaultValue;
+  });
 }

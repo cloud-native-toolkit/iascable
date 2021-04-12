@@ -1,6 +1,10 @@
 import {LoggerApi} from '../util/logger';
 import {Container} from 'typescript-ioc';
 import {Module} from './module.model';
+import {BillOfMaterialModule} from './bill-of-material.model';
+import {of as ofArray} from '../util/array-util';
+import {Optional} from '../util/optional';
+import {findMatchingVersions} from '../util/version-resolver';
 
 export interface CatalogCategoryModel {
   category: string;
@@ -15,7 +19,7 @@ export interface CatalogModel {
 export interface CatalogFilter {
   platform?: string;
   provider?: string;
-  modules?: Array<{id: string, version?: string}>;
+  modules?: BillOfMaterialModule[];
 }
 
 function determineModuleProvider(module: Module) {
@@ -76,13 +80,21 @@ export class Catalog implements CatalogModel {
         const filteredModules = (category.modules || [])
           .filter(matchingPlatforms(platform))
           .filter(matchingProviders(provider))
-          .filter(matchingModules(modules));
+          .filter(matchingModules(modules))
+          .map(matchingModuleVersions(modules));
 
         return Object.assign({}, category, {modules: filteredModules});
       })
       .filter((category: CatalogCategoryModel) => (category.modules.length > 0))
 
     return new Catalog({categories: filteredCategories}, {platform, provider});
+  }
+
+  lookupModule(moduleId: {id: string, name?: string} | {name: string, id?: string}): Module | undefined {
+    return ofArray(this.modules)
+      .filter(m => m.id === moduleId.id || m.name === moduleId.name)
+      .first()
+      .orElse(undefined as any);
   }
 }
 
@@ -94,6 +106,25 @@ function matchingProviders(provider?: string): (m: Module) => boolean {
   return (m: Module) => !provider || provider === 'ibm' || determineModuleProvider(m) !== 'ibm';
 }
 
-function matchingModules(modules?: Array<{id: string, version?: string}>): (m: Module) => boolean {
-  return (m: Module) => !modules || modules.some(module => module.id === m.id);
+function matchingModules(modules?: BillOfMaterialModule[]): (m: Module) => boolean {
+  return (m: Module) => {
+    return !modules || modules.some(module => (module.id === m.id || module.name === m.name));
+  };
+}
+
+function matchingModuleVersions(modules?: BillOfMaterialModule[]): (m: Module) => Module {
+  return (m: Module): Module => {
+    const versionMatcher: Optional<string> = ofArray<BillOfMaterialModule>(modules)
+      .filter(module => module.id === m.id || module.name === m.name)
+      .first()
+      .map<string>(module => module.version as any);
+
+    if (!versionMatcher.isPresent()) {
+      return m;
+    }
+
+    const versions = findMatchingVersions(m, versionMatcher.get());
+
+    return Object.assign({}, m, {versions});
+  }
 }

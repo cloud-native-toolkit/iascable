@@ -115,16 +115,28 @@ export const resolveVersions = (versions: Array<string | VersionMatcher[]>): Ver
 
 export function findMatchingVersion<T extends {version: string}, M extends {id: string, versions: Array<T>}>(
   module: M,
-  matchers: VersionMatcher[],
+  matchers: string | VersionMatcher[],
 ): T {
 
-  const matchingVersions: Array<T> = module.versions
-    .sort((a: T, b: T) => compareVersions(a.version, b.version) * -1)
-    .filter(m => matchers.every(v => compareVersions.compare(m.version, v.version, asCompareOperator(v.comparator))));
+  const matchingVersions: Array<T> = findMatchingVersions(module, matchers);
 
   if (matchingVersions.length === 0) {
     throw new ModuleVersionNotFound(module, matchers);
   }
 
   return matchingVersions[0];
+}
+
+export function findMatchingVersions<T extends {version: string}, M extends {id: string, versions: Array<T>}>(
+  module: M,
+  versionMatchers: string | VersionMatcher[],
+): Array<T> {
+
+  const matchers: VersionMatcher[] = parseVersionMatcher(versionMatchers);
+
+  const matchingVersions: Array<T> = module.versions
+    .sort((a: T, b: T) => compareVersions(a.version, b.version) * -1)
+    .filter(m => matchers.every(v => compareVersions.compare(m.version, v.version, asCompareOperator(v.comparator))));
+
+  return matchingVersions;
 }

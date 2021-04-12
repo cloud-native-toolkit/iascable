@@ -75,7 +75,7 @@ export class TerraformVariablesFile implements OutputFile {
 }
 
 export class TerraformComponent implements TerraformComponentModel {
-  stages: { [source: string]: Stage } = {};
+  stages: { [name: string]: Stage } = {};
   baseVariables: TerraformVariable[] = [];
   modules?: SingleModuleVersion[];
 
