@@ -2,7 +2,6 @@ import {Inject} from 'typescript-ioc';
 import {TerraformBuilderApi} from './terraform-builder.api';
 import {
   BaseVariable,
-  BillOfMaterial,
   BillOfMaterialModel,
   BillOfMaterialModule,
   BillOfMaterialModuleVariable,
@@ -31,10 +30,10 @@ export class TerraformBuilder implements TerraformBuilderApi {
   constructor(@Inject private selector: ModuleSelectorApi) {
   }
 
-  async buildTerraformComponent(selectedModules: SingleModuleVersion[], billOfMaterial: BillOfMaterialModel): Promise<TerraformComponent> {
+  async buildTerraformComponent(selectedModules: SingleModuleVersion[]): Promise<TerraformComponent> {
 
     const stages: { [name: string]: Stage } = selectedModules.reduce((stages: { [name: string]: Stage }, module: SingleModuleVersion) => {
-      moduleToStage(stages, selectedModules, module, billOfMaterial);
+      moduleToStage(stages, selectedModules, module);
       return stages;
     }, {});
 
@@ -48,7 +47,7 @@ export class TerraformBuilder implements TerraformBuilderApi {
   }
 }
 
-function moduleToStage(stages: {[source: string]: Stage}, modules: SingleModuleVersion[], selectedModule: SingleModuleVersion, billOfMaterial: BillOfMaterialModel): Stage {
+function moduleToStage(stages: {[source: string]: Stage}, modules: SingleModuleVersion[], selectedModule: SingleModuleVersion): Stage {
   const stage: Stage = new StageImpl({
     name: selectedModule.alias || selectedModule.name,
     source: selectedModule.id,
@@ -58,12 +57,12 @@ function moduleToStage(stages: {[source: string]: Stage}, modules: SingleModuleV
 
   stages[stage.name] = stage;
 
-  stage.variables = moduleVariablesToStageVariables(selectedModule, stages, modules, billOfMaterial);
+  stage.variables = moduleVariablesToStageVariables(selectedModule, stages, modules);
 
   return stage;
 }
 
-function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[source: string]: Stage}, modules: SingleModuleVersion[], billOfMaterial: BillOfMaterialModel): Array<BaseVariable> {
+function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[source: string]: Stage}, modules: SingleModuleVersion[]): Array<BaseVariable> {
   const moduleVersion: ModuleVersion = module.version;
   const variables: ModuleVariable[] = moduleVersion.variables;
 
@@ -238,7 +237,7 @@ function defaultValue(variable: ModuleVariable, bomModule?: BillOfMaterialModule
     .filter(bomVariable => bomVariable.name === variable.name)
     .first()
     .map(v => v.value);
-  
+
   return bomVariable.orElseGet(() => {
     if (variable.default !== null && variable.default !== undefined) {
       return variable.default;

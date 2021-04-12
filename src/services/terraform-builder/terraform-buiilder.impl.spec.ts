@@ -48,7 +48,7 @@ describe('terraform-builder', () => {
       });
 
       test('then use the module defined by the alias', async () => {
-        const result = await classUnderTest.buildTerraformComponent(selectedModules, bom);
+        const result = await classUnderTest.buildTerraformComponent(selectedModules);
 
         expect(Object.keys(result.stages).length).toEqual(4);
 
@@ -81,7 +81,7 @@ describe('terraform-builder', () => {
       });
 
       test('then apply the variables to the resulting terraform module', async () => {
-        const result = await classUnderTest.buildTerraformComponent(selectedModules, bom);
+        const result = await classUnderTest.buildTerraformComponent(selectedModules);
 
         const variableName = result.stages['tools-namespace'].variables.filter(v => v.name === 'name').map(v => (v as GlobalRefVariable).variableName)[0];
         const variables = result.baseVariables.filter(v => v.name === variableName).map(v => v.defaultValue);
