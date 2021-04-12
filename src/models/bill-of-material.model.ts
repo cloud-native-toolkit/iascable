@@ -1,5 +1,7 @@
+import {default as jsYaml} from 'js-yaml';
 import {isSingleModuleVersion, Module, SingleModuleVersion} from './module.model';
 import {of} from '../util/optional';
+import {BillOfMaterialParsingError} from '../errors/bill-of-material.error';
 
 export interface BillOfMaterialModuleDependency {
   name: string;
@@ -136,5 +138,18 @@ export class BillOfMaterial implements BillOfMaterialModel {
     const newSpec: BillOfMaterialSpec = Object.assign({}, this.spec, {modules: newModules});
 
     return Object.assign({}, this, {spec: newSpec});
+  }
+}
+
+export function billOfMaterialFromYaml(bomYaml: string | Buffer, name?: string): BillOfMaterialModel {
+  try {
+    const content: any = jsYaml.load(bomYaml.toString());
+    if (!isBillOfMaterialModel(content)) {
+      throw new Error('Yaml is not a BOM model');
+    }
+
+    return new BillOfMaterial(content, name);
+  } catch (err) {
+    throw new BillOfMaterialParsingError(bomYaml.toString());
   }
 }

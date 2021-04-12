@@ -8,5 +8,6 @@ export * from './catalog-loader';
 export * from './module-selector';
 export * from './terraform-builder';
 export * from './tile-builder';
+export * from './bill-of-material-builder';
 
 Container.bind(IascableApi).to(CatalogBuilder);
