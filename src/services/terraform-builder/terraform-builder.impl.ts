@@ -68,7 +68,7 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
 
   const stageVariables: BaseVariable[] = variables
     .map(v => {
-      if (v.scope === 'ignore' && isDefinedAndNotNull(defaultValue(v))) {
+      if (v.scope === 'ignore') {
         // nothing to do. skip this variable
 
         return undefined as any;
