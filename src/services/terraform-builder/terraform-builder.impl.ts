@@ -66,22 +66,40 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
   const moduleVersion: ModuleVersion = module.version;
   const variables: ModuleVariable[] = moduleVersion.variables;
 
-  const stageVariables: BaseVariable[] = variables.map(v => {
-    if (v.moduleRef) {
-        const moduleRef: ModuleOutputRef = v.moduleRef;
+  const stageVariables: BaseVariable[] = variables
+    .map(v => {
+      if (v.scope === 'ignore' && isDefinedAndNotNull(defaultValue(v))) {
+        // nothing to do. skip this variable
 
-        const optional: boolean = v.optional === true || !isUndefinedOrNull(v.default)
+        return undefined as any;
+      } else if (v.moduleRef) {
+          const moduleRef: ModuleOutputRef = v.moduleRef;
 
-        const moduleRefSource: {stageName: string} | undefined = getSourceForModuleRef(moduleRef, moduleVersion, stages, modules, optional, module);
+          const optional: boolean = v.optional === true || isDefinedAndNotNull(v.default)
 
-        if (!isUndefined(moduleRefSource)) {
-          const moduleRefVariable: ModuleRefVariable = new ModuleRefVariable({
-            name: v.name,
-            moduleRef: moduleRefSource,
-            moduleOutputName: moduleRef.output
-          });
+          const moduleRefSource: {stageName: string} | undefined = getSourceForModuleRef(moduleRef, moduleVersion, stages, modules, optional, module);
 
-          return moduleRefVariable;
+          if (!isUndefined(moduleRefSource)) {
+            const moduleRefVariable: ModuleRefVariable = new ModuleRefVariable({
+              name: v.name,
+              moduleRef: moduleRefSource,
+              moduleOutputName: moduleRef.output
+            });
+
+            return moduleRefVariable;
+          } else {
+            const placeholderVariable: PlaceholderVariable = new PlaceholderVariable({
+              name: v.name,
+              description: v.description,
+              type: v.type || 'string',
+              scope: v.scope || 'module',
+              defaultValue: defaultValue(v, module.bomModule),
+              alias: v.alias,
+              variable: v,
+            });
+
+            return placeholderVariable;
+          }
         } else {
           const placeholderVariable: PlaceholderVariable = new PlaceholderVariable({
             name: v.name,
@@ -95,20 +113,8 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
 
           return placeholderVariable;
         }
-      } else {
-        const placeholderVariable: PlaceholderVariable = new PlaceholderVariable({
-          name: v.name,
-          description: v.description,
-          type: v.type || 'string',
-          scope: v.scope || 'module',
-          defaultValue: defaultValue(v, module.bomModule),
-          alias: v.alias,
-          variable: v,
-        });
-
-        return placeholderVariable;
-      }
-  });
+    })
+    .filter(isDefinedAndNotNull);
 
   return stageVariables;
 }
