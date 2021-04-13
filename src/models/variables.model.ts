@@ -202,7 +202,7 @@ const typeFormatters: {[type: string]: (value: string) => string} = {
   'bool': defaultFormatter,
   'number': (value: string) => value,
   // tslint:disable-next-line:triple-equals
-  'list': (value: any) => value == '' ? '"[]"' : `"${value}"`,
+  'list': (value: any) => value == '' ? '""' : `"${value}"`,
   // tslint:disable-next-line:triple-equals
   'object': (value: any) => value == '' ? '"{}"' : `"${value}"`,
   'string': defaultFormatter,
