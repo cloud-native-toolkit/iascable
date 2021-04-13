@@ -54,8 +54,13 @@ export const builder = (yargs: Argv<any>) => {
     })
     .option('ci', {
       type: 'boolean',
-      default: false,
       demandOption: false,
+      conflicts: 'prompt',
+    })
+    .option('prompt', {
+      type: 'boolean',
+      demandOption: false,
+      conflicts: 'ci',
     })
     .option('debug', {
       type: 'boolean',
@@ -70,6 +75,10 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput>)
   const logger: LoggerApi = Container.get(LoggerApi).child('build');
 
   const bom: BillOfMaterialModel | undefined = await loadBillOfMaterial(argv.input, argv.name);
+
+  if (argv.input && !argv.prompt) {
+    argv.ci = true;
+  }
 
   const name = bom?.metadata?.name || 'component';
   console.log('Name:', name);
