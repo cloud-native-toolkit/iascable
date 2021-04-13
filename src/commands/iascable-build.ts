@@ -7,7 +7,7 @@ import {join, dirname} from 'path';
 import {IascableInput} from './inputs/iascable.input';
 import {CommandLineInput} from './inputs/command-line.input';
 import {
-  BillOfMaterial,
+  BillOfMaterial, billOfMaterialFromYaml,
   BillOfMaterialModel,
   isBillOfMaterialModel,
   isTileConfig,
@@ -90,12 +90,7 @@ async function loadBillOfMaterial(input?: string, name?: string): Promise<BillOf
   async function loadInput(input: string, name?: string): Promise<BillOfMaterialModel> {
     const buffer: Buffer = await promises.readFile(input);
 
-    const content: any = jsYaml.load(buffer.toString());
-    if (!isBillOfMaterialModel(content)) {
-      throw new Error('Input file is not a valid Bill of Material');
-    }
-
-    return new BillOfMaterial(content, name);
+    return billOfMaterialFromYaml(buffer, name);
   }
 
   return input ? loadInput(input, name) : new BillOfMaterial(name);
