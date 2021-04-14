@@ -259,13 +259,7 @@ function mergeBomDependencyDiscriminators(version: ModuleVersion, dependencies?:
 }
 
 function getModuleKey(module: Module, moduleKeys: string[], bom: boolean = false): string {
-  const moduleName = module.alias || module.name;
-
-  if (!bom || !moduleKeys.some(key => key === moduleName)) {
-    return moduleName;
-  }
-
-  return `${moduleName}${moduleKeys.filter(key => key === moduleName).length}`;
+  return module.alias || module.name;
 }
 
 function getModuleDependencies(module: Module): ModuleDependency[] {
