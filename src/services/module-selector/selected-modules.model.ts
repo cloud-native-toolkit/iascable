@@ -7,8 +7,10 @@ import {
   Catalog,
   isModule,
   Module,
-  ModuleDependency, ModuleMatcher,
-  ModuleRef, ModuleVersion,
+  ModuleDependency,
+  ModuleMatcher,
+  ModuleRef,
+  ModuleVersion,
   SingleModuleVersion
 } from '../../models';
 import {ModuleNotFound, ModulesNotFound} from '../../errors';
@@ -102,7 +104,11 @@ export class SelectedModules {
   }
 
   resolveModules(modules: Module[]): SingleModuleVersion[] {
-    modules.forEach(m => this.resolveModuleDependencies(m, true));
+    modules
+      .sort((a: Module, b: Module) => {
+        return getModuleDependencies(b).length - getModuleDependencies(a).length;
+      })
+      .forEach(m => this.resolveModuleDependencies(m, true));
 
     if (this.hasMissingModules()) {
       throw new ModulesNotFound(this.missingModules);
@@ -279,4 +285,27 @@ function getModuleKey(module: Module, moduleKeys: string[], bom: boolean = false
   }
 
   return `${moduleName}${moduleKeys.filter(key => key === moduleName).length}`;
+}
+
+function getModuleDependencies(module: Module): ModuleDependency[] {
+  const moduleVersion: Optional<ModuleVersion> = arrayOf(module.versions)
+    .first();
+
+  if (!moduleVersion.isPresent()) {
+    return [];
+  }
+
+  return (moduleVersion.get().dependencies || []);
+}
+
+function dependenciesContainModule(dependencies: ModuleDependency[], module: Module): boolean {
+  return dependencies
+    .reduce((result: string[], dep: ModuleDependency) => {
+      const sources: string[] = dep.refs.map(m => m.source);
+
+      result.push(...sources);
+
+      return result;
+    }, [])
+    .includes(module.id);
 }
