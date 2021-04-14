@@ -42,22 +42,7 @@ export class SelectedModules {
   }
 
   containsModule(module: Module | ModuleRef, discriminator?: string): boolean {
-    if (!module) {
-      return false;
-    }
-
-    const moduleName: string | undefined = isModule(module) ? module.alias || module.name : discriminator;
-    if (moduleName) {
-      return !!this.modules[moduleName];
-    } else {
-      const ref: string = isModule(module) ? module.id : module.source;
-
-      return Object.values(this.modules).some((m: Module) => {
-        const ids = [m.id, ...(m.aliasIds || [])];
-
-        return ids.includes(ref);
-      });
-    }
+    return containsModule(this.modules, module, discriminator);
   }
 
   addModuleRef(moduleRef: ModuleRef): SelectedModules {
@@ -104,11 +89,7 @@ export class SelectedModules {
   }
 
   resolveModules(modules: Module[]): SingleModuleVersion[] {
-    modules
-      .sort((a: Module, b: Module) => {
-        return getModuleDependencies(b).length - getModuleDependencies(a).length;
-      })
-      .forEach(m => this.resolveModuleDependencies(m, true));
+    modules.forEach(m => this.resolveModuleDependencies(m, modules, true));
 
     if (this.hasMissingModules()) {
       throw new ModulesNotFound(this.missingModules);
@@ -117,7 +98,7 @@ export class SelectedModules {
     return this.resolveModuleVersions();
   }
 
-  resolveModuleDependencies(module: Module, bom: boolean = false) {
+  resolveModuleDependencies(module: Module, modules: Module[], bom: boolean = false) {
     this.logger.debug('Adding module: ', bom, module.id);
     this.addModule(module, bom);
     this.logger.debug('  Added modules: ', Object.keys(this.modules));
@@ -152,7 +133,7 @@ export class SelectedModules {
     const updatedDependencies: ArrayUtil<ModuleDependency> = dependencies
       .map(updateDiscriminatorFromModule)
       .map(updateDiscriminatorFromBOM)
-      .forEach(dep => this.resolveModuleDependency(dep, module.id));
+      .forEach(dep => this.resolveModuleDependency(dep, module.id, modules));
 
     const mutateModuleBomDiscriminators = (originalModule: Module, updatedDeps: ArrayUtil<ModuleDependency>) => {
       const bomModule = originalModule.bomModule;
@@ -181,14 +162,14 @@ export class SelectedModules {
     mutateModuleBomDiscriminators(module, updatedDependencies);
   }
 
-  resolveModuleDependency(dep: ModuleDependency, moduleId: string) {
+  resolveModuleDependency(dep: ModuleDependency, moduleId: string, modules: Module[]) {
     if (!dep || !dep.refs || dep.refs.length === 0) {
       return;
     }
 
     const moduleRefs: ArrayUtil<ModuleRef> = arrayOf(dep.refs)
       .filter(ref => !!this.getCatalogModule(ref))
-      .filter((ref, index, arr) => arr.length === 1 || this.containsModule(ref));
+      .filter((ref, index, arr) => arr.length === 1 || this.containsModule(ref) || containsModules(modules, ref));
 
     this.logger.debug('Dependent module refs: ', {moduleRefs: moduleRefs.asArray()});
 
@@ -207,11 +188,11 @@ export class SelectedModules {
         try {
           const depModule: Module = this.getCatalogModule(moduleRef);
 
-          const updatedModule: Module = Object.assign({}, depModule, {alias: dep.discriminator});
+          const depDiscriminator: string = dep.discriminator || depModule.alias || depModule.name;
 
-          this.resolveModuleDependencies(dep.discriminator
-            ? Object.assign({}, depModule, {alias: dep.discriminator})
-            : depModule
+          this.resolveModuleDependencies(
+            Object.assign({}, depModule, {alias: depDiscriminator}),
+            modules,
           );
         } catch (error) {
           if (!dep.optional) {
@@ -308,4 +289,36 @@ function dependenciesContainModule(dependencies: ModuleDependency[], module: Mod
       return result;
     }, [])
     .includes(module.id);
+}
+
+function containsModules(modules: Module[], module: Module | ModuleRef, discriminator?: string): boolean {
+  const moduleMap: {[source: string]: Module} = modules
+    .reduce((result: {[source: string]: Module}, m: Module) => {
+      const moduleName: string = m.alias || m.name;
+
+      result[moduleName] = m;
+
+      return result;
+    }, {})
+
+  return containsModule(moduleMap, module, discriminator);
+}
+
+function containsModule(modules: {[moduleName: string]: Module}, module: Module | ModuleRef, discriminator?: string): boolean {
+  if (!module) {
+    return false;
+  }
+
+  const moduleName: string | undefined = isModule(module) ? module.alias || module.name : discriminator;
+  if (moduleName) {
+    return !!modules[moduleName];
+  } else {
+    const ref: string = isModule(module) ? module.id : module.source;
+
+    return Object.values(modules).some((m: Module) => {
+      const ids = [m.id, ...(m.aliasIds || [])];
+
+      return ids.includes(ref);
+    });
+  }
 }

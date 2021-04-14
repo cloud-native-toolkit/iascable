@@ -159,7 +159,19 @@ function findStageOrModuleName(stages: {[name: string]: Stage}, modules: SingleM
       .filter(stage => stage.source === ref.source)
       .first()
       .map(s => s.name)
-      .orElse(undefined as any);
+      .orElseGet(() => {
+        console.log('Stage not found, looking for module: ', ref.source);
+
+        const moduleName = arrayOf(modules)
+          .filter(m => m.id === ref.source)
+          .first()
+          .map(m => m.alias || m.name)
+          .orElse(undefined as any);
+
+        console.log('  Resolved module name: ', moduleName);
+
+        return moduleName;
+      });
   }
 }
 
