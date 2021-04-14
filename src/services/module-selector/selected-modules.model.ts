@@ -30,7 +30,7 @@ export class SelectedModules {
 
   addModule(module: Module, bom?: boolean): SelectedModules {
     if (module) {
-      const moduleKey: string = getModuleKey(module, Object.keys(this.modules), bom);
+      const moduleKey: string = getModuleKey(module);
 
       this.modules[moduleKey] = module;
       this.addModuleRef({source: module.id});
@@ -89,7 +89,9 @@ export class SelectedModules {
   }
 
   resolveModules(modules: Module[]): SingleModuleVersion[] {
-    modules.forEach(m => this.resolveModuleDependencies(m, modules, true));
+    modules
+      .map(updateAlias)
+      .forEach(m => this.resolveModuleDependencies(m, modules, true));
 
     if (this.hasMissingModules()) {
       throw new ModulesNotFound(this.missingModules);
@@ -258,7 +260,7 @@ function mergeBomDependencyDiscriminators(version: ModuleVersion, dependencies?:
   return Object.assign({}, version, {dependencies: updatedDependencies});
 }
 
-function getModuleKey(module: Module, moduleKeys: string[], bom: boolean = false): string {
+function getModuleKey(module: Module): string {
   return module.alias || module.name;
 }
 
@@ -315,4 +317,18 @@ function containsModule(modules: {[moduleName: string]: Module}, module: Module 
       return ids.includes(ref);
     });
   }
+}
+
+function updateAlias(targetModule: Module, index: number, modules: Module[]): Module {
+  const nameIndexes = modules
+    .map((m: Module, i: number) => getModuleKey(m) === getModuleKey(targetModule) ? i : -1)
+    .filter(i => i >= 0);
+
+  if (nameIndexes.length === 1 || nameIndexes.indexOf(index) === 0) {
+    return targetModule;
+  }
+
+  const alias: string = `${getModuleKey(targetModule)}${nameIndexes.indexOf(index)}`
+
+  return Object.assign({}, targetModule, {alias});
 }
