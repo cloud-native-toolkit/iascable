@@ -168,7 +168,7 @@ export class TerraformVariableImpl implements TerraformVariable {
 
   asString(): string {
     return `variable "${this.name}" {
-  type = string
+  type = ${this.typeOutput()}
   description = "${this.description}"${this.defaultValueProp()}
 }
 `;
@@ -179,16 +179,24 @@ export class TerraformVariableImpl implements TerraformVariable {
       return '';
     }
 
-    const typeFormatter = getTypeFormatter(this.type);
+    const typeFormatter: Formatter = getTypeFormatter(this.type);
 
-    const value = typeFormatter(this.defaultValue);
+    const {value} = typeFormatter(this.defaultValue);
 
     return `
   default = ${value}`;
   }
+
+  typeOutput(): string {
+    const typeFormatter: Formatter = getTypeFormatter(this.type);
+
+    return typeFormatter(this.defaultValue).type;
+  }
 }
 
-const getTypeFormatter = (type: string) => {
+type Formatter = (value: string) => {type: string, value: string};
+
+const getTypeFormatter = (type: string): Formatter => {
   const lookupType = type.match(/^list\(/) ? 'list' : type.match(/^object\(/) ? 'object' : type;
 
   const formatter = typeFormatters[lookupType] || defaultFormatter;
@@ -196,14 +204,14 @@ const getTypeFormatter = (type: string) => {
   return formatter;
 }
 
-const defaultFormatter: (value: string) => string = (value: string) => `"${value}"`;
+const defaultFormatter: Formatter = (value: string) => ({type: 'string', value: `"${value}"`});
 
-const typeFormatters: {[type: string]: (value: string) => string} = {
-  'bool': defaultFormatter,
-  'number': (value: string) => value,
+const typeFormatters: {[type: string]: Formatter} = {
+  'bool': (value: string) => ({type: 'bool', value}),
+  'number': (value: string) => ({type: 'number', value}),
   // tslint:disable-next-line:triple-equals
-  'list': (value: any) => value == '' ? '""' : `"${value}"`,
+  'list': (value: any) => ({type: 'string', value: value == '' ? '""' : `"${value}"`}),
   // tslint:disable-next-line:triple-equals
-  'object': (value: any) => value == '' ? '"{}"' : `"${value}"`,
+  'object': (value: any) => ({type: 'string', value: value == '' ? '"{}"' : `"${value}"`}),
   'string': defaultFormatter,
 }
