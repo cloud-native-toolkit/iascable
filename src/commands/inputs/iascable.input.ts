@@ -9,4 +9,5 @@ export interface IascableInput {
   tileLabel?: string;
   name: string;
   tileDescription?: string;
+  outDir?: string;
 }
