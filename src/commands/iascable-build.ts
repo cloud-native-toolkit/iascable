@@ -32,6 +32,12 @@ export const builder = (yargs: Argv<any>) => {
       description: 'The path to the bill of materials to use as input',
       demandOption: false,
     })
+    .option('outDir', {
+      alias: 'o',
+      description: 'The base directory where the command output will be written',
+      demandOption: false,
+      default: 'output'
+    })
     .option('platform', {
       description: 'Filter for the platform (kubernetes or ocp4)',
       demandOption: false,
@@ -88,7 +94,7 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput>)
   try {
     const result = await cmd.build(argv.catalogUrl, bom, options);
 
-    await outputResult(join('output', name), result);
+    await outputResult(join(argv.outDir || 'output', name), result);
   } catch (err) {
     logger.error('Error building config', {err})
   }

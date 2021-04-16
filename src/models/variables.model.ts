@@ -71,7 +71,7 @@ export class GlobalRefVariable implements IGlobalRefVariable, BaseVariable {
 
   asString(): string {
     if (this.type === 'list(string)') {
-      return `${this.name} = split(",", var.${this.variableName})\n`;
+      return `${this.name} = tolist(setsubtract(split(",", var.${this.variableName}), [""]))\n`;
     } else if (this.type?.match(/list\(object/)) {
       return `${this.name} = jsondecode(var.${this.variableName})\n`;
     }
