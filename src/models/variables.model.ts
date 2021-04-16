@@ -70,9 +70,7 @@ export class GlobalRefVariable implements IGlobalRefVariable, BaseVariable {
   }
 
   asString(): string {
-    if (this.type === 'bool') {
-      return `${this.name} = var.${this.variableName} == "true"\n`;
-    } else if (this.type === 'list(string)') {
+    if (this.type === 'list(string)') {
       return `${this.name} = split(",", var.${this.variableName})\n`;
     } else if (this.type?.match(/list\(object/)) {
       return `${this.name} = jsondecode(var.${this.variableName})\n`;
