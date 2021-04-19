@@ -2,16 +2,16 @@ import {Container} from 'typescript-ioc';
 import {Arguments, Argv} from 'yargs';
 import {promises} from 'fs';
 import {default as jsYaml} from 'js-yaml';
-import {join, dirname} from 'path';
+import {dirname, join} from 'path';
 
 import {IascableInput} from './inputs/iascable.input';
 import {CommandLineInput} from './inputs/command-line.input';
 import {
-  BillOfMaterial, billOfMaterialFromYaml,
+  BillOfMaterial,
+  billOfMaterialFromYaml,
   BillOfMaterialModel,
-  isBillOfMaterialModel,
   isTileConfig,
-  OutputFile, OutputFileType,
+  OutputFile,
   TerraformComponent,
   Tile
 } from '../models';

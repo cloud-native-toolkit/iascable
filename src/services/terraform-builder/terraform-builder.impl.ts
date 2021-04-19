@@ -22,15 +22,15 @@ import {
 } from '../../models';
 import {ModuleSelectorApi} from '../module-selector';
 import {ModuleNotFound} from '../../errors';
-import {of as arrayOf} from '../../util/array-util';
-import {isDefinedAndNotNull, isUndefined, isUndefinedOrNull} from '../../util/object-util';
+import {ArrayUtil, of as arrayOf} from '../../util/array-util';
+import {isDefinedAndNotNull, isUndefined} from '../../util/object-util';
 import {Optional} from '../../util/optional';
 
 export class TerraformBuilder implements TerraformBuilderApi {
   constructor(@Inject private selector: ModuleSelectorApi) {
   }
 
-  async buildTerraformComponent(selectedModules: SingleModuleVersion[]): Promise<TerraformComponent> {
+  async buildTerraformComponent(selectedModules: SingleModuleVersion[], billOfMaterial?: BillOfMaterialModel): Promise<TerraformComponent> {
 
     const stages: { [name: string]: Stage } = selectedModules.reduce((stages: { [name: string]: Stage }, module: SingleModuleVersion) => {
       moduleToStage(stages, selectedModules, module);
@@ -43,7 +43,7 @@ export class TerraformBuilder implements TerraformBuilderApi {
       stages[stageSource] = await processStageVariables(stages[stageSource], baseVariables);
     }))
 
-    return new TerraformComponent({stages, baseVariables, modules: selectedModules, files: []});
+    return new TerraformComponent({stages, baseVariables, modules: selectedModules, bomVariables: billOfMaterial?.spec.variables, files: []});
   }
 }
 
@@ -62,11 +62,26 @@ function moduleToStage(stages: {[source: string]: Stage}, modules: SingleModuleV
   return stage;
 }
 
+function mergeBomVariables(bomVariables: ArrayUtil<BillOfMaterialModuleVariable>) {
+  return (variable: ModuleVariable): ModuleVariable => {
+    const bomVariable: Optional<BillOfMaterialModuleVariable> = bomVariables
+      .filter(v => v.name === variable.name)
+      .first();
+
+    if (!bomVariable.isPresent()) {
+      return variable;
+    }
+
+    return Object.assign({}, variable, bomVariable.get());
+  };
+}
+
 function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[source: string]: Stage}, modules: SingleModuleVersion[]): Array<BaseVariable> {
   const moduleVersion: ModuleVersion = module.version;
   const variables: ModuleVariable[] = moduleVersion.variables;
 
   const stageVariables: BaseVariable[] = variables
+    .map(mergeBomVariables(arrayOf(module.bomModule?.variables)))
     .map(v => {
       if (v.scope === 'ignore') {
         // nothing to do. skip this variable

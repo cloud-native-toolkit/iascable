@@ -87,3 +87,4 @@ spec:
     - name: region
     - name: ibmcloud_api_key
     - name: name_prefix
+      required: true
