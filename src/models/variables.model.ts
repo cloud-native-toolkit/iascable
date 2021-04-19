@@ -12,6 +12,7 @@ export interface IBaseVariable {
   defaultValue?: string;
   scope?: 'module' | 'global' | 'ignore';
   options?: Array<{label: string, value: string}>;
+  required?: boolean;
 }
 
 export interface BaseVariable extends IBaseVariable, StagePrinter {
@@ -138,8 +139,9 @@ export class TerraformVariableImpl implements TerraformVariable {
   private _type: string = '';
   private _description: string = '';
   private _defaultValue: any;
+  private _required?: boolean;
 
-  constructor(values: {name: string, defaultValue?: string, type?: string, description?: string}) {
+  constructor(values: {name: string, defaultValue?: string, type?: string, description?: string, required?: boolean}) {
     Object.assign(this, values);
   }
 
@@ -164,6 +166,13 @@ export class TerraformVariableImpl implements TerraformVariable {
     this._description = description;
   }
 
+  get required(): boolean | undefined {
+    return this._required;
+  }
+  set required(required: boolean | undefined) {
+    this._required = required;
+  }
+
   asString(): string {
     return `variable "${this.name}" {
   type = ${this.typeOutput()}
@@ -173,7 +182,7 @@ export class TerraformVariableImpl implements TerraformVariable {
   }
 
   defaultValueProp(): string {
-    if (this._defaultValue === undefined || this._defaultValue === null) {
+    if (this._defaultValue === undefined || this._defaultValue === null || this.required) {
       return '';
     }
 

@@ -8,6 +8,10 @@ import {
 } from './variables.model';
 import {OutputFile, OutputFileType, UrlFile} from './file.model';
 import {SingleModuleVersion} from './module.model';
+import {BillOfMaterialVariable} from './bill-of-material.model';
+import {ArrayUtil, of as arrayOf} from '../util/array-util';
+import {Optional} from '../util/optional';
+import {isDefinedAndNotNull} from '../util/object-util';
 
 export * from './module.model';
 
@@ -24,6 +28,7 @@ export interface Stage extends IStage, StagePrinter {
 export interface TerraformComponentModel {
   stages: { [source: string]: Stage };
   baseVariables: IBaseVariable[];
+  bomVariables?: BillOfMaterialVariable[];
   modules?: SingleModuleVersion[];
   files: OutputFile[];
 }
@@ -51,24 +56,54 @@ export class TerraformStageFile implements OutputFile {
   }
 }
 
+function getValue(value?: string, defaultValue?: string): string | undefined {
+  if (isDefinedAndNotNull((value))) {
+    return value;
+  }
+
+  return defaultValue;
+}
+
+function mergeBomVariables(bomVariables: ArrayUtil<BillOfMaterialVariable>) {
+  return (variable: TerraformVariable): TerraformVariable => {
+    const bomVariable: Optional<BillOfMaterialVariable> = bomVariables
+      .filter(v => v.name === variable.name)
+      .first();
+
+    if (!bomVariable.isPresent()) {
+      return variable;
+    }
+
+    return Object.assign(
+      {},
+      variable,
+      bomVariable.get(),
+      {defaultValue: getValue(bomVariable.get().value, variable.defaultValue)}
+    );
+  };
+}
+
 export class TerraformVariablesFile implements OutputFile {
-  constructor(private variables: TerraformVariable[]) {
+  constructor(private variables: TerraformVariable[], private bomVariables?: BillOfMaterialVariable[]) {
   }
 
   name = 'variables.tf';
   type = OutputFileType.terraform;
 
   get contents(): Promise<string | Buffer> {
-    const buffer: Buffer = this.variables.reduce((previousBuffer: Buffer, variable: TerraformVariable) => {
-      if (!variable.asString) {
-        variable = new TerraformVariableImpl(variable);
-      }
 
-      return Buffer.concat([
-        previousBuffer,
-        Buffer.from(variable.asString())
-      ]);
-    }, Buffer.from(''))
+    const buffer: Buffer = this.variables
+      .map(mergeBomVariables(arrayOf(this.bomVariables)))
+      .reduce((previousBuffer: Buffer, variable: TerraformVariable) => {
+        if (!variable.asString) {
+          variable = new TerraformVariableImpl(variable);
+        }
+
+        return Buffer.concat([
+          previousBuffer,
+          Buffer.from(variable.asString())
+        ]);
+      }, Buffer.from(''));
 
     return Promise.resolve(buffer);
   }
@@ -77,6 +112,7 @@ export class TerraformVariablesFile implements OutputFile {
 export class TerraformComponent implements TerraformComponentModel {
   stages: { [name: string]: Stage } = {};
   baseVariables: TerraformVariable[] = [];
+  bomVariables?: BillOfMaterialVariable[] = []
   modules?: SingleModuleVersion[];
 
   constructor(model: TerraformComponentModel) {
@@ -90,7 +126,7 @@ export class TerraformComponent implements TerraformComponentModel {
   get files(): OutputFile[] {
     const files: OutputFile[] = [
       new TerraformStageFile(this.stages),
-      new TerraformVariablesFile(this.baseVariables),
+      new TerraformVariablesFile(this.baseVariables, this.bomVariables),
       ...buildModuleReadmes(this.modules),
     ];
 

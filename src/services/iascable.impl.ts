@@ -38,7 +38,7 @@ export class CatalogBuilder implements IascableApi {
 
     const modules: SingleModuleVersion[] = await this.moduleSelector.resolveBillOfMaterial(catalog, billOfMaterial);
 
-    const terraformComponent: TerraformComponent = await this.terraformBuilder.buildTerraformComponent(modules);
+    const terraformComponent: TerraformComponent = await this.terraformBuilder.buildTerraformComponent(modules, billOfMaterial);
 
     const tile: Tile | undefined = options?.tileConfig ? await this.tileBuilder.buildTileMetadata(terraformComponent.baseVariables, options.tileConfig) : undefined;
 

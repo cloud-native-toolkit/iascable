@@ -1,7 +1,7 @@
 import {default as jsYaml} from 'js-yaml';
 import {isSingleModuleVersion, Module, SingleModuleVersion} from './module.model';
 import {of} from '../util/optional';
-import {BillOfMaterialParsingError} from '../errors/bill-of-material.error';
+import {BillOfMaterialParsingError} from '../errors';
 
 export interface BillOfMaterialModuleDependency {
   name: string;
@@ -10,7 +10,11 @@ export interface BillOfMaterialModuleDependency {
 
 export interface BillOfMaterialModuleVariable {
   name: string;
-  value: any;
+  value?: any;
+  description?: string;
+  alias?: string;
+  scope?: string;
+  required?: boolean;
 }
 
 export interface BaseBillOfMaterialModule {
