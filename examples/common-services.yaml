@@ -4,16 +4,27 @@ metadata:
   name: common-services
 spec:
   modules:
-    - github.com/cloud-native-toolkit/terraform-ibm-access-group
-    - github.com/cloud-native-toolkit/terraform-ibm-activity-tracker
-    - github.com/cloud-native-toolkit/terraform-ibm-object-storage
-    - github.com/cloud-native-toolkit/terraform-ibm-key-protect
-    - github.com/cloud-native-toolkit/terraform-ibm-logdna
-    - github.com/cloud-native-toolkit/terraform-ibm-sysdig
-    - github.com/cloud-native-toolkit/terraform-ibm-scc-collector
-  variables:
-    - name: resource_group_name
-    - name: region
-    - name: ibmcloud_api_key
-    - name: name_prefix
-    - name: scc_registration_key
+    - name: key-protect
+    - name: ibm-object-storage
+    - name: ibm-activity-tracker
+    - name: sysdig
+    - name: ibm-resource-group
+    - name: logdna
+    - name: ibm-access-group
+    - name: ibm-vpc
+    - name: scc-collector
+      dependencies:
+        - name: subnets
+          ref: scc-subnets
+    - name: hpcs
+      variables:
+        - name: provision
+          value: false
+    - name: ibm-vpc-subnets
+      alias: scc-subnets
+      variables:
+        - name: subnet_count
+          value: 1
+        - name: subnet_label
+          value: scc
+  variables: []
