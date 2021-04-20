@@ -62,6 +62,7 @@ spec:
       dependencies:
         - name: resource_group
           ref: cs_resource_group
+    - name: logdna-bind
     - name: sysdig
       variables:
         - name: provision
@@ -71,8 +72,29 @@ spec:
       dependencies:
         - name: resource_group
           ref: cs_resource_group
-    - name: ibm-logdna-bind
-    - name: ibm-sysdig-bind
+    - name: sysdig-bind
+    - name: ibm-redis
+      variables:
+        - name: provision
+          value: true
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
+    - name: ibm-object-storage
+      alias: cos
+      variables:
+        - name: provision
+          value: false
+        - name: region
+          alias: cs_region
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
+    - name: ibm-vpe-gateway
+      alias: vpe-cos
+      dependencies:
+        - name: resource
+          ref: cos
     - name: argocd
     - name: dashboard
     - name: pactbroker

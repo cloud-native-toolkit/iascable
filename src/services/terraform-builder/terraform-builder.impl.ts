@@ -136,23 +136,28 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
 
 function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: ModuleVersion, stages: { [p: string]: Stage }, modules: SingleModuleVersion[], optional: boolean, module: SingleModuleVersion): {stageName: string} | undefined {
 
-  const moduleDeps: ModuleDependency = arrayOf(moduleVersion.dependencies)
+  const moduleDep: ModuleDependency = arrayOf(moduleVersion.dependencies)
     .filter(moduleDep => moduleDep.id === moduleRef.id)
     .first()
     .orElseThrow(new ModuleNotFound(moduleRef.id));
 
-  const source: Optional<{stageName: string}> = arrayOf(moduleDeps.refs)
-    .map(findStageOrModuleName(stages, modules, moduleDeps.discriminator))
+  const source: Optional<{stageName: string}> = arrayOf(moduleDep.refs)
+    .map(findStageOrModuleName(stages, modules, moduleDep.discriminator))
     .filter(isDefinedAndNotNull)
     .first()
+    .mapIfNotPresent(() => findStageOrModuleName(stages, modules, moduleDep.discriminator)({source: ''}))
     .map(stageName => ({stageName}));
 
   if (source.isPresent()) {
     return source.get();
   }
 
+  if (moduleDep.discriminator) {
+
+  }
+
   if (!optional) {
-    source.orElseThrow(new ModuleNotFound(moduleDeps.id, module.id));
+    source.orElseThrow(new ModuleNotFound(moduleDep.id, module.id));
   }
 
   return;
