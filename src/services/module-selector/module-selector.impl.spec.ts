@@ -12,6 +12,7 @@ import {ModuleSelector} from './module-selector.impl';
 import {LoggerApi} from '../../util/logger';
 import {NoopLoggerImpl} from '../../util/logger/noop-logger.impl';
 import {isDefinedAndNotNull} from '../../util/object-util';
+import {BillOfMaterialModuleConfigError} from '../../errors';
 
 describe('module-selector', () => {
   test('canary verifies test infrastructure', () => {
@@ -201,5 +202,90 @@ describe('module-selector', () => {
         expect(dependencies.every(d => d?.every(x => !!x.ref))).toBe(true);
       });
     });
+  });
+
+  describe('given validateBillOfMaterialModuleConfigYaml()', () => {
+    const testCatalog: CatalogModel = {
+      categories: [{
+        category: 'test',
+        selection: 'multiple',
+        modules: [{
+          id: 'github.com/validation-test',
+          name: 'validation-test',
+          platforms: [],
+          category: 'test',
+          versions: [{
+            version: '1.0.0',
+            variables: [{
+              name: 'variable1',
+              type: 'string',
+            }, {
+              name: 'variable2',
+              type: 'string',
+            }],
+            dependencies: [{
+              id: 'dep1',
+              refs: [],
+            }, {
+              id: 'dep2',
+              refs: [],
+            }],
+            outputs: []
+          }]
+        }]
+      }]
+    };
+
+    describe('when config contains variable that does not exist in module', () => {
+      test('then should throw an error', async () => {
+        const yaml: string = `variables:
+  - name: variable1
+    value: val
+  - name: myvariable
+    value: false`;
+
+        return classUnderTest.validateBillOfMaterialModuleConfigYaml(testCatalog, 'validation-test', yaml)
+          .then(val => expect(val).toEqual('Should fail'))
+          .catch((err: BillOfMaterialModuleConfigError) => {
+            expect(err.unmatchedVariableNames).toEqual(['myvariable'])
+            expect(err.availableVariableNames).toEqual(['variable1', 'variable2'])
+          });
+      });
+    });
+
+    describe('when config contains dependency that does not exist in module', () => {
+      test('then should throw an error', async () => {
+        const yaml: string = `dependencies:
+  - name: dep1
+    ref: test
+  - name: mydep
+    ref: test2`;
+
+        return classUnderTest.validateBillOfMaterialModuleConfigYaml(testCatalog, 'validation-test', yaml)
+          .then(val => expect(val).toEqual('Should fail'))
+          .catch((err: BillOfMaterialModuleConfigError) => {
+            expect(err.unmatchedDependencyNames).toEqual(['mydep'])
+            expect(err.availableDependencyNames).toEqual(['dep1', 'dep2'])
+          });
+      });
+    });
+
+
+    describe('when config yaml is invalid', () => {
+      test('then should throw an error', async () => {
+        const yaml: string = `dependencies:
+  - name: dep1
+       ref: test
+  - name: mydep
+    ref: test2`;
+
+        return classUnderTest.validateBillOfMaterialModuleConfigYaml(testCatalog, 'validation-test', yaml)
+          .then(val => expect(val).toEqual('Should fail'))
+          .catch((err) => {
+            expect(err).toBeDefined();
+          });
+      });
+    });
+
   });
 });

@@ -1,9 +1,12 @@
+import {default as jsYaml} from 'js-yaml';
+import {Container} from 'typescript-ioc';
+
 import {ModuleSelectorApi} from './module-selector.api';
 import {SelectedModules} from './selected-modules.model';
 import {
   BillOfMaterial,
   BillOfMaterialModel,
-  BillOfMaterialModule,
+  BillOfMaterialModule, BillOfMaterialModuleDependency, BillOfMaterialModuleVariable,
   Catalog,
   CatalogCategoryModel,
   CatalogModel,
@@ -13,7 +16,8 @@ import {
 import {QuestionBuilder} from '../../util/question-builder';
 import {QuestionBuilderImpl} from '../../util/question-builder/question-builder.impl';
 import {LoggerApi} from '../../util/logger';
-import {Container} from 'typescript-ioc';
+import {BillOfMaterialModuleConfigError, ModuleNotFound} from '../../errors';
+import {ArrayUtil, of as arrayOf} from '../../util/array-util';
 
 export class ModuleSelector implements ModuleSelectorApi {
   logger: LoggerApi;
@@ -125,6 +129,36 @@ export class ModuleSelector implements ModuleSelectorApi {
     this.logger.debug('Modules', modules);
 
     return new SelectedModules(fullCatalog).resolveModules(modules);
+  }
+
+  async validateBillOfMaterialModuleConfigYaml(catalogModel: CatalogModel, moduleRef: string, yaml: string) {
+    const fullCatalog: Catalog = Catalog.fromModel(catalogModel);
+
+    const module: Module | undefined = fullCatalog.lookupModule({id: moduleRef, name: moduleRef});
+    if (!module) {
+      throw new ModuleNotFound(moduleRef);
+    }
+
+    const availableVariableNames: string[] = arrayOf(module.versions[0].variables)
+      .map(v => v.name)
+      .asArray();
+    const availableDependencyNames: string[] = arrayOf(module.versions[0].dependencies)
+      .map(v => v.id)
+      .asArray();
+
+    const moduleConfig: BillOfMaterialModule = jsYaml.load(yaml) as any;
+    const unmatchedVariableNames: string[] = arrayOf(moduleConfig.variables)
+      .filter(v => !availableVariableNames.includes(v.name))
+      .map(v => v.name)
+      .asArray();
+    const unmatchedDependencyNames: string[] = arrayOf(moduleConfig.dependencies)
+      .filter(d => !availableDependencyNames.includes(d.name))
+      .map(d => d.name)
+      .asArray();
+
+    if (unmatchedVariableNames.length > 0 || unmatchedDependencyNames.length > 0) {
+      throw new BillOfMaterialModuleConfigError({unmatchedVariableNames, unmatchedDependencyNames, availableVariableNames, availableDependencyNames});
+    }
   }
 }
 
