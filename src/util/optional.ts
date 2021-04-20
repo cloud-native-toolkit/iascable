@@ -1,3 +1,4 @@
+import {isDefinedAndNotNull, isUndefinedOrNull} from './object-util';
 
 export class NoSuchElement extends Error {
   constructor(message?: string) {
@@ -69,6 +70,14 @@ export class Optional<T = any> {
     } else {
       return this as any;
     }
+  }
+
+  mapIfNotPresent(f: () => T): Optional<T> {
+    if (isDefinedAndNotNull(this.value)) {
+      return this;
+    }
+
+    return Optional.of(f());
   }
 }
 

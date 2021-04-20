@@ -106,7 +106,7 @@ export class SelectedModules {
     this.logger.debug('  Added modules: ', Object.keys(this.modules));
     this.logger.debug('  Added moduleRefs: ', Object.keys(this.moduleRefs));
 
-    const dependencies: ArrayUtil<ModuleDependency> = arrayOf(module.versions[0].dependencies);
+    const dependencies: ArrayUtil<ModuleDependency> = arrayOf(module.versions[0]?.dependencies);
     this.logger.debug('Modules: ', {module: module.name, dependencies});
 
     const updateDiscriminatorFromModule: (dep: ModuleDependency) => ModuleDependency = (dep: ModuleDependency) => {
@@ -166,6 +166,12 @@ export class SelectedModules {
 
   resolveModuleDependency(dep: ModuleDependency, moduleId: string, modules: Module[]) {
     if (!dep || !dep.refs || dep.refs.length === 0) {
+      return;
+    }
+
+    const discriminator: string | undefined = dep.discriminator;
+    if (discriminator && this.containsModule({source: ''}, discriminator)) {
+      this.logger.debug('Matched module using discriminator: ', discriminator);
       return;
     }
 
