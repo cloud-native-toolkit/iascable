@@ -23,6 +23,10 @@ export class ArrayUtil<T = any> {
     return new ArrayUtil(this.value.map(f));
   }
 
+  reduce<U>(f: (result: U, current: T) => U, init: U): U {
+    return this.value.reduce(f, init);
+  }
+
   forEach(f: (value: T, index: number, array: T[]) => void): ArrayUtil<T> {
     this.value.forEach(f);
 
@@ -39,6 +43,10 @@ export class ArrayUtil<T = any> {
 
   get length(): number {
     return this.value.length;
+  }
+
+  join(separator?: string): string {
+    return this.value.join(separator);
   }
 
   asArray(): T[] {

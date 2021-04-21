@@ -119,7 +119,7 @@ export class SelectedModules {
         return dep;
       }
 
-      return Object.assign({}, dep, {discriminator: module.alias || module.name});
+      return Object.assign({}, dep, {discriminator: dep.discriminator || module.alias || module.name});
     };
 
     const updateDiscriminatorFromBOM: (dep: ModuleDependency) => ModuleDependency = (dep: ModuleDependency) => {
@@ -170,6 +170,7 @@ export class SelectedModules {
     }
 
     const discriminator: string | undefined = dep.discriminator;
+    this.logger.debug(' **** Discriminator: ', discriminator);
     if (discriminator && this.containsModule({source: ''}, discriminator)) {
       this.logger.debug('Matched module using discriminator: ', discriminator);
       return;
@@ -207,6 +208,8 @@ export class SelectedModules {
             this.addMissingModule(moduleRef);
           }
         }
+      } else {
+        this.logger.debug(`Already contains module(${moduleId}): `, moduleRef);
       }
 
       this.addModuleRef(moduleRef);
@@ -312,7 +315,7 @@ function containsModule(modules: {[moduleName: string]: Module}, module: Module 
   }
 
   const moduleName: string | undefined = isModule(module) ? module.alias || module.name : discriminator;
-  if (moduleName) {
+  if (moduleName && moduleName !== '*') {
     return !!modules[moduleName];
   } else {
     const ref: string = isModule(module) ? module.id : module.source;

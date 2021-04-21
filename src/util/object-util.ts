@@ -3,6 +3,10 @@ export function isUndefined(value: any): value is undefined {
   return value === undefined;
 }
 
+export function isUndefinedOrEmpty(value: any): boolean {
+  return value === undefined || (Array.isArray(value) && value.length === 0);
+}
+
 export function isUndefinedOrNull(value: any): boolean {
   return value === undefined || value === null;
 }

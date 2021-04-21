@@ -72,6 +72,7 @@ export interface ModuleVariable {
   default?: string;
   defaultValue?: string;
   moduleRef?: ModuleOutputRef;
+  mapper?: 'equality' | 'collect';
 }
 
 export interface ModuleOutputRef {

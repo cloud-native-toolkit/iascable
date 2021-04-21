@@ -5,6 +5,18 @@ metadata:
 spec:
   modules:
     - name: ibm-resource-group
+      alias: mgmt_resource_group
+    - name: ibm-vpc
+      alias: mgmt-vpc
+      variables:
+        - name: provision
+          value: false
+        - name: name
+          required: true
+      dependencies:
+        - name: resource_group
+          ref: mgmt_resource_group
+    - name: ibm-resource-group
     - name: ibm-vpc
     - name: ibm-vpc-gateways
     - name: ibm-vpc-subnets
@@ -18,17 +30,6 @@ spec:
       dependencies:
         - name: subnets
           ref: cluster-subnets
-    - name: ibm-vpc-subnets
-      alias: bastion-subnets
-      variables:
-        - name: subnet_count
-          value: 2
-        - name: subnet_label
-          value: bastion
-    - name: vsi-bastion
-      dependencies:
-        - name: subnets
-          ref: bastion-subnets
     - name: namespace
       variables:
         - name: name
@@ -80,30 +81,8 @@ spec:
       dependencies:
         - name: resource_group
           ref: cs_resource_group
-    - name: ibm-object-storage
-      alias: cos
-      variables:
-        - name: provision
-          value: false
-        - name: region
-          alias: cs_region
-      dependencies:
-        - name: resource_group
-          ref: cs_resource_group
-    - name: ibm-vpe-gateway
-      alias: vpe-cos
-      dependencies:
-        - name: resource
-          ref: cos
     - name: argocd
-    - name: dashboard
-    - name: pactbroker
-    - name: artifactory
-    - name: swaggereditor
-    - name: sonarqube
-    - name: tekton
-    - name: resources
-    - name: source-control
+    - name: ibm-transit-gateway
   variables:
     - name: resource_group_name
     - name: region

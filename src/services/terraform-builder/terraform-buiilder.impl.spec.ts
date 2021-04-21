@@ -54,7 +54,7 @@ describe('terraform-builder', () => {
 
         const variableRefs = result.stages['tools-namespace'].variables
           .filter(v => isModuleRefVariable(v))
-          .map(v => (v as ModuleRefVariable).moduleRef.stageName)
+          .map(v => ((v as ModuleRefVariable).moduleRef as any).stageName)
 
         expect(variableRefs.reduce((result: string[], val: string) => {
           if (!result.includes(val)) {

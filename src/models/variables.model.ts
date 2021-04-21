@@ -1,4 +1,5 @@
 import {ModuleVariable} from './module.model';
+import {ArrayUtil, of as arrayOf} from '../util/array-util';
 
 export interface StagePrinter {
   asString(stages: {[name: string]: {name: string}}): string;
@@ -19,8 +20,9 @@ export interface BaseVariable extends IBaseVariable, StagePrinter {
 }
 
 export interface IModuleVariable extends IBaseVariable {
-  moduleRef: {stageName: string};
+  moduleRef: {stageName: string} | {stageName: string}[];
   moduleOutputName: string;
+  mapper?: 'equality' | 'collect';
 }
 
 export class ModuleRefVariable implements IModuleVariable, BaseVariable {
@@ -29,8 +31,9 @@ export class ModuleRefVariable implements IModuleVariable, BaseVariable {
   type?: string;
   scope?: 'global' | 'module' | 'ignore' = 'module';
 
-  moduleRef: {stageName: string};
+  moduleRef: {stageName: string} | {stageName: string}[];
   moduleOutputName: string;
+  mapper?: 'equality' | 'collect' = 'equality';
 
   constructor(values: IModuleVariable) {
     this.name = values.name;
@@ -39,13 +42,36 @@ export class ModuleRefVariable implements IModuleVariable, BaseVariable {
     this.scope = values.scope;
     this.moduleRef = values.moduleRef;
     this.moduleOutputName = values.moduleOutputName;
+    this.mapper = values.mapper || 'equality';
   }
 
   asString(stages: {[name: string]: {name: string}}): string {
-    const module: {name: string} = stages[this.moduleRef.stageName];
-
-    return `${this.name} = module.${module.name}.${this.moduleOutputName}\n`;
+    return `${this.name} = ${this.valueString(stages)}\n`;
   }
+
+  valueString(stages: {[name: string]: {name: string}}): string {
+    if (Array.isArray(this.moduleRef)) {
+      const modules: ArrayUtil<{ name: string }> = arrayOf(this.moduleRef)
+        .map(moduleRef => stages[moduleRef.stageName]);
+
+      if (this.mapper === 'collect') {
+        const result = modules.map(this.moduleRefString.bind(this));
+
+        return '[' + result.join(',') + ']';
+      } else {
+        return this.moduleRefString(modules.first().get());
+      }
+    } else {
+      const module: { name: string } = stages[this.moduleRef.stageName];
+
+      return this.moduleRefString(module);
+    }
+  }
+
+  moduleRefString(module: {name: string}): string {
+    return `module.${module.name}.${this.moduleOutputName}`;
+  }
+
 }
 
 export function isModuleRefVariable(value: IBaseVariable): value is ModuleRefVariable {
