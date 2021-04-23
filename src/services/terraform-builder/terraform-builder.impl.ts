@@ -142,6 +142,8 @@ function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: Module
     .first()
     .orElseThrow(new ModuleNotFound(moduleRef.id));
 
+  console.log('Found ModuleDep: ', moduleDep);
+
   const stageNames: string[] = arrayOf(moduleDep.refs)
     .map(findStageOrModuleNames(stages, modules, moduleDep.discriminator))
     .reduce((result: string[], current: string[]) => {
@@ -152,6 +154,7 @@ function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: Module
     .filter(isDefinedAndNotNull);
 
   if (stageNames.length > 0) {
+    console.log('Found stage names: ', stageNames);
     return stageNames.map(stageName => ({stageName}));
   }
 
@@ -173,6 +176,8 @@ function findStageOrModuleNames(stages: {[name: string]: Stage}, modules: Single
   return (ref: ModuleRef): string[] => {
     if (discriminator && discriminator !== '*') {
       const stage = stages[discriminator];
+
+      console.log('Processing discriminator: ', discriminator);
 
       if (stage) {
         return [stage.name];

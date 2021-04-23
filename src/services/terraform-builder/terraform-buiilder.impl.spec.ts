@@ -35,6 +35,7 @@ describe('terraform-builder', () => {
     describe('when BOM module references a dependent module alias', () => {
       const modules: BillOfMaterialModule[] = [
         {name: 'ibm-container-platform'},
+        {name: 'ibm-container-platform', alias: 'mycluster'},
         {name: 'namespace', alias: 'tools-namespace', dependencies: [{name: 'cluster', ref: 'mycluster'}]},
         {name: 'namespace', alias: 'namespace', dependencies: [{name: 'cluster', ref: 'cluster'}]},
       ];
