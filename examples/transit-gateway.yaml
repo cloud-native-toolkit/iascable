@@ -4,10 +4,10 @@ metadata:
   name: transit-gateway
 spec:
   modules:
+    - name: ibm-transit-gateway
     - name: ibm-resource-group
     - name: ibm-vpc
       alias: vpc1
     - name: ibm-vpc
       alias: vpc2
-    - name: ibm-transit-gateway
   variables: []

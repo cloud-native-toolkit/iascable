@@ -2,7 +2,7 @@ import {
   BillOfMaterial,
   BillOfMaterialModel,
   BillOfMaterialModule, CatalogModel, GlobalRefVariable, isModuleRefVariable, ModuleRefVariable,
-  SingleModuleVersion
+  SingleModuleVersion, TerraformComponent
 } from '../../models';
 import {TerraformBuilder} from './terraform-builder.impl';
 import {Container} from 'typescript-ioc';
@@ -49,20 +49,20 @@ describe('terraform-builder', () => {
       });
 
       test('then use the module defined by the alias', async () => {
-        const result = await classUnderTest.buildTerraformComponent(selectedModules);
+        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules);
 
         expect(Object.keys(result.stages).length).toEqual(4);
 
         const variableRefs = result.stages['tools-namespace'].variables
           .filter(v => isModuleRefVariable(v))
-          .map(v => ((v as ModuleRefVariable).moduleRef as any).stageName)
+          .map(v => ((v as ModuleRefVariable).moduleRef as any)[0].stageName);
 
-        expect(variableRefs.reduce((result: string[], val: string) => {
-          if (!result.includes(val)) {
-            result.push(val);
+        expect(variableRefs.reduce((refs: string[], val: string) => {
+          if (!refs.includes(val)) {
+            refs.push(val);
           }
 
-          return result;
+          return refs;
         }, [])).toEqual(['mycluster']);
       });
     });

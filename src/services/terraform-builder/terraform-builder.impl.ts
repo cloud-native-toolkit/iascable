@@ -142,27 +142,32 @@ function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: Module
     .first()
     .orElseThrow(new ModuleNotFound(moduleRef.id));
 
-  console.log('Found ModuleDep: ', moduleDep);
+  if (moduleDep.discriminator && moduleDep.discriminator !== '*') {
+    const stageNamesFromDiscriminator: {stageName: string}[] = findStageOrModuleNames(stages, modules, moduleDep.discriminator)({source: ''})
+      .map(stageName => ({stageName}));
 
-  const stageNames: string[] = arrayOf(moduleDep.refs)
-    .map(findStageOrModuleNames(stages, modules, moduleDep.discriminator))
-    .reduce((result: string[], current: string[]) => {
-      result.push(...current);
+    if (stageNamesFromDiscriminator.length > 0) {
+      return stageNamesFromDiscriminator;
+    }
 
-      return result;
-    }, [])
-    .filter(isDefinedAndNotNull);
-
-  if (stageNames.length > 0) {
-    console.log('Found stage names: ', stageNames);
-    return stageNames.map(stageName => ({stageName}));
+    if (!optional) {
+      throw new ModuleNotFound(moduleDep.id, module.id);
+    }
   }
 
-  const stageNamesFromDiscriminator: {stageName: string}[] = findStageOrModuleNames(stages, modules, moduleDep.discriminator)({source: ''})
-    .map(stageName => ({stageName}));
+  const sources: string[] = arrayOf(moduleDep.refs)
+    .map(m => m.source)
+    .asArray();
 
-  if (stageNamesFromDiscriminator.length > 0) {
-    return stageNamesFromDiscriminator;
+  const stageNames: string[] = Object.keys(stages)
+    .filter(stageName => {
+      const stage: Stage = stages[stageName];
+
+      return sources.includes(stage.source);
+    });
+
+  if (stageNames.length > 0) {
+    return stageNames.map(stageName => ({stageName}));
   }
 
   if (!optional) {
@@ -176,8 +181,6 @@ function findStageOrModuleNames(stages: {[name: string]: Stage}, modules: Single
   return (ref: ModuleRef): string[] => {
     if (discriminator && discriminator !== '*') {
       const stage = stages[discriminator];
-
-      console.log('Processing discriminator: ', discriminator);
 
       if (stage) {
         return [stage.name];
