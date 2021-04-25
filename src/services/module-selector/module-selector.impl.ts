@@ -6,18 +6,20 @@ import {SelectedModules} from './selected-modules.model';
 import {
   BillOfMaterial,
   BillOfMaterialModel,
-  BillOfMaterialModule, BillOfMaterialModuleDependency, BillOfMaterialModuleVariable,
+  BillOfMaterialModule,
   Catalog,
   CatalogCategoryModel,
   CatalogModel,
   Module,
-  SingleModuleVersion
+  SingleModuleVersion,
+  wrapModule,
+  WrappedModule
 } from '../../models';
 import {QuestionBuilder} from '../../util/question-builder';
 import {QuestionBuilderImpl} from '../../util/question-builder/question-builder.impl';
 import {LoggerApi} from '../../util/logger';
 import {BillOfMaterialModuleConfigError, ModuleNotFound} from '../../errors';
-import {ArrayUtil, of as arrayOf} from '../../util/array-util';
+import {of as arrayOf} from '../../util/array-util';
 
 export class ModuleSelector implements ModuleSelectorApi {
   logger: LoggerApi;
@@ -113,7 +115,7 @@ export class ModuleSelector implements ModuleSelectorApi {
 
     const bomModules: BillOfMaterialModule[] = BillOfMaterial.getModules(input);
 
-    const modules: Module[] = bomModules
+    const modules: Module[] = sortModules(fullCatalog, bomModules)
       .map(bomModule => {
         const module: Module | undefined = fullCatalog.lookupModule(bomModule);
 
@@ -164,4 +166,19 @@ export class ModuleSelector implements ModuleSelectorApi {
 
 function billOfMaterialIncludesModule(modules: BillOfMaterialModule[], module: Module): boolean {
   return modules.filter(m => m.id === module.id || m.name === module.name).length > 0;
+}
+
+export function sortModules(catalog: Catalog, bomModules: BillOfMaterialModule[]): BillOfMaterialModule[] {
+  return bomModules.slice().sort((a: BillOfMaterialModule, b: BillOfMaterialModule) => {
+    const moduleA: WrappedModule = wrapModule(catalog.lookupModule(a));
+    const moduleB: WrappedModule = wrapModule(catalog.lookupModule(b));
+
+    if (moduleB.dependsOn(moduleA)) {
+      return -1;
+    } else if (moduleA.dependsOn(moduleB)) {
+      return 1;
+    } else {
+      return moduleA.name.localeCompare(moduleB.name);
+    }
+  });
 }

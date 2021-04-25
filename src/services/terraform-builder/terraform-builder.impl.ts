@@ -23,8 +23,8 @@ import {
 import {ModuleSelectorApi} from '../module-selector';
 import {ModuleNotFound} from '../../errors';
 import {ArrayUtil, of as arrayOf} from '../../util/array-util';
-import {isDefinedAndNotNull, isUndefined} from '../../util/object-util';
-import {Optional} from '../../util/optional';
+import {isDefinedAndNotNull, isUndefined, isUndefinedOrEmpty} from '../../util/object-util';
+import {Optional, of} from '../../util/optional';
 
 export class TerraformBuilder implements TerraformBuilderApi {
   constructor(@Inject private selector: ModuleSelectorApi) {
@@ -92,13 +92,14 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
 
           const optional: boolean = v.optional === true || isDefinedAndNotNull(v.default)
 
-          const moduleRefSource: {stageName: string} | undefined = getSourceForModuleRef(moduleRef, moduleVersion, stages, modules, optional, module);
+          const moduleRefSource: {stageName: string} | {stageName: string}[] | undefined = getSourceForModuleRef(moduleRef, moduleVersion, stages, modules, optional, module);
 
           if (!isUndefined(moduleRefSource)) {
             const moduleRefVariable: ModuleRefVariable = new ModuleRefVariable({
               name: v.name,
               moduleRef: moduleRefSource,
-              moduleOutputName: moduleRef.output
+              moduleOutputName: moduleRef.output,
+              mapper: v.mapper,
             });
 
             return moduleRefVariable;
@@ -134,60 +135,72 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
   return stageVariables;
 }
 
-function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: ModuleVersion, stages: { [p: string]: Stage }, modules: SingleModuleVersion[], optional: boolean, module: SingleModuleVersion): {stageName: string} | undefined {
+function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: ModuleVersion, stages: { [p: string]: Stage }, modules: SingleModuleVersion[], optional: boolean, module: SingleModuleVersion): {stageName: string} | {stageName: string}[] | undefined {
 
   const moduleDep: ModuleDependency = arrayOf(moduleVersion.dependencies)
     .filter(moduleDep => moduleDep.id === moduleRef.id)
     .first()
     .orElseThrow(new ModuleNotFound(moduleRef.id));
 
-  const source: Optional<{stageName: string}> = arrayOf(moduleDep.refs)
-    .map(findStageOrModuleName(stages, modules, moduleDep.discriminator))
-    .filter(isDefinedAndNotNull)
-    .first()
-    .mapIfNotPresent(() => findStageOrModuleName(stages, modules, moduleDep.discriminator)({source: ''}))
-    .map(stageName => ({stageName}));
+  if (moduleDep.discriminator && moduleDep.discriminator !== '*') {
+    const stageNamesFromDiscriminator: {stageName: string}[] = findStageOrModuleNames(stages, modules, moduleDep.discriminator)({source: ''})
+      .map(stageName => ({stageName}));
 
-  if (source.isPresent()) {
-    return source.get();
+    if (stageNamesFromDiscriminator.length > 0) {
+      return stageNamesFromDiscriminator;
+    }
+
+    if (!optional) {
+      throw new ModuleNotFound(moduleDep.id, module.id);
+    }
   }
 
-  if (moduleDep.discriminator) {
+  const sources: string[] = arrayOf(moduleDep.refs)
+    .map(m => m.source)
+    .asArray();
 
+  const stageNames: string[] = Object.keys(stages)
+    .filter(stageName => {
+      const stage: Stage = stages[stageName];
+
+      return sources.includes(stage.source);
+    });
+
+  if (stageNames.length > 0) {
+    return stageNames.map(stageName => ({stageName}));
   }
 
   if (!optional) {
-    source.orElseThrow(new ModuleNotFound(moduleDep.id, module.id));
+    throw new ModuleNotFound(moduleDep.id, module.id);
   }
 
   return;
 }
 
-function findStageOrModuleName(stages: {[name: string]: Stage}, modules: SingleModuleVersion[], discriminator?: string): (ref: ModuleRef) => string {
-  return (ref: ModuleRef): string => {
-    if (discriminator) {
+function findStageOrModuleNames(stages: {[name: string]: Stage}, modules: SingleModuleVersion[], discriminator?: string): (ref: ModuleRef) => string[] {
+  return (ref: ModuleRef): string[] => {
+    if (discriminator && discriminator !== '*') {
       const stage = stages[discriminator];
 
       if (stage) {
-        return stage.name;
+        return [stage.name];
       }
 
-      return arrayOf(modules).filter(m => discriminator === (m.alias || m.name)).first().map(m => discriminator).get();
+      return arrayOf(modules).filter(m => discriminator === (m.alias || m.name)).map(m => discriminator).asArray();
     }
 
-    return arrayOf(Object.values(stages))
+    const stageNames: ArrayUtil<string> = arrayOf(Object.values(stages))
       .filter(stage => stage.source === ref.source)
-      .first()
-      .map(s => s.name)
-      .orElseGet(() => {
-        const moduleName = arrayOf(modules)
-          .filter(m => m.id === ref.source)
-          .first()
-          .map(m => m.alias || m.name)
-          .orElse(undefined as any);
+      .map(stage => stage.name);
 
-        return moduleName;
-      });
+    if (stageNames.length > 0) {
+      return stageNames.asArray();
+    }
+
+    return arrayOf(modules)
+      .filter(m => m.id === ref.source)
+      .map(m => m.alias || m.name)
+      .asArray();
   }
 }
 

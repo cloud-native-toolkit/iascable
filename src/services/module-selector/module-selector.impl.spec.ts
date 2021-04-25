@@ -3,12 +3,12 @@ import {Container} from 'typescript-ioc';
 import {
   BillOfMaterial,
   BillOfMaterialModel,
-  BillOfMaterialModule, BillOfMaterialModuleDependency,
+  BillOfMaterialModule, BillOfMaterialModuleDependency, Catalog,
   CatalogModel, ModuleDependency,
   SingleModuleVersion
 } from '../../models';
 import {CatalogLoaderApi} from '../catalog-loader';
-import {ModuleSelector} from './module-selector.impl';
+import {ModuleSelector, sortModules} from './module-selector.impl';
 import {LoggerApi} from '../../util/logger';
 import {NoopLoggerImpl} from '../../util/logger/noop-logger.impl';
 import {isDefinedAndNotNull} from '../../util/object-util';
@@ -131,6 +131,52 @@ describe('module-selector', () => {
         expect(actualResult.map(m => m.bomModule).filter(m => !m).length).toEqual(actualResult.length - modules.length);
       });
     });
+    describe('when BOM defines modules that refer to specific instances', () => {
+      const modules: BillOfMaterialModule[] = [
+        {name: 'ibm-container-platform'},
+        {name: 'ibm-container-platform', alias: 'mycluster'},
+        {name: 'namespace', alias: 'tools-namespace', dependencies: [{name: 'cluster', ref: 'mycluster'}]},
+        {name: 'namespace', alias: 'namespace', dependencies: [{name: 'cluster', ref: 'cluster'}]},
+      ];
+
+      let bom: BillOfMaterialModel;
+      beforeEach(() => {
+        bom = new BillOfMaterial({spec: {modules}});
+      });
+
+      test('then it should add a new module with that name', async () => {
+        const actualResult: SingleModuleVersion[] = await classUnderTest.resolveBillOfMaterial(
+          catalog,
+          bom,
+        );
+
+        expect(actualResult.length).toEqual(4);
+        expect(actualResult.map(m => m.alias)).toEqual(['cluster', 'mycluster', 'tools-namespace', 'namespace']);
+      });
+    });
+    describe('when BOM defines modules that refer to specific instances regardless of order', () => {
+      const modules: BillOfMaterialModule[] = [
+        {name: 'namespace', alias: 'tools-namespace', dependencies: [{name: 'cluster', ref: 'mycluster'}]},
+        {name: 'namespace', alias: 'namespace', dependencies: [{name: 'cluster', ref: 'cluster'}]},
+        {name: 'ibm-container-platform'},
+        {name: 'ibm-container-platform', alias: 'mycluster'},
+      ];
+
+      let bom: BillOfMaterialModel;
+      beforeEach(() => {
+        bom = new BillOfMaterial({spec: {modules}});
+      });
+
+      test('then it should add a new module with that name', async () => {
+        const actualResult: SingleModuleVersion[] = await classUnderTest.resolveBillOfMaterial(
+          catalog,
+          bom,
+        );
+
+        expect(actualResult.length).toEqual(4);
+        expect(actualResult.map(m => m.alias).sort()).toEqual(['cluster', 'mycluster', 'tools-namespace', 'namespace'].sort());
+      });
+    });
     describe('when BOM module has a dependency that refers to a particular module alias that does not already exist', () => {
       const modules: BillOfMaterialModule[] = [
         {name: 'ibm-container-platform'},
@@ -162,7 +208,6 @@ describe('module-selector', () => {
 
           return result;
         }, [] as string[])
-        console.log('Discriminators: ', discriminators);
         expect(dependencies.every(d => d?.every(x => !!x.ref))).toBe(true);
       });
     });
@@ -198,8 +243,53 @@ describe('module-selector', () => {
 
           return result;
         }, [] as string[])
-        console.log('Discriminators: ', discriminators);
         expect(dependencies.every(d => d?.every(x => !!x.ref))).toBe(true);
+      });
+    });
+  });
+
+  describe('given sortModules()', () => {
+    describe('when modules have dependencies in defined modules', () => {
+      const modules: BillOfMaterialModule[] = [
+        {name: 'argocd'},
+        {name: 'namespace', alias: 'tools-namespace', dependencies: [{name: 'cluster', ref: 'mycluster'}]},
+        {name: 'artifactory'},
+        {name: 'ibm-container-platform'},
+      ];
+
+      let bomModules: BillOfMaterialModule[];
+      beforeEach(() => {
+        const bom = new BillOfMaterial({spec: {modules}});
+
+        bomModules = BillOfMaterial.getModules(bom);
+      });
+
+      test('then dependencies should come before the module that needs it', async () => {
+        const actualResult = await sortModules(Catalog.fromModel(catalog), bomModules);
+
+        expect(actualResult.map(m => m.name)).toEqual(['ibm-container-platform', 'namespace', 'argocd', 'artifactory'])
+      });
+    });
+    describe('when a module has a * discriminator', () => {
+      const modules: BillOfMaterialModule[] = [
+        {name: 'argocd'},
+        {name: 'ibm-transit-gateway'},
+        {name: 'namespace', alias: 'tools-namespace', dependencies: [{name: 'cluster', ref: 'mycluster'}]},
+        {name: 'artifactory'},
+        {name: 'ibm-container-platform'},
+      ];
+
+      let bomModules: BillOfMaterialModule[];
+      beforeEach(() => {
+        const bom = new BillOfMaterial({spec: {modules}});
+
+        bomModules = BillOfMaterial.getModules(bom);
+      });
+
+      test('then it should appear at the end of the list', async () => {
+        const actualResult = await sortModules(Catalog.fromModel(catalog), bomModules);
+
+        expect(actualResult.map(m => m.name)).toEqual(['ibm-container-platform', 'namespace', 'argocd', 'artifactory', 'ibm-transit-gateway'])
       });
     });
   });

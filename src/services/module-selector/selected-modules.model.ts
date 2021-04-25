@@ -3,6 +3,7 @@ import {Container} from 'typescript-ioc';
 import {LoggerApi} from '../../util/logger';
 import {findMatchingVersion, resolveVersions} from '../../util/version-resolver';
 import {
+  BillOfMaterialModule,
   BillOfMaterialModuleDependency,
   Catalog,
   isModule,
@@ -11,7 +12,7 @@ import {
   ModuleMatcher,
   ModuleRef,
   ModuleVersion,
-  SingleModuleVersion
+  SingleModuleVersion, wrapModule, WrappedModule
 } from '../../models';
 import {ModuleNotFound, ModulesNotFound} from '../../errors';
 import {Optional} from '../../util/optional';
@@ -119,7 +120,7 @@ export class SelectedModules {
         return dep;
       }
 
-      return Object.assign({}, dep, {discriminator: module.alias || module.name});
+      return Object.assign({}, dep, {discriminator: dep.discriminator || module.alias || module.name});
     };
 
     const updateDiscriminatorFromBOM: (dep: ModuleDependency) => ModuleDependency = (dep: ModuleDependency) => {
@@ -170,22 +171,23 @@ export class SelectedModules {
     }
 
     const discriminator: string | undefined = dep.discriminator;
+    this.logger.debug(' **** Discriminator: ', discriminator);
     if (discriminator && this.containsModule({source: ''}, discriminator)) {
       this.logger.debug('Matched module using discriminator: ', discriminator);
       return;
     }
 
-    const moduleRefs: ArrayUtil<ModuleRef> = arrayOf(dep.refs)
+    const matchingModuleRefs: ArrayUtil<ModuleRef> = arrayOf(dep.refs)
       .filter(ref => !!this.getCatalogModule(ref))
       .filter((ref, index, arr) => arr.length === 1 || this.containsModule(ref) || containsModules(modules, ref));
 
-    this.logger.debug('Dependent module refs: ', {moduleRefs: moduleRefs.asArray()});
+    this.logger.debug('Dependent module refs: ', {moduleRefs: matchingModuleRefs.asArray()});
 
-    if (moduleRefs.length > 1) {
+    if (matchingModuleRefs.length > 1) {
       throw new Error('dependent module selection is not yet supported');
     }
 
-    const firstModuleRef: Optional<ModuleRef> = moduleRefs.first();
+    const firstModuleRef: Optional<ModuleRef> = matchingModuleRefs.first();
 
     if (firstModuleRef.isPresent() || !dep.optional) {
       const moduleRef: ModuleRef = firstModuleRef.orElseThrow(
@@ -207,6 +209,8 @@ export class SelectedModules {
             this.addMissingModule(moduleRef);
           }
         }
+      } else {
+        this.logger.debug(`Already contains module(${moduleId}): `, moduleRef);
       }
 
       this.addModuleRef(moduleRef);
@@ -312,7 +316,7 @@ function containsModule(modules: {[moduleName: string]: Module}, module: Module 
   }
 
   const moduleName: string | undefined = isModule(module) ? module.alias || module.name : discriminator;
-  if (moduleName) {
+  if (moduleName && moduleName !== '*') {
     return !!modules[moduleName];
   } else {
     const ref: string = isModule(module) ? module.id : module.source;

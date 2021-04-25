@@ -1,5 +1,8 @@
 import {VersionMatcher} from './version-matcher';
 import {BillOfMaterialModule} from './bill-of-material.model';
+import {isUndefined} from '../util/object-util';
+import {ArrayUtil, of as arrayOf} from '../util/array-util';
+import {Optional} from '../util/optional';
 
 export interface ModuleRef {
   source: string;
@@ -72,6 +75,7 @@ export interface ModuleVariable {
   default?: string;
   defaultValue?: string;
   moduleRef?: ModuleOutputRef;
+  mapper?: 'equality' | 'collect';
 }
 
 export interface ModuleOutputRef {
@@ -82,4 +86,45 @@ export interface ModuleOutputRef {
 export interface ModuleOutput {
   name: string;
   description?: string;
+}
+
+export function dependsOnModule(module: Module, depModule: Module | undefined): boolean {
+  if (isUndefined(depModule)) {
+    return false;
+  }
+
+  const moduleVersion: Optional<ModuleVersion> = arrayOf(module.versions).first();
+  if (!moduleVersion.isPresent()) {
+    return false;
+  }
+
+  const moduleDependencies: ArrayUtil<ModuleDependency> = arrayOf(moduleVersion.get().dependencies);
+
+  if (moduleDependencies.some(d => d.discriminator === '*')) {
+    return true;
+  }
+
+  const dependencyRefs: ModuleRef[] = moduleDependencies
+    .map(d => d.refs)
+    .reduce((result: ModuleRef[], current: ModuleRef[]) => {
+      result.push(...current);
+
+      return result;
+    }, []);
+
+  return dependencyRefs.some((ref: ModuleRef) => ref.source === depModule.id);
+}
+
+export type WrappedModule = Module & {dependsOn: (module: Module | undefined) => boolean};
+
+export function wrapModule(module: Module | undefined): WrappedModule {
+  const dependsOn = (depModule: Module | undefined): boolean => {
+    if (isUndefined(module)) {
+      return false;
+    }
+
+    return dependsOnModule(module, depModule);
+  }
+
+  return Object.assign({versions: [], name: ''}, module, {dependsOn})
 }

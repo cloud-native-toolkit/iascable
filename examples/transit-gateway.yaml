@@ -1,0 +1,13 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: transit-gateway
+spec:
+  modules:
+    - name: ibm-transit-gateway
+    - name: ibm-resource-group
+    - name: ibm-vpc
+      alias: vpc1
+    - name: ibm-vpc
+      alias: vpc2
+  variables: []
