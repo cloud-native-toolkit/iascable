@@ -212,18 +212,38 @@ export class TerraformVariableImpl implements TerraformVariable {
       return '';
     }
 
+    const value = this.getDefaultValue();
+
+    return `
+  default = ${value}`;
+  }
+
+  getDefaultValue(): string {
     const typeFormatter: Formatter = getTypeFormatter(this.type);
 
     const {value} = typeFormatter(this.defaultValue);
 
-    return `
-  default = ${value}`;
+    return value;
   }
 
   typeOutput(): string {
     const typeFormatter: Formatter = getTypeFormatter(this.type);
 
     return typeFormatter(this.defaultValue).type;
+  }
+}
+
+export class TerraformTfvars {
+  name: string;
+  value: string;
+
+  constructor({name, value}: {name: string, value: string}) {
+    this.name = name;
+    this.value = value;
+  }
+
+  asString(): string {
+    return `${this.name} = "${this.value}"`
   }
 }
 
