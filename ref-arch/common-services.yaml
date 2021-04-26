@@ -1,0 +1,30 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: common-services
+spec:
+  modules:
+    - name: key-protect
+    - name: ibm-object-storage
+    - name: ibm-activity-tracker
+    - name: sysdig
+    - name: ibm-resource-group
+    - name: logdna
+    - name: ibm-access-group
+    - name: ibm-vpc
+    - name: scc-collector
+      dependencies:
+        - name: subnets
+          ref: scc-subnets
+    - name: hpcs
+      variables:
+        - name: provision
+          value: false
+    - name: ibm-vpc-subnets
+      alias: scc-subnets
+      variables:
+        - name: subnet_count
+          value: 1
+        - name: subnet_label
+          value: scc
+  variables: []

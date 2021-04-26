@@ -6,16 +6,14 @@ import {dirname, join} from 'path';
 
 import {IascableInput} from './inputs/iascable.input';
 import {CommandLineInput} from './inputs/command-line.input';
+import {BillOfMaterialModel, isTileConfig, OutputFile, TerraformComponent, Tile} from '../models';
 import {
-  BillOfMaterial,
-  billOfMaterialFromYaml,
-  BillOfMaterialModel,
-  isTileConfig,
-  OutputFile,
-  TerraformComponent,
-  Tile
-} from '../models';
-import {IascableApi, IascableOptions, IascableResult} from '../services';
+  IascableApi,
+  IascableOptions,
+  IascableResult,
+  loadBillOfMaterialFromFile,
+  loadReferenceBom
+} from '../services';
 import {LoggerApi} from '../util/logger';
 
 export const command = 'build';
@@ -30,6 +28,13 @@ export const builder = (yargs: Argv<any>) => {
     .option('input', {
       alias: 'i',
       description: 'The path to the bill of materials to use as input',
+      conflicts: 'reference',
+      demandOption: false,
+    })
+    .option('reference', {
+      alias: 'r',
+      description: 'The reference BOM to use for the build',
+      conflicts: 'input',
       demandOption: false,
     })
     .option('outDir', {
@@ -80,9 +85,11 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput>)
   const cmd: IascableApi = Container.get(IascableApi);
   const logger: LoggerApi = Container.get(LoggerApi).child('build');
 
-  const bom: BillOfMaterialModel | undefined = await loadBillOfMaterial(argv.input, argv.name);
+  const bom: BillOfMaterialModel | undefined = argv.reference
+    ? await loadReferenceBom(argv.reference, argv.name)
+    : await loadBillOfMaterialFromFile(argv.input, argv.name);
 
-  if (argv.input && !argv.prompt) {
+  if ((argv.input || argv.reference) && !argv.prompt) {
     argv.ci = true;
   }
 
@@ -99,17 +106,6 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput>)
     logger.error('Error building config', {err})
   }
 };
-
-async function loadBillOfMaterial(input?: string, name?: string): Promise<BillOfMaterialModel | undefined> {
-
-  async function loadInput(input: string, name?: string): Promise<BillOfMaterialModel> {
-    const buffer: Buffer = await promises.readFile(input);
-
-    return billOfMaterialFromYaml(buffer, name);
-  }
-
-  return input ? loadInput(input, name) : new BillOfMaterial(name);
-}
 
 function buildCatalogBuilderOptions(input: IascableInput): IascableOptions {
   const tileConfig = {

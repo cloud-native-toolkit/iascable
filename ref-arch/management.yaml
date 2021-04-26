@@ -1,0 +1,91 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: management
+spec:
+  modules:
+    - name: ibm-resource-group
+    - name: ibm-vpc
+    - name: ibm-vpc-gateways
+    - name: ibm-vpc-subnets
+      alias: bastion-subnets
+      variables:
+        - name: subnet_count
+          value: 2
+        - name: subnet_label
+          value: bastion
+    - name: vsi-bastion
+      dependencies:
+        - name: subnets
+          ref: bastion-subnets
+    - name: namespace
+      variables:
+        - name: name
+          value: tools
+    - name: ibm-resource-group
+      alias: hpcs_resource_group
+      variables:
+        - name: provision
+          value: false
+    - name: hpcs
+      variables:
+        - name: provision
+          value: false
+        - name: region
+          alias: hpcs_region
+      dependencies:
+        - name: resource_group
+          ref: hpcs_resource_group
+    - name: ibm-resource-group
+      alias: cs_resource_group
+      variables:
+        - name: provision
+          value: false
+    - name: logdna
+      variables:
+        - name: provision
+          value: false
+        - name: region
+          alias: cs_region
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
+    - name: logdna-bind
+    - name: sysdig
+      variables:
+        - name: provision
+          value: false
+        - name: region
+          alias: cs_region
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
+    - name: sysdig-bind
+    - name: ibm-redis
+      variables:
+        - name: provision
+          value: true
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
+    - name: ibm-object-storage
+      alias: cos
+      variables:
+        - name: provision
+          value: false
+        - name: region
+          alias: cs_region
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
+    - name: ibm-vpe-gateway
+      alias: vpe-cos
+      dependencies:
+        - name: resource
+          ref: cos
+  variables:
+    - name: resource_group_name
+    - name: region
+    - name: ibmcloud_api_key
+    - name: name_prefix
+      required: true
