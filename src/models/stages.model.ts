@@ -129,12 +129,13 @@ export class TerraformTfvarsFile implements OutputFile {
     const buffer: Buffer = this.variables
       .map(mergeBomVariables(arrayOf(this.bomVariables)))
       .reduce((previousBuffer: Buffer, variable: TerraformVariable) => {
-        if (!variable.required || !variableNames.includes(variable.name)) {
+        const terraformVar = new TerraformVariableImpl(variable);
+
+        if (!(terraformVar.defaultValue === undefined || terraformVar.defaultValue === null || terraformVar.required || variableNames.includes(terraformVar.name))) {
           return previousBuffer;
         }
 
-        const terraformVar = new TerraformVariableImpl(variable);
-        variable = new TerraformTfvars({name: terraformVar.name, value: terraformVar.getDefaultValue()});
+        variable = new TerraformTfvars({name: terraformVar.name, value: ""});
 
         return Buffer.concat([
           previousBuffer,
@@ -152,7 +153,7 @@ export class TerraformComponent implements TerraformComponentModel {
   bomVariables?: BillOfMaterialVariable[] = []
   modules?: SingleModuleVersion[];
 
-  constructor(model: TerraformComponentModel) {
+  constructor(model: TerraformComponentModel, private name: string | undefined) {
     Object.assign(this, model);
   }
 
@@ -164,7 +165,7 @@ export class TerraformComponent implements TerraformComponentModel {
     const files: OutputFile[] = [
       new TerraformStageFile(this.stages),
       new TerraformVariablesFile(this.baseVariables, this.bomVariables),
-      new TerraformTfvarsFile(this.baseVariables, this.bomVariables),
+      new TerraformTfvarsFile(this.baseVariables, this.bomVariables, this.name),
       ...buildModuleReadmes(this.modules),
     ];
 

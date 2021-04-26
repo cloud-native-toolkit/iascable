@@ -243,7 +243,7 @@ export class TerraformTfvars {
   }
 
   asString(): string {
-    return `${this.name} = "${this.value}"`
+    return `${this.name} = "${this.value}"\n`
   }
 }
 
