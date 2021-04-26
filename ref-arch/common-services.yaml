@@ -4,27 +4,25 @@ metadata:
   name: common-services
 spec:
   modules:
+    - name: ibm-resource-group
+    - name: ibm-access-group
     - name: key-protect
     - name: ibm-object-storage
     - name: ibm-activity-tracker
     - name: sysdig
-    - name: ibm-resource-group
     - name: logdna
-    - name: ibm-access-group
-    - name: ibm-vpc
-    - name: scc-collector
-      dependencies:
-        - name: subnets
-          ref: scc-subnets
+    - name: ibm-resource-group
+      alias: hpcs_resource_group
+      variables:
+        - name: provision
+          value: false
     - name: hpcs
       variables:
         - name: provision
           value: false
-    - name: ibm-vpc-subnets
-      alias: scc-subnets
-      variables:
-        - name: subnet_count
-          value: 1
-        - name: subnet_label
-          value: scc
+        - name: region
+          alias: hpcs_region
+      dependencies:
+        - name: resource_group
+          ref: hpcs_resource_group
   variables: []
