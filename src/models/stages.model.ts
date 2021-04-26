@@ -2,7 +2,7 @@ import {
   BaseVariable,
   fromBaseVariable,
   IBaseVariable,
-  StagePrinter,
+  StagePrinter, TerraformTfvars,
   TerraformVariable,
   TerraformVariableImpl
 } from './variables.model';
@@ -109,13 +109,51 @@ export class TerraformVariablesFile implements OutputFile {
   }
 }
 
+export class TerraformTfvarsFile implements OutputFile {
+
+  name : string;
+  type = OutputFileType.terraform;
+
+  constructor(private variables: TerraformVariable[], private bomVariables?: BillOfMaterialVariable[], name?: string) {
+    if (name) {
+      this.name = `${name}.auto.tfvars`;
+    } else {
+      this.name = 'terraform.tfvars';
+    }
+  }
+
+  get contents(): Promise<string | Buffer> {
+
+    const variableNames: string[] = arrayOf(this.bomVariables).map(v => v.name).asArray();
+
+    const buffer: Buffer = this.variables
+      .map(mergeBomVariables(arrayOf(this.bomVariables)))
+      .reduce((previousBuffer: Buffer, variable: TerraformVariable) => {
+        const terraformVar = new TerraformVariableImpl(variable);
+
+        if (!(terraformVar.defaultValue === undefined || terraformVar.defaultValue === null || terraformVar.required || variableNames.includes(terraformVar.name))) {
+          return previousBuffer;
+        }
+
+        variable = new TerraformTfvars({name: terraformVar.name, value: terraformVar.defaultValue || ""});
+
+        return Buffer.concat([
+          previousBuffer,
+          Buffer.from(variable.asString())
+        ]);
+      }, Buffer.from(''));
+
+    return Promise.resolve(buffer);
+  }
+}
+
 export class TerraformComponent implements TerraformComponentModel {
   stages: { [name: string]: Stage } = {};
   baseVariables: TerraformVariable[] = [];
   bomVariables?: BillOfMaterialVariable[] = []
   modules?: SingleModuleVersion[];
 
-  constructor(model: TerraformComponentModel) {
+  constructor(model: TerraformComponentModel, private name: string | undefined) {
     Object.assign(this, model);
   }
 
@@ -127,6 +165,7 @@ export class TerraformComponent implements TerraformComponentModel {
     const files: OutputFile[] = [
       new TerraformStageFile(this.stages),
       new TerraformVariablesFile(this.baseVariables, this.bomVariables),
+      new TerraformTfvarsFile(this.baseVariables, this.bomVariables, this.name),
       ...buildModuleReadmes(this.modules),
     ];
 

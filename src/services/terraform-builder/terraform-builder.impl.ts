@@ -43,7 +43,8 @@ export class TerraformBuilder implements TerraformBuilderApi {
       stages[stageSource] = await processStageVariables(stages[stageSource], baseVariables);
     }))
 
-    return new TerraformComponent({stages, baseVariables, modules: selectedModules, bomVariables: billOfMaterial?.spec.variables, files: []});
+    const name: string | undefined = billOfMaterial?.metadata.name;
+    return new TerraformComponent({stages, baseVariables, modules: selectedModules, bomVariables: billOfMaterial?.spec.variables, files: []}, name);
   }
 }
 
