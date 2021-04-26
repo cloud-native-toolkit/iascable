@@ -235,15 +235,20 @@ export class TerraformVariableImpl implements TerraformVariable {
 
 export class TerraformTfvars {
   name: string;
+  description: string;
   value: string;
 
-  constructor({name, value}: {name: string, value: string}) {
+  constructor({name, description, value}: {name: string, description: string, value: string}) {
     this.name = name;
+    this.description = description;
     this.value = value;
   }
 
   asString(): string {
-    return `${this.name} = "${this.value}"\n`
+    return `## ${this.name}: ${this.description}
+#${this.name}="${this.value}"
+
+`
   }
 }
 

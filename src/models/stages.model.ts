@@ -135,7 +135,7 @@ export class TerraformTfvarsFile implements OutputFile {
           return previousBuffer;
         }
 
-        variable = new TerraformTfvars({name: terraformVar.name, value: terraformVar.defaultValue || ""});
+        variable = new TerraformTfvars({name: terraformVar.name, description: terraformVar.description, value: terraformVar.defaultValue || ""});
 
         return Buffer.concat([
           previousBuffer,
