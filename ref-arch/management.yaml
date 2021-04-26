@@ -8,20 +8,66 @@ spec:
     - name: ibm-vpc
     - name: ibm-vpc-gateways
     - name: ibm-vpc-subnets
+      alias: workload-subnets
+      variables:
+        - name: subnet_count
+          value: 3
+        - name: subnet_label
+          value: workload
+        - name: ipv4_cidr_blocks
+          value:
+            - 10.10.10.0/24
+            - 10.20.10.0/24
+            - 10.30.10.0/24
+    - name: ibm-vpc-subnets
+      alias: vpe-subnets
+      variables:
+        - name: subnet_count
+          value: 3
+        - name: subnet_label
+          value: vpe
+        - name: ipv4_cidr_blocks
+          value:
+            - 10.10.20.0/24
+            - 10.20.20.0/24
+            - 10.30.20.0/24
+    - name: ibm-vpc-subnets
+      alias: vpn-subnets
+      variables:
+        - name: subnet_count
+          value: 1
+        - name: subnet_label
+          value: vpn
+        - name: ipv4_cidr_blocks
+          value:
+            - 10.10.30.0/24
+    - name: ibm-vpc-subnets
       alias: bastion-subnets
       variables:
         - name: subnet_count
           value: 2
         - name: subnet_label
           value: bastion
+        - name: ipv4_cidr_blocks
+          value:
+            - 10.20.30.0/24
+            - 10.30.30.0/24
+    - name: ibm-vpc-ssh
+      alias: ssh-vpn
+    - name: vsi-vpn
+      dependencies:
+        - name: subnets
+          ref: vpn-subnets
+        - name: vpcssh
+          ref: ssh-vpn
+    - name: ibm-vpc-ssh
+      alias: ssh-bastion
     - name: vsi-bastion
       dependencies:
         - name: subnets
           ref: bastion-subnets
-    - name: namespace
-      variables:
-        - name: name
-          value: tools
+        - name: vpcssh
+          ref: ssh-bastion
     - name: ibm-resource-group
       alias: hpcs_resource_group
       variables:
@@ -41,33 +87,6 @@ spec:
       variables:
         - name: provision
           value: false
-    - name: logdna
-      variables:
-        - name: provision
-          value: false
-        - name: region
-          alias: cs_region
-      dependencies:
-        - name: resource_group
-          ref: cs_resource_group
-    - name: logdna-bind
-    - name: sysdig
-      variables:
-        - name: provision
-          value: false
-        - name: region
-          alias: cs_region
-      dependencies:
-        - name: resource_group
-          ref: cs_resource_group
-    - name: sysdig-bind
-    - name: ibm-redis
-      variables:
-        - name: provision
-          value: true
-      dependencies:
-        - name: resource_group
-          ref: cs_resource_group
     - name: ibm-object-storage
       alias: cos
       variables:
@@ -83,6 +102,8 @@ spec:
       dependencies:
         - name: resource
           ref: cos
+        - name: subnets
+          ref: vpe-subnets
   variables:
     - name: resource_group_name
     - name: region
