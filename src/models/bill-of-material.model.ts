@@ -1,6 +1,7 @@
 import {default as jsYaml} from 'js-yaml';
 import {isSingleModuleVersion, Module, SingleModuleVersion} from './module.model';
-import {of} from '../util/optional';
+import {of, Optional} from '../util/optional';
+import {of as arrayOf} from '../util/array-util';
 import {BillOfMaterialParsingError} from '../errors';
 
 export interface BillOfMaterialModuleDependency {
@@ -142,6 +143,18 @@ export class BillOfMaterial implements BillOfMaterialModel {
     const newSpec: BillOfMaterialSpec = Object.assign({}, this.spec, {modules: newModules});
 
     return Object.assign({}, this, {spec: newSpec});
+  }
+
+  getName(): string {
+    return this.metadata.name;
+  }
+
+  getDescription(): string {
+    const description: Optional<string> = arrayOf(Object.keys(this.metadata.annotations || {}))
+      .filter(key => key === 'description')
+      .first();
+
+    return description.orElse(`${this.getName()} bill of material`);
   }
 }
 

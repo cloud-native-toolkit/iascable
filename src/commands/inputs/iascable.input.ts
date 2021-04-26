@@ -2,6 +2,7 @@
 export interface IascableInput {
   catalogUrl: string;
   input?: string;
+  reference?: string;
   ci: boolean;
   prompt: boolean;
   platform?: string;
