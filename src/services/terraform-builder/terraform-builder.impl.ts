@@ -65,15 +65,23 @@ function moduleToStage(stages: {[source: string]: Stage}, modules: SingleModuleV
 
 function mergeBomVariables(bomVariables: ArrayUtil<BillOfMaterialModuleVariable>) {
   return (variable: ModuleVariable): ModuleVariable => {
-    const bomVariable: Optional<BillOfMaterialModuleVariable> = bomVariables
+    const optionalBomVariable: Optional<BillOfMaterialModuleVariable> = bomVariables
       .filter(v => v.name === variable.name)
       .first();
 
-    if (!bomVariable.isPresent()) {
+    if (!optionalBomVariable.isPresent()) {
       return variable;
     }
 
-    return Object.assign({}, variable, bomVariable.get());
+    const bomVariable: BillOfMaterialModuleVariable = optionalBomVariable.get();
+
+    return Object.assign(
+      {},
+      variable,
+      bomVariable,
+      {
+        default: isDefinedAndNotNull(bomVariable.value) ? bomVariable.value : variable.default
+      });
   };
 }
 
@@ -91,7 +99,7 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
       } else if (v.moduleRef) {
           const moduleRef: ModuleOutputRef = v.moduleRef;
 
-          const optional: boolean = v.optional === true || isDefinedAndNotNull(v.default)
+          const optional: boolean = v.optional === true || isDefinedAndNotNull(v.default);
 
           const moduleRefSource: {stageName: string} | {stageName: string}[] | undefined = getSourceForModuleRef(moduleRef, moduleVersion, stages, modules, optional, module);
 
