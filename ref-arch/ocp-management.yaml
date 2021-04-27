@@ -1,24 +1,9 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: workload
+  name: ocp-management
 spec:
   modules:
-    - name: ibm-resource-group
-      alias: mgmt_resource_group
-      variables:
-        - name: provision
-          value: false
-    - name: ibm-vpc
-      alias: management-vpc
-      dependencies:
-        - name: resource_group
-          ref: mgmt_resource_group
-      variables:
-        - name: provision
-          value: false
-        - name: name
-          required: true
     - name: ibm-resource-group
     - name: ibm-vpc
     - name: ibm-vpc-gateways
@@ -31,9 +16,13 @@ spec:
           value: workload
         - name: ipv4_cidr_blocks
           value:
-            - 10.40.10.0/24
-            - 10.50.10.0/24
-            - 10.60.10.0/24
+            - 10.10.10.0/24
+            - 10.20.10.0/24
+            - 10.30.10.0/24
+    - name: ibm-ocp-vpc
+      dependencies:
+        - name: subnets
+          ref: workload-subnets
     - name: ibm-vpc-subnets
       alias: vpe-subnets
       variables:
@@ -43,9 +32,9 @@ spec:
           value: vpe
         - name: ipv4_cidr_blocks
           value:
-            - 10.40.20.0/24
-            - 10.50.20.0/24
-            - 10.60.20.0/24
+            - 10.10.20.0/24
+            - 10.20.20.0/24
+            - 10.30.20.0/24
     - name: ibm-vpc-subnets
       alias: vpn-subnets
       variables:
@@ -55,7 +44,7 @@ spec:
           value: vpn
         - name: ipv4_cidr_blocks
           value:
-            - 10.40.30.0/24
+            - 10.10.30.0/24
     - name: ibm-vpc-subnets
       alias: bastion-subnets
       variables:
@@ -65,8 +54,8 @@ spec:
           value: bastion
         - name: ipv4_cidr_blocks
           value:
-            - 10.50.30.0/24
-            - 10.60.30.0/24
+            - 10.20.30.0/24
+            - 10.30.30.0/24
     - name: ibm-vpc-ssh
       alias: ssh-vpn
       variables:
@@ -108,6 +97,26 @@ spec:
       variables:
         - name: provision
           value: false
+    - name: ibm-object-storage
+      alias: cos
+      variables:
+        - name: provision
+          value: false
+        - name: region
+          alias: cs_region
+        - name: name_prefix
+          alias: cs_name_prefix
+          scope: global
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
+    - name: ibm-vpe-gateway
+      alias: vpe-cos
+      dependencies:
+        - name: resource
+          ref: cos
+        - name: subnets
+          ref: vpe-subnets
     - name: ibm-vpc-subnets
       alias: scc-subnets
       variables:
@@ -129,12 +138,11 @@ spec:
           ref: ssh-scc
         - name: subnets
           ref: scc-subnets
-    - name: ibm-transit-gateway
   variables:
     - name: resource_group_name
     - name: region
     - name: ibmcloud_api_key
     - name: name_prefix
       required: true
-    - name: mgmt_resource_group_provision
     - name: resource_group_provision
+    - name: worker_count

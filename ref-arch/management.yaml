@@ -54,6 +54,9 @@ spec:
             - 10.30.30.0/24
     - name: ibm-vpc-ssh
       alias: ssh-vpn
+      variables:
+        - name: label
+          value: vpn
     - name: vsi-vpn
       dependencies:
         - name: subnets
@@ -62,6 +65,9 @@ spec:
           ref: ssh-vpn
     - name: ibm-vpc-ssh
       alias: ssh-bastion
+      variables:
+        - name: label
+          value: bastion
     - name: vsi-bastion
       dependencies:
         - name: subnets
@@ -94,6 +100,9 @@ spec:
           value: false
         - name: region
           alias: cs_region
+        - name: name_prefix
+          alias: cs_name_prefix
+          scope: global
       dependencies:
         - name: resource_group
           ref: cs_resource_group
@@ -114,8 +123,15 @@ spec:
         - name: ipv4_cidr_blocks
           value:
             - 10.1.1.0/24
+    - name: ibm-vpc-ssh
+      alias: ssh-scc
+      variables:
+        - name: label
+          value: scc
     - name: scc-collector
       dependencies:
+        - name: vpcssh
+          ref: ssh-scc
         - name: subnets
           ref: scc-subnets
   variables:
@@ -124,3 +140,4 @@ spec:
     - name: ibmcloud_api_key
     - name: name_prefix
       required: true
+    - name: resource_group_provision

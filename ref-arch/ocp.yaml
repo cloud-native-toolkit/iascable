@@ -1,0 +1,48 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: ocp
+spec:
+  modules:
+    - name: ibm-resource-group
+      alias: hpcs_resource_group
+      variables:
+        - name: provision
+          value: false
+    - name: hpcs
+      variables:
+        - name: provision
+          value: false
+        - name: region
+          alias: hpcs_region
+      dependencies:
+        - name: resource_group
+          ref: hpcs_resource_group
+    - name: ibm-resource-group
+      variables:
+        - name: provision
+          value: false
+    - name: ibm-vpc
+      variables:
+        - name: provision
+          value: false
+        - name: name
+          required: true
+    - name: ibm-vpc-subnets
+      alias: workload-subnets
+      variables:
+        - name: _count
+          value: 3
+        - name: label
+          value: workload
+        - name: provision
+          value: false
+    - name: ibm-ocp-vpc
+      dependencies:
+        - name: subnets
+          ref: workload-subnets
+  variables:
+    - name: resource_group_name
+    - name: region
+    - name: ibmcloud_api_key
+    - name: worker_count

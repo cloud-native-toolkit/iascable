@@ -7,6 +7,7 @@ import {BillOfMaterialParsingError} from '../errors';
 export interface BillOfMaterialModuleDependency {
   name: string;
   ref: string;
+  optional?: boolean;
 }
 
 export interface BillOfMaterialModuleVariable {

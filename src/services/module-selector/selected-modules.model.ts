@@ -17,6 +17,7 @@ import {
 import {ModuleNotFound, ModulesNotFound} from '../../errors';
 import {Optional} from '../../util/optional';
 import {ArrayUtil, of as arrayOf} from '../../util/array-util';
+import {isDefinedAndNotNull} from '../../util/object-util';
 
 export class SelectedModules {
   readonly modules: {[source: string]: Module} = {};
@@ -128,7 +129,7 @@ export class SelectedModules {
       const bomModuleDep: Optional<ModuleDependency> = arrayOf(module.bomModule?.dependencies)
         .filter((bomDep: BillOfMaterialModuleDependency) => bomDep.name === dep.id)
         .first()
-        .map(bomDep => Object.assign({}, dep, {discriminator: bomDep.ref}));
+        .map(bomDep => Object.assign({}, dep, {discriminator: bomDep.ref, optional: isDefinedAndNotNull(bomDep.optional) ? bomDep.optional : dep.optional}));
 
       return bomModuleDep.orElse(dep);
     };
