@@ -5,6 +5,13 @@ metadata:
 spec:
   modules:
     - name: ibm-resource-group
+      variables:
+        - name: resource_group_name
+          alias: mgmt_resource_group_name
+          scope: global
+        - name: provision
+          alias: mgmt_resource_group_provision
+          scope: global
     - name: ibm-vpc
     - name: ibm-vpc-gateways
     - name: ibm-vpc-subnets
@@ -53,7 +60,7 @@ spec:
             - 10.20.30.0/24
             - 10.30.30.0/24
     - name: ibm-vpc-ssh
-      alias: ssh-vpn
+      alias: mgmt_ssh_vpn
       variables:
         - name: label
           value: vpn
@@ -62,9 +69,9 @@ spec:
         - name: subnets
           ref: vpn-subnets
         - name: vpcssh
-          ref: ssh-vpn
+          ref: mgmt_ssh_vpn
     - name: ibm-vpc-ssh
-      alias: ssh-bastion
+      alias: mgmt_ssh_bastion
       variables:
         - name: label
           value: bastion
@@ -73,7 +80,7 @@ spec:
         - name: subnets
           ref: bastion-subnets
         - name: vpcssh
-          ref: ssh-bastion
+          ref: mgmt_ssh_bastion
     - name: ibm-resource-group
       alias: hpcs_resource_group
       variables:
@@ -85,6 +92,9 @@ spec:
           value: false
         - name: region
           alias: hpcs_region
+        - name: name_prefix
+          alias: hpcs_name_prefix
+          scope: global
       dependencies:
         - name: resource_group
           ref: hpcs_resource_group
@@ -98,8 +108,6 @@ spec:
       variables:
         - name: provision
           value: false
-        - name: region
-          alias: cs_region
         - name: name_prefix
           alias: cs_name_prefix
           scope: global
@@ -124,20 +132,44 @@ spec:
           value:
             - 10.1.1.0/24
     - name: ibm-vpc-ssh
-      alias: ssh-scc
+      alias: mgmt_ssh_scc
       variables:
         - name: label
           value: scc
     - name: scc-collector
+      variables:
+        - name: scc_registration_key
+          alias: mgmt_scc_registration_key
       dependencies:
         - name: vpcssh
-          ref: ssh-scc
+          ref: mgmt_ssh_scc
         - name: subnets
           ref: scc-subnets
   variables:
-    - name: resource_group_name
+    - name: mgmt_resource_group_name
+    - name: mgmt_resource_group_provision
     - name: region
     - name: ibmcloud_api_key
     - name: name_prefix
       required: true
-    - name: resource_group_provision
+      alias: mgmt_name_prefix
+    - name: cs_resource_group_name
+    - name: cs_name_prefix
+    - name: mgmt_ssh_vpn_public_key
+      value: ""
+    - name: mgmt_ssh_vpn_private_key
+      value: ""
+    - name: mgmt_ssh_bastion_public_key
+      value: ""
+    - name: mgmt_ssh_bastion_private_key
+      value: ""
+    - name: mgmt_ssh_scc_public_key
+      value: ""
+    - name: mgmt_ssh_scc_private_key
+      value: ""
+    - name: mgmt_ssh_vpn_public_key_file
+    - name: mgmt_ssh_vpn_private_key_file
+    - name: mgmt_ssh_bastion_public_key_file
+    - name: mgmt_ssh_bastion_private_key_file
+    - name: mgmt_ssh_scc_public_key_file
+    - name: mgmt_ssh_scc_private_key_file
