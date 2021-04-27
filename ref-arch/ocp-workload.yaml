@@ -1,7 +1,7 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: workload
+  name: ocp-workload
 spec:
   modules:
     - name: ibm-resource-group
@@ -41,6 +41,10 @@ spec:
             - 10.40.10.0/24
             - 10.50.10.0/24
             - 10.60.10.0/24
+    - name: ibm-ocp-vpc
+      dependencies:
+        - name: subnets
+          ref: workload-subnets
     - name: ibm-vpc-subnets
       alias: vpe-subnets
       variables:

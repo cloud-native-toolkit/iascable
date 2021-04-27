@@ -4,7 +4,7 @@ import {
   BaseVariable,
   BillOfMaterialModel,
   BillOfMaterialModule,
-  BillOfMaterialModuleVariable,
+  BillOfMaterialModuleVariable, BillOfMaterialVariable,
   GlobalRefVariable,
   IBaseVariable,
   isPlaceholderVariable,
@@ -40,7 +40,7 @@ export class TerraformBuilder implements TerraformBuilderApi {
     const baseVariables: IBaseVariable[] = [];
 
     await Promise.all(Object.keys(stages).map(async (stageSource) => {
-      stages[stageSource] = await processStageVariables(stages[stageSource], baseVariables);
+      stages[stageSource] = await processStageVariables(stages[stageSource], baseVariables, billOfMaterial?.spec.variables);
     }))
 
     const name: string | undefined = billOfMaterial?.metadata.name;
@@ -81,6 +81,29 @@ function mergeBomVariables(bomVariables: ArrayUtil<BillOfMaterialModuleVariable>
       bomVariable,
       {
         default: isDefinedAndNotNull(bomVariable.value) ? bomVariable.value : variable.default
+      });
+  };
+}
+
+function mergeBomVariablesIntoBaseVariable(bomVariables: ArrayUtil<BillOfMaterialModuleVariable>) {
+  return (variable: BaseVariable): BaseVariable => {
+    const optionalBomVariable: Optional<BillOfMaterialModuleVariable> = bomVariables
+      .filter(v => v.name === variable.name)
+      .first();
+
+    if (!optionalBomVariable.isPresent()) {
+      return variable;
+    }
+
+    const bomVariable: BillOfMaterialModuleVariable = optionalBomVariable.get();
+
+    return Object.assign(
+      {},
+      variable,
+      bomVariable,
+      {
+        alias: isDefinedAndNotNull(variable.alias) ? variable.alias : bomVariable.alias,
+        defaultValue: isDefinedAndNotNull(bomVariable.value) ? bomVariable.value : variable.defaultValue
       });
   };
 }
@@ -221,7 +244,7 @@ function getStageFromModuleRef(moduleSource: {name: string}, stages: { [p: strin
   }
 }
 
-async function processStageVariables(stage: Stage, globalVariables: IBaseVariable[]): Promise<Stage> {
+async function processStageVariables(stage: Stage, globalVariables: IBaseVariable[], billOfMaterialVariables?: BillOfMaterialVariable[]): Promise<Stage> {
   const openVariables: BaseVariable[] = stage.variables.filter(v => isPlaceholderVariable(v));
 
   if (openVariables.length === 0) {
@@ -230,6 +253,7 @@ async function processStageVariables(stage: Stage, globalVariables: IBaseVariabl
 
   // @ts-ignore
   const stageVariables: IBaseVariable[] = stage.variables
+    .map(mergeBomVariablesIntoBaseVariable(arrayOf(billOfMaterialVariables)))
     .map((variable: BaseVariable) => {
       if (!isPlaceholderVariable(variable)) {
         return variable;

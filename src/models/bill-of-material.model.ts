@@ -52,7 +52,9 @@ export function isBillOfMaterialModuleByName(module: string | BillOfMaterialModu
 
 export interface BillOfMaterialVariable {
   name: string;
-  value: string;
+  value?: string;
+  alias?: string;
+  required?: boolean;
 }
 
 export interface BillOfMaterialSpec {
