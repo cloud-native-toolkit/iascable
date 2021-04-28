@@ -1,7 +1,7 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: ocp
+  name: 150-openshift
 spec:
   modules:
     - name: ibm-resource-group

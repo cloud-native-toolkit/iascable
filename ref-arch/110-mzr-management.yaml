@@ -1,7 +1,7 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: management
+  name: 110-mzr-management
 spec:
   modules:
     - name: ibm-resource-group

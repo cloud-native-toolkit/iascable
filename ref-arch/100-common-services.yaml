@@ -1,7 +1,7 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: common-services
+  name: 100-common-services
 spec:
   modules:
     - name: ibm-resource-group
