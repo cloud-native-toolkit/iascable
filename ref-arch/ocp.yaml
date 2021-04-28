@@ -38,6 +38,11 @@ spec:
         - name: provision
           value: false
     - name: ibm-ocp-vpc
+      variables:
+        - name: disable_public_endpoint
+          value: true
+        - name: kms_key_id
+          required: true
       dependencies:
         - name: subnets
           ref: workload-subnets
@@ -46,3 +51,6 @@ spec:
     - name: region
     - name: ibmcloud_api_key
     - name: worker_count
+    - name: hpcs_name
+    - name: name_prefix
+      required: true
