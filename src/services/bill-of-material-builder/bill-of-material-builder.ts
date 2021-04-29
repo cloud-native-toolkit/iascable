@@ -69,8 +69,10 @@ function parseModuleConfigYaml(moduleConfigYaml: string): Omit<BillOfMaterialMod
 export async function loadReferenceBom(name: string, newName?: string): Promise<BillOfMaterialModel> {
   const boms: BillOfMaterialModel[] = await loadReferenceBoms();
 
+  const nameMatcher = new RegExp(name + '.*', 'ig');
+
   return arrayOf(boms)
-    .filter(bom => bom.metadata?.name === name)
+    .filter(bom => nameMatcher.test(bom.metadata?.name))
     .first()
     .map(bom => {
       return Object.assign(
