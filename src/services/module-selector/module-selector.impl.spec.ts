@@ -3,8 +3,10 @@ import {Container} from 'typescript-ioc';
 import {
   BillOfMaterial,
   BillOfMaterialModel,
-  BillOfMaterialModule, BillOfMaterialModuleDependency, Catalog,
-  CatalogModel, ModuleDependency,
+  BillOfMaterialModule,
+  BillOfMaterialModuleDependency,
+  Catalog,
+  CatalogModel,
   SingleModuleVersion
 } from '../../models';
 import {CatalogLoaderApi} from '../catalog-loader';
@@ -246,6 +248,45 @@ describe('module-selector', () => {
         expect(dependencies.every(d => d?.every(x => !!x.ref))).toBe(true);
       });
     });
+    describe('when BOM module has an optional dependency that is not met', () => {
+      const modules: BillOfMaterialModule[] = [
+        {name: 'ibm-vpc-subnets', alias: 'workload-subnets', variables: [{name: '_count', value: 3}, {name: 'label', value: 'workload'}]},
+      ];
+
+      let bom: BillOfMaterialModel;
+      beforeEach(() => {
+        bom = new BillOfMaterial({spec: {modules}});
+      });
+
+      test('then do not include the missing module', async () => {
+        const actualResult: SingleModuleVersion[] = await classUnderTest.resolveBillOfMaterial(
+          catalog,
+          bom,
+        );
+
+        expect(actualResult.map(m => m.name).filter(name => name === 'ibm-vpc-gateways')).toEqual([]);
+      });
+    });
+    describe('when BOM module has an optional dependency that is met', () => {
+      const modules: BillOfMaterialModule[] = [
+        {name: 'ibm-vpc-subnets', alias: 'workload-subnets', variables: [{name: '_count', value: 3}, {name: 'label', value: 'workload'}]},
+        {name: 'ibm-vpc-gateways'},
+      ];
+
+      let bom: BillOfMaterialModel;
+      beforeEach(() => {
+        bom = new BillOfMaterial({spec: {modules}});
+      });
+
+      test('then do not include the missing module', async () => {
+        const actualResult: SingleModuleVersion[] = await classUnderTest.resolveBillOfMaterial(
+          catalog,
+          bom,
+        );
+
+        expect(actualResult.map(m => m.name).filter(name => name === 'ibm-vpc-gateways')).toEqual(['ibm-vpc-gateways']);
+      });
+    });
   });
 
   describe('given sortModules()', () => {
@@ -318,7 +359,8 @@ describe('module-selector', () => {
               refs: [],
             }, {
               id: 'dep2',
-              refs: [],
+              refs: [{source: "mydep", version: ">= 1.0.0"}],
+              optional: true,
             }],
             outputs: []
           }]
@@ -359,7 +401,6 @@ describe('module-selector', () => {
           });
       });
     });
-
 
     describe('when config yaml is invalid', () => {
       test('then should throw an error', async () => {
