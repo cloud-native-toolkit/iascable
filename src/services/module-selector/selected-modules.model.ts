@@ -195,7 +195,7 @@ export class SelectedModules {
         new Error(`Unable to find dependent module(s) (${moduleId}): ${dep.refs.map(r => r.source)}`)
       );
 
-      if (!this.containsModule(moduleRef, dep.discriminator)) {
+      if (!this.containsModule(moduleRef, dep.discriminator) && !dep.optional) {
         try {
           const depModule: Module = this.getCatalogModule(moduleRef);
 
@@ -215,6 +215,8 @@ export class SelectedModules {
       }
 
       this.addModuleRef(moduleRef);
+    } else {
+      this.logger.debug('Skipping optional module dependency: ', matchingModuleRefs.asArray())
     }
   }
 
