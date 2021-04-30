@@ -4,7 +4,7 @@ import {promises} from 'fs';
 import {default as jsYaml} from 'js-yaml';
 import {dirname, join} from 'path';
 
-import {IascableInput} from './inputs/iascable.input';
+import {IascableBuild} from './inputs/iascable.input';
 import {CommandLineInput} from './inputs/command-line.input';
 import {BillOfMaterialModel, isTileConfig, OutputFile, TerraformComponent, Tile} from '../models';
 import {
@@ -79,7 +79,7 @@ export const builder = (yargs: Argv<any>) => {
     });
 };
 
-export const handler = async (argv: Arguments<IascableInput & CommandLineInput>) => {
+export const handler = async (argv: Arguments<IascableBuild & CommandLineInput>) => {
   process.env.LOG_LEVEL = argv.debug ? 'debug' : 'info';
 
   const cmd: IascableApi = Container.get(IascableApi);
@@ -107,7 +107,7 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput>)
   }
 };
 
-function buildCatalogBuilderOptions(input: IascableInput): IascableOptions {
+function buildCatalogBuilderOptions(input: IascableBuild): IascableOptions {
   const tileConfig = {
     label: input.tileLabel,
     name: input.name,

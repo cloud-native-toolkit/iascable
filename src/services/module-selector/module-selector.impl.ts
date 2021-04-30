@@ -20,6 +20,7 @@ import {QuestionBuilderImpl} from '../../util/question-builder/question-builder.
 import {LoggerApi} from '../../util/logger';
 import {BillOfMaterialModuleConfigError, ModuleNotFound} from '../../errors';
 import {of as arrayOf} from '../../util/array-util';
+import {isDefinedAndNotNull, isUndefined} from '../../util/object-util';
 
 export class ModuleSelector implements ModuleSelectorApi {
   logger: LoggerApi;
@@ -133,8 +134,29 @@ export class ModuleSelector implements ModuleSelectorApi {
     return new SelectedModules(fullCatalog).resolveModules(modules);
   }
 
-  async validateBillOfMaterialModuleConfigYaml(catalogModel: CatalogModel, moduleRef: string, yaml: string) {
+  async validateBillOfMaterialModuleConfigYaml(catalogModel: CatalogModel, moduleRef: string, yaml: string): Promise<string> {
+    const moduleConfig: BillOfMaterialModule = jsYaml.load(yaml) as any;
+
+    return this.validateBillOfMaterialModuleConfig(catalogModel, moduleConfig);
+  }
+
+  async validateBillOfMaterial(catalogModel: CatalogModel, bom: BillOfMaterialModel): Promise<Array<string | Error>> {
+    const result = Promise
+      .all(BillOfMaterial.getModules(bom).map(m => {
+        return this.validateBillOfMaterialModuleConfig(catalogModel, m);
+      }))
+      .then((result: Array<string | Error>) => result.filter(isDefinedAndNotNull));
+
+    return result;
+  }
+
+  async validateBillOfMaterialModuleConfig(catalogModel: CatalogModel, moduleConfig: BillOfMaterialModule): Promise<string> {
     const fullCatalog: Catalog = Catalog.fromModel(catalogModel);
+
+    const moduleRef: string | undefined = moduleConfig.name || moduleConfig.id;
+    if (isUndefined(moduleRef)) {
+      throw new ModuleNotFound('unknown');
+    }
 
     const module: Module | undefined = fullCatalog.lookupModule({id: moduleRef, name: moduleRef});
     if (!module) {
@@ -148,7 +170,6 @@ export class ModuleSelector implements ModuleSelectorApi {
       .map(v => v.id)
       .asArray();
 
-    const moduleConfig: BillOfMaterialModule = jsYaml.load(yaml) as any;
     const unmatchedVariableNames: string[] = arrayOf(moduleConfig.variables)
       .filter(v => !availableVariableNames.includes(v.name))
       .map(v => v.name)
@@ -161,6 +182,8 @@ export class ModuleSelector implements ModuleSelectorApi {
     if (unmatchedVariableNames.length > 0 || unmatchedDependencyNames.length > 0) {
       throw new BillOfMaterialModuleConfigError({unmatchedVariableNames, unmatchedDependencyNames, availableVariableNames, availableDependencyNames});
     }
+
+    return moduleRef;
   }
 }
 

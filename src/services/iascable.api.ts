@@ -14,4 +14,5 @@ export interface IascableOptions {
 
 export abstract class IascableApi {
   abstract build(catalogUrl: string, input?: BillOfMaterialModel, options?: IascableOptions): Promise<IascableResult>;
+  abstract validate(catalogUrl: string, input: BillOfMaterialModel): Promise<Array<string | Error>>;
 }
