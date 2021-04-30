@@ -76,7 +76,7 @@ spec:
     - name: artifactory
     - name: sonarqube
     - name: tekton
-    - name: resources
+    - name: tekton-resources
     - name: source-control
   variables:
     - name: resource_group_name
