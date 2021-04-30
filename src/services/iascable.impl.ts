@@ -48,4 +48,10 @@ export class CatalogBuilder implements IascableApi {
       tile,
     };
   }
+
+  async validate(catalogUrl: string, input: BillOfMaterialModel): Promise<Array<string | Error>> {
+    const catalog: Catalog = await this.loader.loadCatalog(catalogUrl);
+
+    return this.moduleSelector.validateBillOfMaterial(catalog, input);
+  }
 }

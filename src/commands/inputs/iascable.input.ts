@@ -1,8 +1,11 @@
 
-export interface IascableInput {
+export interface IascableValidate {
   catalogUrl: string;
   input?: string;
   reference?: string;
+}
+
+export interface IascableBuild extends IascableValidate{
   ci: boolean;
   prompt: boolean;
   platform?: string;
