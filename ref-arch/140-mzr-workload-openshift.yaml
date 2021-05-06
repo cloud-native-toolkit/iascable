@@ -71,16 +71,6 @@ spec:
             - 10.50.20.0/24
             - 10.60.20.0/24
     - name: ibm-vpc-subnets
-      alias: vpn-subnets
-      variables:
-        - name: _count
-          value: 1
-        - name: label
-          value: vpn
-        - name: ipv4_cidr_blocks
-          value:
-            - 10.40.30.0/24
-    - name: ibm-vpc-subnets
       alias: bastion-subnets
       variables:
         - name: _count
@@ -91,17 +81,6 @@ spec:
           value:
             - 10.50.30.0/24
             - 10.60.30.0/24
-    - name: ibm-vpc-ssh
-      alias: workload_ssh_vpn
-      variables:
-        - name: label
-          value: vpn
-    - name: vsi-vpn
-      dependencies:
-        - name: subnets
-          ref: vpn-subnets
-        - name: vpcssh
-          ref: workload_ssh_vpn
     - name: ibm-vpc-ssh
       alias: workload_ssh_bastion
       variables:
@@ -132,6 +111,26 @@ spec:
       variables:
         - name: provision
           value: false
+    - name: ibm-object-storage
+      alias: cos
+      variables:
+        - name: provision
+          value: false
+        - name: name_prefix
+          alias: cs_name_prefix
+          scope: global
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
+    - name: ibm-kms-key
+      variables:
+        - name: name
+          value: mgmt-base-key
+    - name: ibm-object-storage-bucket
+      alias: flow_log_bucket
+      variables:
+        - name: name
+          value: flow-logs
     - name: ibm-vpc-subnets
       alias: scc-subnets
       variables:

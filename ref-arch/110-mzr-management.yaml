@@ -114,6 +114,15 @@ spec:
       dependencies:
         - name: resource_group
           ref: cs_resource_group
+    - name: ibm-kms-key
+      variables:
+        - name: name
+          value: mgmt-base-key
+    - name: ibm-object-storage-bucket
+      alias: flow_log_bucket
+      variables:
+        - name: name
+          value: flow-logs
     - name: ibm-vpe-gateway
       alias: vpe-cos
       dependencies:
@@ -137,9 +146,6 @@ spec:
         - name: label
           value: scc
     - name: scc-collector
-      variables:
-        - name: scc_registration_key
-          alias: mgmt_scc_registration_key
       dependencies:
         - name: vpcssh
           ref: mgmt_ssh_scc
@@ -151,8 +157,8 @@ spec:
     - name: region
     - name: ibmcloud_api_key
     - name: name_prefix
-      required: true
       alias: mgmt_name_prefix
+      required: true
     - name: cs_resource_group_name
     - name: cs_name_prefix
     - name: mgmt_ssh_vpn_public_key

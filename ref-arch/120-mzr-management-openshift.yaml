@@ -5,6 +5,23 @@ metadata:
 spec:
   modules:
     - name: ibm-resource-group
+      alias: hpcs_resource_group
+      variables:
+        - name: provision
+          value: false
+    - name: hpcs
+      variables:
+        - name: provision
+          value: false
+        - name: region
+          alias: hpcs_region
+        - name: name_prefix
+          alias: hpcs_name_prefix
+          scope: global
+      dependencies:
+        - name: resource_group
+          ref: hpcs_resource_group
+    - name: ibm-resource-group
       variables:
         - name: resource_group_name
           alias: mgmt_resource_group_name
@@ -30,9 +47,6 @@ spec:
       variables:
         - name: disable_public_endpoint
           value: true
-        - name: kms_key_id
-          required: true
-          scope: global
         - name: kms_enabled
           value: true
         - name: authorize_kms
@@ -96,23 +110,6 @@ spec:
         - name: vpcssh
           ref: mgmt_ssh_bastion
     - name: ibm-resource-group
-      alias: hpcs_resource_group
-      variables:
-        - name: provision
-          value: false
-    - name: hpcs
-      variables:
-        - name: provision
-          value: false
-        - name: region
-          alias: hpcs_region
-        - name: name_prefix
-          alias: hpcs_name_prefix
-          scope: global
-      dependencies:
-        - name: resource_group
-          ref: hpcs_resource_group
-    - name: ibm-resource-group
       alias: cs_resource_group
       variables:
         - name: provision
@@ -128,6 +125,15 @@ spec:
       dependencies:
         - name: resource_group
           ref: cs_resource_group
+    - name: ibm-kms-key
+      variables:
+        - name: name
+          value: mgmt-base-key
+    - name: ibm-object-storage-bucket
+      alias: flow_log_bucket
+      variables:
+        - name: name
+          value: flow-logs
     - name: ibm-vpe-gateway
       alias: vpe-cos
       dependencies:
@@ -188,5 +194,3 @@ spec:
     - name: mgmt_ssh_bastion_private_key_file
     - name: mgmt_ssh_scc_public_key_file
     - name: mgmt_ssh_scc_private_key_file
-    - name: kms_key_id
-      required: true

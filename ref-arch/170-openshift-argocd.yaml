@@ -1,0 +1,26 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: 170-openshift-argocd
+spec:
+  modules:
+    - name: ocp-login
+      variables:
+        - name: server_url
+          required: true
+        - name: user
+          value: apikey
+        - name: password
+          alias: ibmcloud_api_key
+          scope: global
+    - name: namespace
+      variables:
+        - name: name
+          value: tools
+    - name: cluster-config
+      alias: config
+      variables:
+        - name: banner_text
+    - name: argocd
+  variables:
+    - name: config_banner_text
