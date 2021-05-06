@@ -99,7 +99,9 @@ export class SelectedModules {
       throw new ModulesNotFound(this.missingModules);
     }
 
-    const resolvedModules = this.resolveModuleVersions();
+    const resolvedModules: SingleModuleVersion[] = this.resolveModuleVersions();
+
+    this.logger.debug('Resolved modules: ', resolvedModules.map(module => module.id));
 
     return resolvedModules;
   }
@@ -169,6 +171,7 @@ export class SelectedModules {
   }
 
   resolveModuleDependency(dep: ModuleDependency, moduleId: string, modules: Module[]) {
+
     if (!dep || !dep.refs || dep.refs.length === 0) {
       return;
     }

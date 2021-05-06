@@ -49,7 +49,7 @@ export class Catalog implements CatalogModel {
     this.categories = values.categories;
     this.filterValue = filterValue;
 
-    this.logger = Container.get(LoggerApi);
+    this.logger = Container.get(LoggerApi).child('Catalog');
   }
 
   static fromModel(model: CatalogModel): Catalog {
@@ -61,8 +61,6 @@ export class Catalog implements CatalogModel {
   }
 
   get modules(): Module[] {
-    this.logger.debug('Extracting modules from catalog');
-
     return this.categories.reduce((result: Module[], current: CatalogCategoryModel) => {
       if ((current.modules || []).length > 0) {
         result.push(...current.modules);

@@ -170,14 +170,16 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
 
 function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: ModuleVersion, stages: { [p: string]: Stage }, modules: SingleModuleVersion[], optional: boolean, module: SingleModuleVersion): {stageName: string} | {stageName: string}[] | undefined {
 
-  const logger: LoggerApi = Container.get(LoggerApi).child('terrformBuilder.getSourceForModuleRef');
+  const logger: LoggerApi = Container.get(LoggerApi).child('terraformBuilder.getSourceForModuleRef');
+
+  logger.debug('Module version dependencies: ', moduleVersion.dependencies);
 
   const moduleDep: ModuleDependency = arrayOf(moduleVersion.dependencies)
     .filter(moduleDep => moduleDep.id === moduleRef.id)
     .first()
     .orElseThrow(new ModuleNotFound(moduleRef.id));
 
-  logger.debug('Discriminator: ', moduleDep.discriminator, module.id);
+  logger.debug('Module dep: ', {moduleDep: moduleDep, moduleId: module.id});
 
   if (moduleDep.discriminator && moduleDep.discriminator !== '*') {
     const stageNamesFromDiscriminator: {stageName: string}[] = findStageOrModuleNames(stages, modules, moduleDep.discriminator)({source: ''})

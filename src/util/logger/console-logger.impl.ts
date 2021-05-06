@@ -1,4 +1,5 @@
 import {LoggerApi} from './logger.api';
+import {isDefinedAndNotNull, isUndefined} from '../object-util';
 
 export enum LogLevel {
   ERROR = 0,
@@ -7,7 +8,16 @@ export enum LogLevel {
   DEBUG = 3
 }
 
-export const logLevelFromString = (logLevel?: string, defaultLogLevel: LogLevel = LogLevel.INFO): LogLevel => {
+const isSomeEnum = <T>(e: T) => (token: any): token is T[keyof T] =>
+  Object.values(e).includes(token as T[keyof T]);
+
+const isLogLevel = isSomeEnum(LogLevel);
+
+export const logLevelFromString = (logLevel?: string | LogLevel, defaultLogLevel: LogLevel = LogLevel.INFO): LogLevel => {
+  if (isLogLevel(logLevel)) {
+    return logLevel;
+  }
+
   if (logLevel === 'debug') {
     return LogLevel.DEBUG;
   } else if (logLevel === 'error') {
@@ -23,13 +33,22 @@ export const logLevelFromString = (logLevel?: string, defaultLogLevel: LogLevel 
 
 export class ConsoleLogger implements LoggerApi {
   private logLevel: LogLevel;
+  private component: string;
 
-  constructor(logLevel: string | undefined = process.env.LOG_LEVEL) {
+  constructor(logLevel: string | LogLevel | undefined = process.env.LOG_LEVEL, component: string | undefined) {
     this.logLevel = logLevelFromString(logLevel);
+
+    this.component = component ? `${component}: ` : '';
   }
 
   debug(message: string, context?: any): void {
     if (!this.isLogEnabled(LogLevel.DEBUG)) return;
+
+    this.log(message, context);
+  }
+
+  msg(message: string, context?: any): void {
+    if (!this.isLogEnabled(LogLevel.ERROR)) return;
 
     if (context) {
       console.log(message, context);
@@ -42,34 +61,35 @@ export class ConsoleLogger implements LoggerApi {
     if (!this.isLogEnabled(LogLevel.ERROR)) return;
 
     if (context) {
-      console.error(message, context);
+      console.error(this.component + message, context);
     } else {
-      console.error(message);
+      console.error(this.component + message);
     }
   }
 
   info(message: string, context?: any): void {
     if (!this.isLogEnabled(LogLevel.INFO)) return;
 
-    if (context) {
-      console.log(message, context);
-    } else {
-      console.log(message);
-    }
+    this.log(message, context);
   }
 
   warn(message: string, context?: any): void {
     if (!this.isLogEnabled(LogLevel.WARN)) return;
 
+    this.log(message, context);
+  }
+
+  log(message: string, context?: any) {
     if (context) {
-      console.log(message, context);
+      console.log(this.component + message, context);
     } else {
-      console.log(message);
+      console.log(this.component + message);
     }
+
   }
 
   child(name: string): LoggerApi {
-    return this;
+    return new ConsoleLogger(this.logLevel, name);
   }
 
   isLogEnabled(logLevel: LogLevel): boolean {
