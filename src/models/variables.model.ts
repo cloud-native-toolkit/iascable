@@ -263,7 +263,7 @@ const getTypeFormatter = (type: string): Formatter => {
 }
 
 const defaultFormatter: Formatter = (value: string) => {
-  if (value === 'null') {
+  if (value === 'null' || value === null) {
     return {type: 'string', value: 'null'};
   }
 
@@ -274,7 +274,7 @@ const typeFormatters: {[type: string]: Formatter} = {
   'bool': (value: string) => ({type: 'bool', value}),
   'number': (value: string) => ({type: 'number', value}),
   'list': (value: any) => {
-    if (value === 'null') {
+    if (value === 'null' || value === null) {
       value = '';
     }
 
@@ -282,7 +282,7 @@ const typeFormatters: {[type: string]: Formatter} = {
     return {type: 'string', value: value == '' ? '""' : `"${value}"`};
   },
   'object': (value: any) => {
-    if (value === 'null') {
+    if (value === 'null' || value === null) {
       return {type: 'string', value: 'null'};
     }
 
