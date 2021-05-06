@@ -1,4 +1,4 @@
-import {Inject} from 'typescript-ioc';
+import {Container, Inject} from 'typescript-ioc';
 import {TerraformBuilderApi} from './terraform-builder.api';
 import {
   BaseVariable,
@@ -25,6 +25,7 @@ import {ModuleNotFound} from '../../errors';
 import {ArrayUtil, of as arrayOf} from '../../util/array-util';
 import {isDefinedAndNotNull, isUndefined, isUndefinedOrEmpty} from '../../util/object-util';
 import {Optional, of} from '../../util/optional';
+import {LoggerApi} from '../../util/logger';
 
 export class TerraformBuilder implements TerraformBuilderApi {
   constructor(@Inject private selector: ModuleSelectorApi) {
@@ -169,10 +170,14 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
 
 function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: ModuleVersion, stages: { [p: string]: Stage }, modules: SingleModuleVersion[], optional: boolean, module: SingleModuleVersion): {stageName: string} | {stageName: string}[] | undefined {
 
+  const logger: LoggerApi = Container.get(LoggerApi).child('terrformBuilder.getSourceForModuleRef');
+
   const moduleDep: ModuleDependency = arrayOf(moduleVersion.dependencies)
     .filter(moduleDep => moduleDep.id === moduleRef.id)
     .first()
     .orElseThrow(new ModuleNotFound(moduleRef.id));
+
+  logger.debug('Discriminator: ', moduleDep.discriminator, module.id);
 
   if (moduleDep.discriminator && moduleDep.discriminator !== '*') {
     const stageNamesFromDiscriminator: {stageName: string}[] = findStageOrModuleNames(stages, modules, moduleDep.discriminator)({source: ''})
@@ -191,11 +196,15 @@ function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: Module
     .map(m => m.source)
     .asArray();
 
+  logger.debug('sources', sources);
+
   const stageNames: string[] = Object.keys(stages)
     .filter(stageName => {
       const stage: Stage = stages[stageName];
 
-      return sources.includes(stage.source);
+      const result = sources.includes(stage.source);
+
+      return result;
     });
 
   if (stageNames.length > 0) {

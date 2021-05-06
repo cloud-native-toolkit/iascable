@@ -57,7 +57,7 @@ export class TerraformStageFile implements OutputFile {
 }
 
 function getValue(value?: string, defaultValue?: string): string | undefined {
-  if (isDefinedAndNotNull((value))) {
+  if (isDefinedAndNotNull(value)) {
     return value;
   }
 

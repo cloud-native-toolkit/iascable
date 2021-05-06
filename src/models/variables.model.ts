@@ -98,7 +98,7 @@ export class GlobalRefVariable implements IGlobalRefVariable, BaseVariable {
 
   asString(): string {
     if (this.type === 'list(string)') {
-      return `${this.name} = tolist(setsubtract(split(",", var.${this.variableName}), [""]))\n`;
+      return `${this.name} = var.${this.variableName} == null ? null : tolist(setsubtract(split(",", var.${this.variableName}), [""]))\n`;
     } else if (this.type?.match(/list\(object/)) {
       return `${this.name} = jsondecode(var.${this.variableName})\n`;
     }
@@ -262,14 +262,32 @@ const getTypeFormatter = (type: string): Formatter => {
   return formatter;
 }
 
-const defaultFormatter: Formatter = (value: string) => ({type: 'string', value: `"${value}"`});
+const defaultFormatter: Formatter = (value: string) => {
+  if (value === 'null') {
+    return {type: 'string', value: 'null'};
+  }
+
+  return {type: 'string', value: `"${value}"`};
+}
 
 const typeFormatters: {[type: string]: Formatter} = {
   'bool': (value: string) => ({type: 'bool', value}),
   'number': (value: string) => ({type: 'number', value}),
-  // tslint:disable-next-line:triple-equals
-  'list': (value: any) => ({type: 'string', value: value == '' ? '""' : `"${value}"`}),
-  // tslint:disable-next-line:triple-equals
-  'object': (value: any) => ({type: 'string', value: value == '' ? '"{}"' : `"${value}"`}),
+  'list': (value: any) => {
+    if (value === 'null') {
+      value = '';
+    }
+
+    // tslint:disable-next-line:triple-equals
+    return {type: 'string', value: value == '' ? '""' : `"${value}"`};
+  },
+  'object': (value: any) => {
+    if (value === 'null') {
+      return {type: 'string', value: 'null'};
+    }
+
+    // tslint:disable-next-line:triple-equals
+    return {type: 'string', value: value == '' ? '"{}"' : `"${value}"`}
+  },
   'string': defaultFormatter,
 }
