@@ -84,6 +84,7 @@ spec:
         - name: provision
           value: false
     - name: hpcs
+      alias: hpcs
       variables:
         - name: provision
           value: false
@@ -114,7 +115,10 @@ spec:
     - name: ibm-kms-key
       variables:
         - name: name
-          value: mgmt-base-key
+          value: workload-base-key
+      dependencies:
+        - name: kms
+          ref: hpcs
     - name: ibm-object-storage-bucket
       alias: flow_log_bucket
       variables:

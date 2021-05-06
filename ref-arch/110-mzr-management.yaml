@@ -13,6 +13,9 @@ spec:
           alias: mgmt_resource_group_provision
           scope: global
     - name: ibm-vpc
+      variables:
+        - name: image_name
+          scope: module
     - name: ibm-vpc-gateways
     - name: ibm-vpc-subnets
       alias: workload-subnets
@@ -76,6 +79,9 @@ spec:
         - name: label
           value: bastion
     - name: vsi-bastion
+      variables:
+        - name: image_name
+          scope: module
       dependencies:
         - name: subnets
           ref: bastion-subnets
