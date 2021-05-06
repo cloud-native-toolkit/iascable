@@ -99,7 +99,9 @@ export class SelectedModules {
       throw new ModulesNotFound(this.missingModules);
     }
 
-    return this.resolveModuleVersions();
+    const resolvedModules = this.resolveModuleVersions();
+
+    return resolvedModules;
   }
 
   resolveModuleDependencies(module: Module, modules: Module[], bom: boolean = false) {
