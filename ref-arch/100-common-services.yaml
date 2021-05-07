@@ -45,14 +45,14 @@ spec:
         - name: source_resource_type
           value: flow-log-collector
         - name: target_service_name
-          value: cloud_object_storage
+          value: cloud-object-storage
         - name: roles
           value: ["Writer"]
     - name: ibm-iam-service-authorization
       alias: vsi-encrypt-auth
       variables:
         - name: source_service_name
-          value: cloud-block-storage
+          value: server-protect
         - name: target_service_name
           value: hs-crypto
         - name: roles
