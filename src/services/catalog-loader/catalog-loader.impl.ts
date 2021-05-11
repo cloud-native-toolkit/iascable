@@ -15,7 +15,7 @@ export class CatalogLoader implements CatalogLoaderApi {
   }
 
   async loadCatalog(catalogUrl: string): Promise<Catalog> {
-    this.logger.info('Loading catalog from url: ' + catalogUrl);
+    this.logger.msg('Loading catalog from url: ' + catalogUrl);
 
     const catalogYaml: string = catalogUrl.startsWith('file:/')
       ? await this.loadCatalogFromFile(catalogUrl.replace('file:/', ''))
