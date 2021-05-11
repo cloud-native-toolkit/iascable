@@ -48,6 +48,9 @@ spec:
           value: cloud-object-storage
         - name: roles
           value: ["Writer"]
+      dependencies:
+        - name: target_resource_group
+          ref: resource_group
     - name: ibm-iam-service-authorization
       alias: vsi-encrypt-auth
       variables:
