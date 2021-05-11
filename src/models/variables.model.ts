@@ -97,10 +97,8 @@ export class GlobalRefVariable implements IGlobalRefVariable, BaseVariable {
   }
 
   asString(): string {
-    if (this.type === 'list(string)') {
-      return `${this.name} = var.${this.variableName} == null ? null : tolist(setsubtract(split(",", var.${this.variableName}), [""]))\n`;
-    } else if (this.type?.match(/list\(object/)) {
-      return `${this.name} = jsondecode(var.${this.variableName})\n`;
+    if (this.type?.match(/^list\(/)) {
+      return `${this.name} = var.${this.variableName} == null ? null : jsondecode(var.${this.variableName})\n`;
     }
 
     return `${this.name} = var.${this.variableName}\n`;
@@ -208,7 +206,7 @@ export class TerraformVariableImpl implements TerraformVariable {
   }
 
   defaultValueProp(): string {
-    if (this._defaultValue === undefined || this._defaultValue === null || this.required) {
+    if (this._defaultValue === undefined || this.required) {
       return '';
     }
 
@@ -255,7 +253,7 @@ export class TerraformTfvars {
 type Formatter = (value: string) => {type: string, value: string};
 
 const getTypeFormatter = (type: string): Formatter => {
-  const lookupType = type.match(/^list\(/) ? 'list' : type.match(/^object\(/) ? 'object' : type;
+  const lookupType = type.match(/^list\(object\(/) ? 'object-list' : type.match(/^object\(/) ? 'object' : type.match(/^list\(/) ? 'list' : type;
 
   const formatter = typeFormatters[lookupType] || defaultFormatter;
 
@@ -279,7 +277,7 @@ const typeFormatters: {[type: string]: Formatter} = {
     }
 
     // tslint:disable-next-line:triple-equals
-    return {type: 'string', value: value == '' ? '""' : `"${value}"`};
+    return {type: 'string', value: value == '' ? '"[]"' : `"${JSON.stringify(value).replace(/"/g, '\\"')}"`};
   },
   'object': (value: any) => {
     if (value === 'null' || value === null) {
@@ -287,7 +285,15 @@ const typeFormatters: {[type: string]: Formatter} = {
     }
 
     // tslint:disable-next-line:triple-equals
-    return {type: 'string', value: value == '' ? '"{}"' : `"${value}"`}
+    return {type: 'string', value: value == '' ? '"{}"' : `"${JSON.stringify(value).replace(/"/g, '\\"')}"`}
+  },
+  'object-list': (value: any) => {
+    if (value === 'null' || value === null) {
+      return {type: 'string', value: 'null'};
+    }
+
+    // tslint:disable-next-line:triple-equals
+    return {type: 'string', value: value == '' ? '"[]"' : `"${JSON.stringify(value).replace(/"/g, '\\"')}"`}
   },
   'string': defaultFormatter,
 }
