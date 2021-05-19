@@ -227,7 +227,7 @@ export class TerraformVariableImpl implements TerraformVariable {
   typeOutput(): string {
     const typeFormatter: Formatter = getTypeFormatter(this.type);
 
-    return typeFormatter(this.defaultValue).type;
+    return typeFormatter(this.defaultValue || '').type;
   }
 }
 
