@@ -1,0 +1,8 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: common-services
+spec:
+  modules:
+    - name: ocp-vpc
+  variables: []
