@@ -70,7 +70,7 @@ export class Catalog implements CatalogModel {
     }, [])
   }
 
-  filter({platform, provider, modules}: CatalogFilter = {}): Catalog {
+  filter({platform, provider, modules}: CatalogFilter | undefined = {}): Catalog {
     this.logger.debug('Filtering catalog modules to match filter values', {filter: {platform, provider}});
 
     const filteredCategories: CatalogCategoryModel[] = this.categories

@@ -1,4 +1,4 @@
-import {Catalog} from '../../models/catalog.model';
+import {Catalog} from '../../models';
 
 export * from '../../models/catalog.model';
 

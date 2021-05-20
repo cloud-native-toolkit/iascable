@@ -4,7 +4,11 @@ import {
   IascableOptions,
   IascableResult
 } from './iascable.api';
-import {BillOfMaterialModel} from '../models/bill-of-material.model';
+import {
+  BillOfMaterialModel,
+  BillOfMaterialModule,
+  isBillOfMaterialModule
+} from '../models/bill-of-material.model';
 import {SingleModuleVersion, TerraformComponent} from '../models/stages.model';
 import {Tile} from '../models/tile.model';
 import {LoggerApi} from '../util/logger';
@@ -12,6 +16,7 @@ import {Catalog, CatalogLoaderApi} from './catalog-loader';
 import {ModuleSelectorApi} from './module-selector';
 import {TerraformBuilderApi} from './terraform-builder';
 import {TileBuilderApi} from './tile-builder';
+import {of as arrayOf} from '../util/array-util'
 
 export class CatalogBuilder implements IascableApi {
   @Inject
@@ -31,12 +36,14 @@ export class CatalogBuilder implements IascableApi {
     const interactive: boolean = !!(options?.interactive);
     const filter: {platform?: string; provider?: string} = options?.filter ? options.filter : {};
 
-    const billOfMaterial: BillOfMaterialModel | undefined = interactive ? await this.moduleSelector.buildBillOfMaterial(catalog, input, filter) : input;
-    if (!billOfMaterial) {
+    const bom: BillOfMaterialModel | undefined = interactive ? await this.moduleSelector.buildBillOfMaterial(catalog, input, filter) : input;
+    if (!bom) {
       throw new Error('Bill of Material is required');
     }
 
-    const modules: SingleModuleVersion[] = await this.moduleSelector.resolveBillOfMaterial(catalog, billOfMaterial);
+    const modules: SingleModuleVersion[] = await this.moduleSelector.resolveBillOfMaterial(catalog, bom);
+
+    const billOfMaterial: BillOfMaterialModel = applyVersionsToBomModules(bom, modules);
 
     const terraformComponent: TerraformComponent = await this.terraformBuilder.buildTerraformComponent(modules, billOfMaterial);
 
@@ -48,4 +55,41 @@ export class CatalogBuilder implements IascableApi {
       tile,
     };
   }
+}
+
+const applyVersionsToBomModules = (billOfMaterial: BillOfMaterialModel, modules: SingleModuleVersion[]): BillOfMaterialModel => {
+
+  const newModules: Array<string | BillOfMaterialModule> = billOfMaterial.spec.modules.map((module: string | BillOfMaterialModule) => {
+    const moduleVersion: SingleModuleVersion = findModule(module, modules);
+
+    return mergeBillOfMaterialModule(module, moduleVersion);
+  })
+
+  const newSpec = Object.assign({}, billOfMaterial.spec, {modules: newModules});
+
+  return Object.assign({}, billOfMaterial, {spec: newSpec});
+}
+
+const findModule = (m: string | BillOfMaterialModule, modules: SingleModuleVersion[]): SingleModuleVersion => {
+  const module: BillOfMaterialModule = isBillOfMaterialModule(m) ? m : {id: m};
+
+  return arrayOf(modules)
+    .filter(moduleVersion => {
+      return module.alias === moduleVersion.alias || module.name === moduleVersion.name || module.id === moduleVersion.id;
+    })
+    .first()
+    .get();
+}
+
+const mergeBillOfMaterialModule = (module: string | BillOfMaterialModule, moduleVersion: SingleModuleVersion): BillOfMaterialModule => {
+  if (isBillOfMaterialModule(module)) {
+    return Object.assign({}, module, {version: moduleVersion.version.version});
+  }
+
+  const newModule: BillOfMaterialModule = {
+    id: module,
+    version: moduleVersion.version.version,
+  };
+
+  return newModule;
 }
