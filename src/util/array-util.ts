@@ -1,4 +1,5 @@
 import {Optional} from './optional';
+import {isUndefined} from './object-util';
 
 export class ArrayUtil<T = any> {
   public readonly value: T[];
@@ -55,6 +56,25 @@ export class ArrayUtil<T = any> {
 
   join(separator?: string): string {
     return this.value.join(separator);
+  }
+
+  ifEmpty(f: () => T[] | undefined): ArrayUtil {
+
+    if (this.isEmpty()) {
+      const result = f();
+
+      if (!isUndefined(result)) {
+        return new ArrayUtil(result);
+      } else {
+        return new ArrayUtil([]);
+      }
+    }
+
+    return this;
+  }
+
+  isEmpty(): boolean {
+    return this.value.length === 0;
   }
 
   asArray(): T[] {

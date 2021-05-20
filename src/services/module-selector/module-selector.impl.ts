@@ -8,9 +8,9 @@ import {
   BillOfMaterialModel,
   BillOfMaterialModule,
   Catalog,
-  CatalogCategoryModel,
+  CatalogCategoryModel, CatalogFilter,
   CatalogModel,
-  Module,
+  Module, ModuleVersion,
   SingleModuleVersion,
   wrapModule,
   WrappedModule
@@ -28,7 +28,7 @@ export class ModuleSelector implements ModuleSelectorApi {
     this.logger = Container.get(LoggerApi).child('ModuleSelector');
   }
 
-  async buildBillOfMaterial(catalogModel: CatalogModel, input?: BillOfMaterialModel, filter?: { platform?: string; provider?: string }): Promise<BillOfMaterialModel> {
+  async buildBillOfMaterial(catalogModel: CatalogModel, input?: BillOfMaterialModel, filter?: CatalogFilter): Promise<BillOfMaterialModel> {
     const fullCatalog: Catalog = Catalog.fromModel(catalogModel);
 
     const catalog: Catalog = fullCatalog.filter(filter);
@@ -124,7 +124,19 @@ export class ModuleSelector implements ModuleSelectorApi {
           return undefined as any;
         }
 
-        return Object.assign({}, module, {alias: bomModule.alias || module.alias, bomModule: Object.assign({}, bomModule)}) as Module;
+        const filteredVersions: ModuleVersion[] = arrayOf(module.versions)
+          .filter(m => !bomModule.version || m.version === bomModule.version)
+          .ifEmpty(() => module.versions)
+          .asArray();
+
+        return Object.assign(
+          {},
+          module,
+          {
+            alias: bomModule.alias || module.alias,
+            versions: filteredVersions,
+            bomModule: Object.assign({}, bomModule)}
+        ) as Module;
       })
       .filter(m => !!m);
 
