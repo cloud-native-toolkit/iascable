@@ -1,7 +1,7 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: 160-openshift-dev-tools
+  name: 165-openshift-workload
 spec:
   modules:
     - name: ibm-resource-group
@@ -9,7 +9,7 @@ spec:
         - name: provision
           value: false
         - name: resource_group_name
-          alias: mgmt_resource_group_name
+          alias: workload_resource_group_name
           scope: global
     - name: ibm-ocp-vpc
       dependencies:
@@ -73,15 +73,10 @@ spec:
     - name: cluster-config
       variables:
         - name: banner_text
-          value: Management
+          value: Workload
+        - name: banner_background_color
+          value: red
     - name: argocd
-    - name: dashboard
-    - name: pactbroker
-    - name: artifactory
-    - name: sonarqube
-    - name: tekton
-    - name: tekton-resources
-    - name: source-control
   variables:
     - name: resource_group_name
     - name: region
@@ -90,5 +85,5 @@ spec:
     - name: registry_namespace
       required: true
     - name: name_prefix
-      alias: mgmt_name_prefix
       required: true
+      alias: workload_name_prefix

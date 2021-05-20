@@ -21,6 +21,9 @@ spec:
       alias: config
       variables:
         - name: banner_text
+          value: Workload
+        - name: banner_background_color
+          value: red
     - name: argocd
   variables:
     - name: config_banner_text
