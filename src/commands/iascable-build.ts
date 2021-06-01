@@ -23,7 +23,7 @@ export const builder = (yargs: Argv<any>) => {
     .option('catalogUrl', {
       alias: 'u',
       description: 'The url of the module catalog. Can be https:// or file:/ protocol.',
-      default: 'https://cloud-native-toolkit.github.io/garage-terraform-modules/index.yaml'
+      default: 'https://modules.cloudnativetoolkitdev/index.yaml'
     })
     .option('input', {
       alias: 'i',
