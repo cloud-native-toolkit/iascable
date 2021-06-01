@@ -23,7 +23,7 @@ export const builder = (yargs: Argv<any>) => {
     .option('catalogUrl', {
       alias: 'u',
       description: 'The url of the module catalog. Can be https:// or file:/ protocol.',
-      default: 'https://modules.cloudnativetoolkitdev/index.yaml'
+      default: 'https://modules.cloudnativetoolkit.dev/index.yaml'
     })
     .option('input', {
       alias: 'i',
