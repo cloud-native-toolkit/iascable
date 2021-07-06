@@ -78,7 +78,7 @@ const findModule = (m: string | BillOfMaterialModule, modules: SingleModuleVersi
       return module.alias === moduleVersion.alias || module.name === moduleVersion.name || module.id === moduleVersion.id;
     })
     .first()
-    .get();
+    .orElseThrow(new Error('Unable to find module: ' + module.name));
 }
 
 const mergeBillOfMaterialModule = (module: string | BillOfMaterialModule, moduleVersion: SingleModuleVersion): BillOfMaterialModule => {

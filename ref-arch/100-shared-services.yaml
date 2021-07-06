@@ -1,7 +1,7 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: 100-common-services
+  name: 100-shared-services
 spec:
   modules:
     - name: ibm-resource-group
@@ -15,28 +15,8 @@ spec:
     - name: ibm-access-group
     - name: key-protect
     - name: ibm-object-storage
-    - name: ibm-activity-tracker
     - name: sysdig
     - name: logdna
-    - name: ibm-resource-group
-      alias: hpcs_resource_group
-      variables:
-        - name: provision
-          value: false
-    - name: hpcs
-      variables:
-        - name: provision
-          value: false
-        - name: region
-          alias: hpcs_region
-        - name: name_prefix
-          alias: hpcs_name_prefix
-          scope: global
-        - name: name
-          required: true
-      dependencies:
-        - name: resource_group
-          ref: hpcs_resource_group
     - name: ibm-iam-service-authorization
       alias: flow-log-auth
       variables:
@@ -59,16 +39,28 @@ spec:
         - name: target_service_name
           value: hs-crypto
         - name: roles
-          value: ["Reader"]
+          value:
+            - Reader
+      dependencies:
+        - name: source_resource_group
+          ref: resource_group
+        - name: target_resource_group
+          ref: hpcs_resource_group
     - name: ibm-iam-service-authorization
-      alias: cos-encrypt-auth
+      alias: kube-encrypt-auth
       variables:
         - name: source_service_name
-          value: cloud-object-storage
+          value: containers-kubernetes
         - name: target_service_name
           value: hs-crypto
         - name: roles
-          value: ["Reader"]
+          value:
+            - Reader
+      dependencies:
+        - name: source_resource_group
+          ref: resource_group
+        - name: target_resource_group
+          ref: hpcs_resource_group
   variables:
     - name: cs_resource_group_provision
     - name: name_prefix

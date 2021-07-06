@@ -19,6 +19,7 @@ spec:
         - name: name_prefix
           alias: hpcs_name_prefix
           scope: global
+          value: ""
       dependencies:
         - name: resource_group
           ref: hpcs_resource_group
@@ -67,17 +68,20 @@ spec:
           ref: flow_log_bucket
     - name: ibm-vpc-gateways
     - name: ibm-vpc-subnets
-      alias: workload-subnets
+      alias: worker-subnets
       variables:
         - name: _count
           value: 3
         - name: label
-          value: workload
+          value: worker
         - name: ipv4_cidr_blocks
           value:
             - 10.40.10.0/24
             - 10.50.10.0/24
             - 10.60.10.0/24
+      dependencies:
+        - name: gateways
+          ref: ibm-vpc-gateways
     - name: ibm-vpc-subnets
       alias: vpe-subnets
       variables:
@@ -142,11 +146,31 @@ spec:
       dependencies:
         - name: kms
           ref: hpcs
+    - name: ibm-activity-tracker
+      variables:
+        - name: provision
+          value: false
+      dependencies:
+        - name: resource_group
+          ref: hpcs_resource_group
+    - name: sysdig
+      variables:
+        - name: provision
+          value: false
+        - name: name_prefix
+          alias: cs_name_prefix
+          scope: global
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
     - name: ibm-object-storage-bucket
       alias: flow_log_bucket
       variables:
         - name: label
           value: flow-logs
+        - name: allowed_ip
+          value:
+            - 0.0.0.0/0
     - name: ibm-vpe-gateway
       alias: vpe-cos
       dependencies:
@@ -154,42 +178,6 @@ spec:
           ref: cos
         - name: subnets
           ref: vpe-subnets
-    - name: ibm-vpc-subnets
-      alias: scc-subnets
-      variables:
-        - name: _count
-          value: 1
-        - name: label
-          value: scc
-        - name: ipv4_cidr_blocks
-          value:
-            - 10.2.1.0/24
-        - name: acl_rules
-          value:
-            - name: ingress-all
-              action: allow
-              direction: inbound
-              source: "0.0.0.0/0"
-              destination: "0.0.0.0/0"
-            - name: egress-all
-              action: allow
-              direction: outbound
-              source: "0.0.0.0/0"
-              destination: "0.0.0.0/0"
-    - name: ibm-vpc-ssh
-      alias: workload_ssh_scc
-      variables:
-        - name: label
-          value: scc
-    - name: scc-collector
-      variables:
-        - name: kms_enabled
-          value: true
-      dependencies:
-        - name: vpcssh
-          ref: workload_ssh_scc
-        - name: subnets
-          ref: scc-subnets
     - name: ibm-iam-service-authorization
       alias: vsi-encrypt-auth
       variables:
@@ -226,13 +214,7 @@ spec:
       value: ""
     - name: workload_ssh_bastion_private_key
       value: ""
-    - name: workload_ssh_scc_public_key
-      value: ""
-    - name: workload_ssh_scc_private_key
-      value: ""
     - name: workload_ssh_vpn_public_key_file
     - name: workload_ssh_vpn_private_key_file
     - name: workload_ssh_bastion_public_key_file
     - name: workload_ssh_bastion_private_key_file
-    - name: workload_ssh_scc_public_key_file
-    - name: workload_ssh_scc_private_key_file
