@@ -2,6 +2,12 @@ apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
   name: 100-shared-services
+  labels:
+    platform: ibm
+    code: 100
+  annotations:
+    displayName: Shared services
+    description: Managed services that are shared across the management and workload networks
 spec:
   modules:
     - name: ibm-resource-group
@@ -12,11 +18,62 @@ spec:
         - name: provision
           alias: cs_resource_group_provision
           scope: global
+    - name: ibm-resource-group
+      alias: kms_resource_group
+      variables:
+        - name: resource_group_name
+          alias: kms_resource_group_name
+          scope: global
+        - name: provision
+          alias: kms_resource_group_provision
+          scope: global
+          value: false
+      dependencies:
+        - name: sync
+          ref: resource_group
+    - name: ibm-kms
+      alias: kms
+      variables:
+        - name: region
+          alias: kms_region
+        - name: name_prefix
+          alias: kms_name_prefix
+          scope: global
+        - name: name
+          required: true
+      dependencies:
+        - name: resource_group
+          ref: kms_resource_group
     - name: ibm-access-group
-    - name: key-protect
     - name: ibm-object-storage
     - name: sysdig
     - name: logdna
+    - name: ibm-iam-service-authorization
+      alias: vsi-encrypt-auth
+      variables:
+        - name: source_service_name
+          value: server-protect
+        - name: roles
+          value:
+            - Reader
+      dependencies:
+        - name: target_resource_group
+          ref: kms_resource_group
+        - name: target_resource
+          ref: kms
+    - name: ibm-iam-service-authorization
+      alias: cos-encrypt-auth
+      variables:
+        - name: roles
+          value:
+            - Reader
+      dependencies:
+        - name: target_resource_group
+          ref: kms_resource_group
+        - name: target_resource
+          ref: kms
+        - name: source_resource
+          ref: cos
     - name: ibm-iam-service-authorization
       alias: flow-log-auth
       variables:
@@ -24,20 +81,19 @@ spec:
           value: is
         - name: source_resource_type
           value: flow-log-collector
-        - name: target_service_name
-          value: cloud-object-storage
         - name: roles
-          value: ["Writer"]
+          value:
+            - Writer
       dependencies:
         - name: target_resource_group
           ref: resource_group
+        - name: target_resource
+          ref: cos
     - name: ibm-iam-service-authorization
       alias: vsi-encrypt-auth
       variables:
         - name: source_service_name
           value: server-protect
-        - name: target_service_name
-          value: hs-crypto
         - name: roles
           value:
             - Reader
@@ -45,14 +101,14 @@ spec:
         - name: source_resource_group
           ref: resource_group
         - name: target_resource_group
-          ref: hpcs_resource_group
+          ref: kms_resource_group
+        - name: target_resource
+          ref: kms
     - name: ibm-iam-service-authorization
       alias: kube-encrypt-auth
       variables:
         - name: source_service_name
           value: containers-kubernetes
-        - name: target_service_name
-          value: hs-crypto
         - name: roles
           value:
             - Reader
@@ -60,10 +116,14 @@ spec:
         - name: source_resource_group
           ref: resource_group
         - name: target_resource_group
-          ref: hpcs_resource_group
+          ref: kms_resource_group
+        - name: target_resource
+          ref: kms
   variables:
+    - name: kms_resource_group_provision
     - name: cs_resource_group_provision
     - name: name_prefix
       alias: cs_name_prefix
     - name: region
     - name: cs_resource_group_name
+    - name: kms_service

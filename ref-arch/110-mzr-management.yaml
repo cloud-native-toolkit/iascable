@@ -2,27 +2,38 @@ apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
   name: 110-mzr-management
+  labels:
+    platform: ibm
+    code: 110
+  annotations:
+    displayName: MZR Management VPC
+    description: Multi-Zone Management VPC with VPN and Bastion servers
 spec:
   modules:
     - name: ibm-resource-group
-      alias: hpcs_resource_group
+      alias: kms_resource_group
       variables:
         - name: provision
           value: false
-    - name: hpcs
-      alias: hpcs
+    - name: ibm-resource-group
+      alias: at_resource_group
+      variables:
+        - name: provision
+          value: false
+    - name: ibm-kms
+      alias: kms
       variables:
         - name: provision
           value: false
         - name: region
-          alias: hpcs_region
+          alias: kms_region
         - name: name_prefix
-          alias: hpcs_name_prefix
+          alias: kms_name_prefix
           scope: global
           value: ""
       dependencies:
         - name: resource_group
-          ref: hpcs_resource_group
+          ref: kms_resource_group
     - name: ibm-resource-group
       variables:
         - name: resource_group_name
@@ -155,14 +166,14 @@ spec:
           value: true
       dependencies:
         - name: kms
-          ref: hpcs
+          ref: kms
     - name: ibm-activity-tracker
       variables:
         - name: provision
           value: false
       dependencies:
         - name: resource_group
-          ref: hpcs_resource_group
+          ref: at_resource_group
     - name: sysdig
       variables:
         - name: provision
@@ -188,35 +199,6 @@ spec:
           ref: cos
         - name: subnets
           ref: vpe-subnets
-    - name: ibm-iam-service-authorization
-      alias: vsi-encrypt-auth
-      variables:
-        - name: source_service_name
-          value: server-protect
-        - name: target_service_name
-          value: hs-crypto
-        - name: roles
-          value: ["Reader"]
-      dependencies:
-        - name: source_resource_group
-          ref: resource_group
-        - name: target_resource_group
-          ref: hpcs_resource_group
-    - name: ibm-iam-service-authorization
-      alias: kube-encrypt-auth
-      variables:
-        - name: source_service_name
-          value: containers-kubernetes
-        - name: target_service_name
-          value: hs-crypto
-        - name: roles
-          value:
-            - Reader
-      dependencies:
-        - name: source_resource_group
-          ref: resource_group
-        - name: target_resource_group
-          ref: hpcs_resource_group
   variables:
     - name: mgmt_resource_group_name
     - name: mgmt_resource_group_provision
@@ -239,3 +221,4 @@ spec:
     - name: mgmt_ssh_vpn_private_key_file
     - name: mgmt_ssh_bastion_public_key_file
     - name: mgmt_ssh_bastion_private_key_file
+    - name: kms_service
