@@ -62,21 +62,24 @@ export class SelectedModules {
   }
 
   getCatalogModule(moduleRef: {source: string}): Module {
-    if (!moduleRef) {
+    if (!moduleRef || !moduleRef.source) {
       throw new ModuleNotFound('<not provided>');
     }
+
+    const sourceWithoutExtension = moduleRef.source.replace(/.git$/, '');
+    const sourceWithExtension = sourceWithoutExtension + '.git';
 
     const modules: Module[] = this.catalog.modules
       .filter(m => {
         const ids: string[] = [m.id, ...(m.aliasIds || [])];
 
-        const match = ids.includes(moduleRef.source);
+        const match = ids.includes(sourceWithoutExtension) || ids.includes(sourceWithExtension);
 
         return match;
       });
 
     if (modules.length === 0) {
-      throw new ModuleNotFound(moduleRef.source);
+      throw new ModuleNotFound(sourceWithExtension);
     }
 
     return modules[0];
