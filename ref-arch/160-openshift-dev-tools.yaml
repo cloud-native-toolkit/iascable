@@ -11,6 +11,10 @@ spec:
         - name: resource_group_name
           alias: mgmt_resource_group_name
           scope: global
+    - name: ibm-vpc
+      variables:
+        - name: provision
+          value: false
     - name: ibm-ocp-vpc
       dependencies:
         - name: subnets
@@ -33,55 +37,41 @@ spec:
         - name: vpc_name
           value: ""
         - name: login
-          value: true
-    - name: ibm-resource-group
-      alias: cs_resource_group
+          value: false
+    - name: ibm-container-registry
+    - name: ibm-vpc-gateways
       variables:
         - name: provision
           value: false
-    - name: logdna
+    - name: ibm-vpc-subnets
+      alias: bootstrap-subnets
       variables:
-        - name: provision
-          value: false
-        - name: name_prefix
-          alias: cs_name_prefix
-          scope: global
+        - name: _count
+          value: 1
+        - name: label
+          value: worker
+        - name: ipv4_cidr_blocks
+          value:
+            - 10.1.10.0/24
       dependencies:
-        - name: resource_group
-          ref: cs_resource_group
-    - name: sysdig
+        - name: gateways
+          ref: ibm-vpc-gateways
+    - name: vsi-argocd-bootstrap
+      alias: argocd-bootstrap
       variables:
-        - name: provision
-          value: false
-        - name: name_prefix
-          alias: cs_name_prefix
-          scope: global
-      dependencies:
-        - name: resource_group
-          ref: cs_resource_group
-    - name: namespace
+        - name: subnets
+          ref: bootstrap-subnets
+    - name: gitops-repo
+    - name: gitops-namespace
       variables:
         - name: name
           value: tools
-    - name: ibm-logdna-bind
-    - name: sysdig-bind
-    - name: ibm-image-registry
-      variables:
-        - name: registry_namespace
-          required: true
-          scope: global
-    - name: cluster-config
-      variables:
-        - name: banner_text
-          value: Management
-    - name: argocd
-    - name: dashboard
-    - name: pactbroker
-    - name: artifactory
-    - name: sonarqube
-    - name: tekton
-    - name: tekton-resources
-    - name: source-control
+    - name: gitops-console-link-job
+    - name: gitops-artifactory
+    - name: gitops-dashboard
+    - name: gitops-pact-broker
+    - name: gitops-sonarqube
+    - name: gitops-
   variables:
     - name: resource_group_name
     - name: region

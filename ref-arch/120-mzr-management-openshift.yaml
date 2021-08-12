@@ -217,6 +217,64 @@ spec:
           ref: vpe-subnets
         - name: sync
           ref: cluster
+    - name: ibm-iam-service-authorization
+      alias: vsi-encrypt-auth
+      variables:
+        - name: source_service_name
+          value: server-protect
+        - name: roles
+          value:
+            - Reader
+      dependencies:
+        - name: source_resource_group
+          ref: resource_group
+        - name: target_resource_group
+          ref: hpcs_resource_group
+        - name: target_resource
+          ref: kms
+    - name: ibm-iam-service-authorization
+      alias: kube-encrypt-auth
+      variables:
+        - name: source_service_name
+          value: containers-kubernetes
+        - name: roles
+          value:
+            - Reader
+      dependencies:
+        - name: source_resource_group
+          ref: resource_group
+        - name: target_resource_group
+          ref: hpcs_resource_group
+        - name: target_resource
+          ref: kms
+    - name: logdna
+      variables:
+        - name: provision
+          value: false
+        - name: name_prefix
+          alias: cs_name_prefix
+          scope: global
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
+    - name: sysdig
+      variables:
+        - name: provision
+          value: false
+        - name: name_prefix
+          alias: cs_name_prefix
+          scope: global
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
+  #    - name: ibm-logdna-bind
+  #      dependencies:
+  #        - name: cluster
+  #          ref: cluster
+  #    - name: sysdig-bind
+  #      dependencies:
+  #        - name: cluster
+  #          ref: cluster
   variables:
     - name: mgmt_resource_group_name
     - name: mgmt_resource_group_provision

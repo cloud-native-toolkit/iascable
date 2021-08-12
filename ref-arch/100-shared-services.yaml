@@ -48,6 +48,7 @@ spec:
     - name: ibm-object-storage
     - name: sysdig
     - name: logdna
+    - name: ibm-container-registry
     - name: ibm-iam-service-authorization
       alias: vsi-encrypt-auth
       variables:
