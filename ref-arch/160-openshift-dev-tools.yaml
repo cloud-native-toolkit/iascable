@@ -66,12 +66,13 @@ spec:
       variables:
         - name: name
           value: tools
-    - name: gitops-console-link-job
     - name: gitops-artifactory
+    - name: gitops-console-link-job
     - name: gitops-dashboard
+    - name: gitops-image-registry
     - name: gitops-pact-broker
     - name: gitops-sonarqube
-    - name: gitops-
+    - name: gitops-tekton-resources
   variables:
     - name: resource_group_name
     - name: region
