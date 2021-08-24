@@ -13,7 +13,6 @@ spec:
           alias: cs_resource_group_provision
           scope: global
     - name: ibm-access-group
-    - name: key-protect
     - name: ibm-object-storage
     - name: sysdig
     - name: logdna
@@ -32,7 +31,7 @@ spec:
         - name: target_resource_group
           ref: resource_group
     - name: ibm-iam-service-authorization
-      alias: vsi-encrypt-auth
+      alias: vsi-encrypt-auth-hpcs
       variables:
         - name: source_service_name
           value: server-protect
@@ -45,9 +44,24 @@ spec:
         - name: source_resource_group
           ref: resource_group
         - name: target_resource_group
-          ref: hpcs_resource_group
+          ref: kms_resource_group
     - name: ibm-iam-service-authorization
-      alias: kube-encrypt-auth
+      alias: vsi-encrypt-auth-kms
+      variables:
+        - name: source_service_name
+          value: server-protect
+        - name: target_service_name
+          value: kms
+        - name: roles
+          value:
+            - Reader
+      dependencies:
+        - name: source_resource_group
+          ref: resource_group
+        - name: target_resource_group
+          ref: kms_resource_group
+    - name: ibm-iam-service-authorization
+      alias: kube-encrypt-auth-hpcs
       variables:
         - name: source_service_name
           value: containers-kubernetes
@@ -60,10 +74,26 @@ spec:
         - name: source_resource_group
           ref: resource_group
         - name: target_resource_group
-          ref: hpcs_resource_group
+          ref: kms_resource_group
+    - name: ibm-iam-service-authorization
+      alias: kube-encrypt-auth-kms
+      variables:
+        - name: source_service_name
+          value: containers-kubernetes
+        - name: target_service_name
+          value: kms
+        - name: roles
+          value:
+            - Reader
+      dependencies:
+        - name: source_resource_group
+          ref: resource_group
+        - name: target_resource_group
+          ref: kms_resource_group
   variables:
     - name: cs_resource_group_provision
     - name: name_prefix
       alias: cs_name_prefix
     - name: region
     - name: cs_resource_group_name
+    - name: kms_service
