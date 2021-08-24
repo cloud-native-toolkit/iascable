@@ -4,6 +4,12 @@ import {isUndefined} from '../util/object-util';
 import {ArrayUtil, of as arrayOf} from '../util/array-util';
 import {Optional} from '../util/optional';
 
+export interface ModuleProvider {
+  name: string;
+  alias?: string;
+  source?: string;
+}
+
 export interface ModuleRef {
   source: string;
   version?: string;
@@ -23,6 +29,7 @@ export interface ModuleTemplate {
   description?: string;
   platforms: string[];
   provider?: 'ibm' | 'k8s';
+  providers?: ModuleProvider[];
   tags?: string[];
   ibmCatalogId?: string;
   fsReady?: string;
@@ -63,6 +70,7 @@ export interface ModuleVersion {
   dependencies?: ModuleDependency[];
   variables: ModuleVariable[];
   outputs: ModuleOutput[];
+  providers?: ModuleProvider[];
 }
 
 export interface ModuleVariable {

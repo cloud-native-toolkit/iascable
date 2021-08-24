@@ -24,6 +24,18 @@ export class ArrayUtil<T = any> {
     return new ArrayUtil(this.value.map(f));
   }
 
+  mergeMap<U>(): ArrayUtil<U> {
+    return new ArrayUtil(this.value.reduce((result: U[], currentValue: T) => {
+      if (Array.isArray(currentValue)) {
+        result.push(...currentValue);
+      } else {
+        result.push(currentValue as any);
+      }
+
+      return result;
+    }, []));
+  }
+
   some(predicate: (value: T, index: number, array: T[]) => boolean): boolean {
     return this.value.some(predicate);
   }
@@ -34,6 +46,14 @@ export class ArrayUtil<T = any> {
 
   reduce<U>(f: (result: U, current: T) => U, init: U): U {
     return this.value.reduce(f, init);
+  }
+
+  push(...values: T[]): ArrayUtil<T> {
+    const vals: T[] = this.value.slice();
+
+    vals.push(...values);
+
+    return new ArrayUtil<T>(vals);
   }
 
   forEach(f: (value: T, index: number, array: T[]) => void): ArrayUtil<T> {

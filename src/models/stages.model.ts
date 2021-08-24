@@ -2,12 +2,12 @@ import {
   BaseVariable,
   fromBaseVariable,
   IBaseVariable,
-  StagePrinter, TerraformTfvars,
+  StagePrinter, TerraformProvider, TerraformTfvars,
   TerraformVariable,
   TerraformVariableImpl
 } from './variables.model';
 import {OutputFile, OutputFileType, UrlFile} from './file.model';
-import {SingleModuleVersion} from './module.model';
+import {ModuleProvider, SingleModuleVersion} from './module.model';
 import {BillOfMaterialVariable} from './bill-of-material.model';
 import {ArrayUtil, of as arrayOf} from '../util/array-util';
 import {Optional} from '../util/optional';
@@ -30,6 +30,7 @@ export interface TerraformComponentModel {
   baseVariables: IBaseVariable[];
   bomVariables?: BillOfMaterialVariable[];
   modules?: SingleModuleVersion[];
+  providers?: ModuleProvider[];
   files: OutputFile[];
 }
 
@@ -81,6 +82,67 @@ function mergeBomVariables(bomVariables: ArrayUtil<BillOfMaterialVariable>) {
       {defaultValue: getValue(bomVariable.get().value, variable.defaultValue)}
     );
   };
+}
+
+export class TerraformVersionFile implements OutputFile {
+  constructor(private providers: TerraformProvider[]) {
+  }
+
+  name = 'version.tf';
+
+  private getSourceString(provider: TerraformProvider, indent: string = ' '): string {
+    if (!provider.source) {
+      return '';
+    }
+
+    return `${indent}source = "${provider.source}"\n`
+  }
+
+  get contents(): Promise<string | Buffer> {
+    const indent = '    ';
+
+    const providerString: string = this.providers
+      .reduce((providerSet: TerraformProvider[], currentProvider: TerraformProvider) => {
+        if (!providerSet.map(p => p.name).includes(currentProvider.name)) {
+          providerSet.push(currentProvider);
+        }
+
+        return providerSet;
+      }, [])
+      .map(p => {
+        return `${indent}${p.name} = {
+${this.getSourceString(p, `${indent}  `)}${indent}}
+`;
+      })
+      .join('\n');
+
+    const result = `terraform {
+  required_providers {
+${providerString}
+  }
+}`
+    return Promise.resolve(result);
+  }
+}
+
+export class TerraformProvidersFile implements OutputFile {
+  constructor(private providers: TerraformProvider[]) {
+  }
+
+  name = 'providers.tf';
+
+  get contents(): Promise<string | Buffer> {
+    const buffer: Buffer = this.providers
+      .reduce((previousBuffer: Buffer, provider: TerraformProvider) => {
+        return Buffer.concat([
+          previousBuffer,
+          Buffer.from('\n'),
+          Buffer.from(provider.asString())
+        ])
+      }, Buffer.from(''));
+
+    return Promise.resolve(buffer);
+  }
 }
 
 export class TerraformVariablesFile implements OutputFile {
@@ -152,9 +214,10 @@ export class TerraformComponent implements TerraformComponentModel {
   baseVariables: TerraformVariable[] = [];
   bomVariables?: BillOfMaterialVariable[] = []
   modules?: SingleModuleVersion[];
+  providers?: TerraformProvider[];
 
   constructor(model: TerraformComponentModel, private name: string | undefined) {
-    Object.assign(this, model);
+    Object.assign(this as TerraformComponentModel, model);
   }
 
   set files(f: OutputFile[]) {
@@ -162,14 +225,16 @@ export class TerraformComponent implements TerraformComponentModel {
   }
 
   get files(): OutputFile[] {
-    const files: OutputFile[] = [
+    const files: Array<OutputFile | undefined> = [
       new TerraformStageFile(this.stages),
       new TerraformVariablesFile(this.baseVariables, this.bomVariables),
+      this.providers !== undefined && this.providers.length > 0 ? new TerraformProvidersFile(this.providers) : undefined,
+      this.providers !== undefined && this.providers.length > 0 ? new TerraformVersionFile(this.providers) : undefined,
       new TerraformTfvarsFile(this.baseVariables, this.bomVariables, this.name),
       ...buildModuleReadmes(this.modules),
     ];
 
-    return files;
+    return files.filter(f => f !== undefined) as OutputFile[];
   }
 }
 
@@ -214,25 +279,46 @@ export class StageImpl implements Stage, StagePrinter {
     return `module "${this.name}" {
   source = "${this.module.id}?ref=${this.module.version.version}"
 
-${this.variablesAsString(stages)}
+${this.providersAsString(this.module.version.providers)}${this.variablesAsString(stages)}
 }
 `;
   }
 
+  private providerHasAlias(providers: ModuleProvider[]): boolean {
+    return providers
+      .map(p => p.alias)
+      .filter(a => !!a).length > 0;
+  }
+
+  providersAsString(providers?: ModuleProvider[], indent: string = '  '): string {
+    if (!providers || providers.length === 0) {
+      return '';
+    }
+
+    if (!this.providerHasAlias(providers)) {
+      return '';
+    }
+
+    const providerString: string = providers
+      .map(p => {
+        const ref = p.alias ? `${p.name}.${p.alias}` : p.name
+
+        return `${indent}  ${p.name} = ${ref}`
+      })
+      .join('\n');
+
+    return `${indent}providers = {
+${providerString}
+${indent}}
+`;
+  }
+
   variablesAsString(stages: {[name: string]: {name: string}}, indent: string = '  '): string {
-    const variableBuffer: Buffer = this.variables
+    const variableString: string = this.variables
       .filter(v => !!v)
-      .reduce((buffer: Buffer, variable: BaseVariable) => {
-        if (!variable.asString) {
-          variable = fromBaseVariable(variable);
-        }
+      .map(variable => indent + variable.asString(stages))
+      .join('\n');
 
-        return Buffer.concat([
-          buffer,
-          Buffer.from(indent + variable.asString(stages))
-        ]);
-      }, Buffer.from(''));
-
-    return variableBuffer.toString();
+    return variableString;
   }
 }

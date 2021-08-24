@@ -1,0 +1,20 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: circular
+spec:
+  providers:
+    - name: ibm
+    - name: ibm
+      alias: ibm2
+  modules:
+    - name: ibm-resource-group
+    - name: ibm-resource-group
+      alias: rg2
+      providers:
+        - name: ibm
+          alias: ibm2
+      dependencies:
+        - name: sync
+          ref: resource_group
+  variables: []

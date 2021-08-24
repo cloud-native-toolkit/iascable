@@ -26,10 +26,20 @@ export class Optional<T = any> {
     return this.value !== undefined && this.value !== null;
   }
 
-  ifPresent(f: (value: T) => void) {
+  ifPresent(f: (value: T) => void): Optional<T> {
     if (this.value !== undefined && this.value !== null) {
       f(this.value);
     }
+
+    return this;
+  }
+
+  ifNotPresent(f: () => void): Optional<T> {
+    if (this.value === undefined || this.value === null) {
+      f();
+    }
+
+    return this;
   }
 
   get(): T {
