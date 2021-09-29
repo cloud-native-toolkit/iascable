@@ -7,6 +7,8 @@ export class ArrayUtil<T = any> {
   private constructor(value?: T[]) {
     if (value === undefined) {
       this.value = [];
+    } else if (!Array.isArray(value)) {
+      this.value = [];
     } else {
       this.value = value;
     }

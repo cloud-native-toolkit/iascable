@@ -4,74 +4,21 @@ metadata:
   name: 160-openshift-dev-tools
 spec:
   modules:
-    - name: ibm-resource-group
-      variables:
-        - name: provision
-          value: false
-        - name: resource_group_name
-          alias: mgmt_resource_group_name
-          scope: global
-    - name: ibm-vpc
-      variables:
-        - name: provision
-          value: false
-    - name: ibm-ocp-vpc
-      dependencies:
-        - name: subnets
-          optional: true
-        - name: cos
-          optional: true
-        - name: vpc
-          optional: true
-      variables:
-        - name: exists
-          value: true
-        - name: name
-          required: true
-        - name: vpc_subnet_count
-          value: 0
-        - name: vpc_subnets
-          value: "[]"
-        - name: cos_id
-          value: ""
-        - name: vpc_name
-          value: ""
-        - name: login
-          value: false
-    - name: ibm-container-registry
-    - name: ibm-vpc-gateways
-      variables:
-        - name: provision
-          value: false
-    - name: ibm-vpc-subnets
-      alias: bootstrap-subnets
-      variables:
-        - name: _count
-          value: 1
-        - name: label
-          value: worker
-        - name: ipv4_cidr_blocks
-          value:
-            - 10.1.10.0/24
-      dependencies:
-        - name: gateways
-          ref: ibm-vpc-gateways
-    - name: vsi-argocd-bootstrap
-      alias: argocd-bootstrap
-      variables:
-        - name: subnets
-          ref: bootstrap-subnets
     - name: gitops-repo
+      variables:
+        - name: provision
+          value: false
+        - name: server_name
+          alias: mgmt_server_name
+          value: management-server
     - name: gitops-namespace
       variables:
         - name: name
+          alias: tools
           value: tools
     - name: gitops-artifactory
-    - name: gitops-console-link-job
     - name: gitops-dashboard
-    - name: gitops-image-registry
     - name: gitops-pact-broker
-    - name: gitops-sonarqube
     - name: gitops-tekton-resources
   variables:
     - name: resource_group_name

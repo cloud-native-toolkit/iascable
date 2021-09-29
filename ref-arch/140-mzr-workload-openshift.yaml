@@ -208,6 +208,17 @@ spec:
         - name: sync
           ref: cluster
     - name: ibm-transit-gateway
+    - name: vsi-argocd-bootstrap
+      alias: argocd-bootstrap
+      variables:
+        - name: subnets
+          ref: bastion-subnets
+    - name: gitops-repo
+      variables:
+        - name: server_name
+          alias: workload_server_name
+        - name: provision
+          value: false
   variables:
     - name: workload_resource_group_name
     - name: region

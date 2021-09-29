@@ -5,7 +5,7 @@
 SCRIPT_DIR="$(cd $(dirname $0); pwd -P)"
 SRC_DIR="$(cd "${SCRIPT_DIR}/output" ; pwd -P)"
 
-DOCKER_IMAGE="quay.io/ibmgaragecloud/cli-tools:v14"
+DOCKER_IMAGE="quay.io/ibmgaragecloud/cli-tools:v0.14"
 
 helpFunction()
 {

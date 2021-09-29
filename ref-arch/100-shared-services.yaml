@@ -44,10 +44,21 @@ spec:
       dependencies:
         - name: resource_group
           ref: kms_resource_group
+    - name: ibm-kms-key
+      variables:
+        - name: provision
+          value: true
+      dependencies:
+        - name: kms
+          ref: kms
     - name: ibm-access-group
     - name: ibm-object-storage
     - name: sysdig
     - name: logdna
+    - name: ibm-cert-manager
+      variables:
+        - name: kms_enabled
+          value: true
     - name: ibm-container-registry
     - name: ibm-iam-service-authorization
       alias: vsi-encrypt-auth
@@ -116,6 +127,19 @@ spec:
       dependencies:
         - name: source_resource_group
           ref: resource_group
+        - name: target_resource_group
+          ref: kms_resource_group
+        - name: target_resource
+          ref: kms
+    - name: ibm-iam-service-authorization
+      alias: cert-manager-encrypt-auth
+      variables:
+        - name: source_service_name
+          value: cloudcerts
+        - name: roles
+          value:
+            - Reader
+      dependencies:
         - name: target_resource_group
           ref: kms_resource_group
         - name: target_resource
