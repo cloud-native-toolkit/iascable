@@ -1,0 +1,27 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: baseline-iks
+spec:
+  modules:
+    - name: ibm-resource-group
+    - name: ibm-vpc
+    - name: ibm-vpc-gateways
+    - name: ibm-vpc-subnets
+      alias: cluster-subnets
+      variables:
+        - name: subnet_count
+          value: 1
+        - name: subnet_label
+          value: cluster
+    - name: ibm-iks-vpc
+      dependencies:
+        - name: subnets
+          ref: cluster-subnets
+    - name: argocd
+  variables:
+    - name: resource_group_name
+    - name: region
+    - name: ibmcloud_api_key
+    - name: name_prefix
+      required: true
