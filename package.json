@@ -1,6 +1,6 @@
 {
   "name": "@cloudnativetoolkit/iascable",
-  "version": "2.2.3",
+  "version": "2.2.4",
   "description": "",
   "keywords": [],
   "main": "dist/iascable.umd.js",
@@ -12,7 +12,7 @@
   "author": "Sean Sundberg <seansund@us.ibm.com>",
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/cloud-native-toolkit/iascable.git"
   },
   "license": "MIT",
   "engines": {
@@ -135,9 +135,5 @@
     "typescript-ioc": "^3.2.2",
     "yargs": "^17.2.1"
   },
-  "homepage": "https://github.com/cloud-native-toolkit/iascable.git#readme",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/cloud-native-toolkit/iascable.git"
-  }
+  "homepage": "https://github.com/cloud-native-toolkit/iascable.git#readme"
 }
