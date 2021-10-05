@@ -8,9 +8,9 @@ spec:
       variables:
         - name: server_url
           required: true
-        - name: user
+        - name: login_user
           value: apikey
-        - name: password
+        - name: login_password
           alias: ibmcloud_api_key
           scope: global
     - name: namespace
