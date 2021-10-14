@@ -316,6 +316,16 @@ ${indent}}
   variablesAsString(stages: {[name: string]: {name: string}}, indent: string = '  '): string {
     const variableString: string = this.variables
       .filter(v => !!v)
+      .map(v => fromBaseVariable(v))
+      .filter(v => {
+        const result = !!(v.asString);
+
+        if (!result) {
+          console.log('Variable missing asString: ' + v.name, v);
+        }
+
+        return result;
+      })
       .map(variable => indent + variable.asString(stages))
       .join('\n');
 
