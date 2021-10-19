@@ -1,5 +1,5 @@
 import {default as jsYaml} from 'js-yaml';
-import {Dirent, promises} from 'fs';
+import {promises} from 'fs';
 import {resolve, join} from 'path';
 import {
   BillOfMaterial, billOfMaterialFromYaml, BillOfMaterialModel,

@@ -19,11 +19,17 @@ export interface BillOfMaterialModuleVariable {
   required?: boolean;
 }
 
+export interface BillOfMaterialModuleProvider {
+  name: string;
+  ref?: string;
+}
+
 export interface BaseBillOfMaterialModule {
   alias?: string;
   version?: string;
   variables?: BillOfMaterialModuleVariable[];
   dependencies?: BillOfMaterialModuleDependency[];
+  providers?: BillOfMaterialModuleProvider[];
 }
 
 export interface BillOfMaterialModuleById extends BaseBillOfMaterialModule {
@@ -52,14 +58,28 @@ export function isBillOfMaterialModuleByName(module: string | BillOfMaterialModu
 
 export interface BillOfMaterialVariable {
   name: string;
+  ref?: string;
   value?: string;
   alias?: string;
   required?: boolean;
 }
 
+export interface BillOfMaterialProvider {
+  name: string;
+  alias?: string;
+  source?: string;
+  variables?: BillOfMaterialProviderVariable[];
+}
+
+export interface BillOfMaterialProviderVariable {
+  name: string;
+  ref: string;
+}
+
 export interface BillOfMaterialSpec {
   modules: Array<string | BillOfMaterialModule>;
   variables?: BillOfMaterialVariable[];
+  providers?: BillOfMaterialProvider[];
 }
 
 export interface ResourceMetadata {

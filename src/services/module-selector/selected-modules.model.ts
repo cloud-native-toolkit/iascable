@@ -4,12 +4,12 @@ import {LoggerApi} from '../../util/logger';
 import {findMatchingVersion, resolveVersions} from '../../util/version-resolver';
 import {
   BillOfMaterialModule,
-  BillOfMaterialModuleDependency,
+  BillOfMaterialModuleDependency, BillOfMaterialModuleProvider,
   Catalog,
   isModule,
   Module,
   ModuleDependency,
-  ModuleMatcher,
+  ModuleMatcher, ModuleProvider,
   ModuleRef,
   ModuleVersion,
   SingleModuleVersion, wrapModule, WrappedModule
@@ -243,22 +243,25 @@ export class SelectedModules {
   resolveModuleVersions(): SingleModuleVersion[] {
     const matchers: {[source: string]: ModuleMatcher} = this.reconcileModuleRefs();
 
-    return Object.keys(this.modules).map(alias => {
+    const result: SingleModuleVersion[] = Object.keys(this.modules).map(alias => {
       const module: Module = this.modules[alias];
 
       const matcher = matchers[module.id];
 
       const version: ModuleVersion = findMatchingVersion(module, matcher.version);
 
-      const updatedVersion: ModuleVersion = mergeBomDependencyDiscriminators(version, module.bomModule?.dependencies);
+      const updatedVersion: ModuleVersion = mergeBomValues(version, module.bomModule?.dependencies, module.bomModule?.providers);
 
-      return Object.assign({}, module, {version: updatedVersion, alias});
-    })
+      return Object.assign({}, module, {version: updatedVersion, alias}) as SingleModuleVersion;
+    });
+
+    return result;
   }
 }
 
-function mergeBomDependencyDiscriminators(version: ModuleVersion, dependencies?: BillOfMaterialModuleDependency[]): ModuleVersion {
+function mergeBomValues(version: ModuleVersion, dependencies?: BillOfMaterialModuleDependency[], providers?: ModuleProvider[]): ModuleVersion {
   const bomDeps: ArrayUtil<BillOfMaterialModuleDependency> = arrayOf<BillOfMaterialModuleDependency>(dependencies);
+  const bomProviders: ArrayUtil<BillOfMaterialModuleProvider> = arrayOf<BillOfMaterialModuleProvider>(providers);
 
   if (bomDeps.length === 0) {
     return version;
@@ -275,7 +278,15 @@ function mergeBomDependencyDiscriminators(version: ModuleVersion, dependencies?:
     })
     .asArray();
 
-  return Object.assign({}, version, {dependencies: updatedDependencies});
+  const updatedProviders: ModuleProvider[] = arrayOf(version.providers)
+    .map(p => {
+      const bomProvider: Optional<BillOfMaterialModuleProvider> = bomProviders.filter(bomP => bomP.name === p.name).first();
+
+      return bomProvider.map(bomP => Object.assign({}, p, bomP)).orElse(p);
+    })
+    .asArray();
+
+  return Object.assign({}, version, {dependencies: updatedDependencies, providers: updatedProviders});
 }
 
 function getModuleKey(module: Module): string {

@@ -1,0 +1,20 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: multi-provider
+spec:
+  providers:
+    - name: ibm
+      alias: ibm2
+      variables:
+        - name: region
+          ref: region2
+  modules:
+    - name: ibm-resource-group
+      alias: rg1
+    - name: ibm-resource-group
+      alias: rg2
+      providers:
+        - name: ibm
+          alias: ibm2
+  variables: []

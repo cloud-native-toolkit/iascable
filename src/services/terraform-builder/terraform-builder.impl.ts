@@ -4,12 +4,16 @@ import {
   BaseVariable,
   BillOfMaterialModel,
   BillOfMaterialModule,
-  BillOfMaterialModuleVariable, BillOfMaterialVariable,
+  BillOfMaterialModuleVariable,
+  BillOfMaterialProvider,
+  BillOfMaterialVariable,
+  buildTerraformProvider,
   GlobalRefVariable,
   IBaseVariable,
   isPlaceholderVariable,
   ModuleDependency,
   ModuleOutputRef,
+  ModuleProvider,
   ModuleRef,
   ModuleRefVariable,
   ModuleVariable,
@@ -18,7 +22,9 @@ import {
   SingleModuleVersion,
   Stage,
   StageImpl,
-  TerraformComponent
+  TerraformComponent,
+  TerraformProvider,
+  TerraformProviderImpl
 } from '../../models';
 import {ModuleSelectorApi} from '../module-selector';
 import {ModuleNotFound} from '../../errors';
@@ -26,6 +32,58 @@ import {ArrayUtil, of as arrayOf} from '../../util/array-util';
 import {isDefinedAndNotNull, isUndefined, isUndefinedOrEmpty} from '../../util/object-util';
 import {Optional, of} from '../../util/optional';
 import {LoggerApi} from '../../util/logger';
+
+function notIncludesProvider(providers: ModuleProvider[]) {
+  return (provider: ModuleProvider) => {
+    return !providers.map(p => `${p.name}-${p.alias}`).includes(`${provider.name}-${provider.alias}`);
+  };
+}
+
+function addProviderVariablesToBaseVariables(providers: TerraformProvider[], baseVariables: IBaseVariable[]) {
+  providers
+    .reduce((variables: string[], provider: TerraformProvider) => {
+      provider.variables.forEach(variable => {
+        if (!variables.includes(variable.ref)) {
+          variables.push(variable.ref);
+        }
+      });
+
+      return variables;
+    }, [])
+    .forEach(variableName => {
+      if (!baseVariables.map(v => v.name).includes(variableName)) {
+        baseVariables.push({name: variableName});
+      }
+    });
+}
+
+function mergeBomProvider(provider: ModuleProvider, bomProviders: BillOfMaterialProvider[]): ModuleProvider {
+  const result: ModuleProvider = arrayOf(bomProviders)
+    .filter(p => p.name === provider.name && p.alias === provider.alias)
+    .first()
+    .map(bomP => Object.assign({}, provider, bomP))
+    .orElse(provider);
+
+  return result;
+}
+
+function extractProviders(selectedModules: SingleModuleVersion[], bomProviders: BillOfMaterialProvider[] = []): TerraformProvider[] {
+  const moduleProviders: ModuleProvider[] = arrayOf(selectedModules)
+    .map(m => m.version)
+    .map(v => v.providers)
+    .mergeMap<ModuleProvider>()
+    .filter(p => !!p)
+    .reduce((result: ModuleProvider[], currentProvider: ModuleProvider) => {
+
+      if (notIncludesProvider(result)) {
+        result.push(mergeBomProvider(currentProvider, bomProviders));
+      }
+
+      return result;
+    }, []);
+
+  return moduleProviders.map(buildTerraformProvider);
+}
 
 export class TerraformBuilder implements TerraformBuilderApi {
   constructor(@Inject private selector: ModuleSelectorApi) {
@@ -42,10 +100,21 @@ export class TerraformBuilder implements TerraformBuilderApi {
 
     await Promise.all(Object.keys(stages).map(async (stageSource) => {
       stages[stageSource] = await processStageVariables(stages[stageSource], baseVariables, billOfMaterial?.spec.variables);
-    }))
+    }));
+
+    const providers: TerraformProvider[] = extractProviders(selectedModules, billOfMaterial?.spec.providers);
+
+    addProviderVariablesToBaseVariables(providers, baseVariables);
 
     const name: string | undefined = billOfMaterial?.metadata.name;
-    return new TerraformComponent({stages, baseVariables, modules: selectedModules, bomVariables: billOfMaterial?.spec.variables, files: []}, name);
+    return new TerraformComponent({
+      stages,
+      baseVariables,
+      providers,
+      modules: selectedModules,
+      bomVariables: billOfMaterial?.spec.variables,
+      files: []
+    }, name);
   }
 }
 

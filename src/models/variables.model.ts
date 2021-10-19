@@ -1,5 +1,10 @@
-import {ModuleVariable} from './module.model';
+import {ModuleProvider, ModuleVariable} from './module.model';
 import {ArrayUtil, of as arrayOf} from '../util/array-util';
+import {
+  BillOfMaterialProvider,
+  BillOfMaterialProviderVariable,
+  BillOfMaterialVariable
+} from './bill-of-material.model';
 
 export interface StagePrinter {
   asString(stages: {[name: string]: {name: string}}): string;
@@ -46,7 +51,7 @@ export class ModuleRefVariable implements IModuleVariable, BaseVariable {
   }
 
   asString(stages: {[name: string]: {name: string}}): string {
-    return `${this.name} = ${this.valueString(stages)}\n`;
+    return `${this.name} = ${this.valueString(stages)}`;
   }
 
   valueString(stages: {[name: string]: {name: string}}): string {
@@ -98,10 +103,10 @@ export class GlobalRefVariable implements IGlobalRefVariable, BaseVariable {
 
   asString(): string {
     if (this.type?.match(/^list\(/)) {
-      return `${this.name} = var.${this.variableName} == null ? null : jsondecode(var.${this.variableName})\n`;
+      return `${this.name} = var.${this.variableName} == null ? null : jsondecode(var.${this.variableName})`;
     }
 
-    return `${this.name} = var.${this.variableName}\n`;
+    return `${this.name} = var.${this.variableName}`;
   }
 }
 
@@ -154,6 +159,112 @@ export function fromBaseVariable(variable: IBaseVariable): BaseVariable {
   }
 }
 
+export interface ProviderVariable {
+  name: string;
+  ref: string;
+}
+
+export interface TerraformProvider {
+  name: string;
+  alias?: string;
+  source?: string;
+  variables: ProviderVariable[];
+
+  asString(): string;
+}
+
+export function mergeVariables(variables: BillOfMaterialProviderVariable[], bomVariables: BillOfMaterialProviderVariable[] = []): BillOfMaterialProviderVariable[] {
+  return variables.map(v => {
+    return arrayOf(bomVariables)
+      .filter(bomV => bomV.name === v.name)
+      .first()
+      .map(bomV => Object.assign({}, v, bomV))
+      .orElse(v);
+  })
+}
+
+export function buildTerraformProvider(provider: BillOfMaterialProvider): TerraformProvider {
+  if (provider.name !== 'ibm') {
+    return new TerraformProviderImpl({
+      name: provider.name,
+      alias: provider.alias,
+      source: provider.source,
+      variables: []
+    });
+  }
+
+  const variablePrefix = provider.alias ? `${provider.alias}_` : '';
+
+  const variables: ProviderVariable[] = [
+    {
+      name: 'region',
+      ref: `${variablePrefix}region`
+    }, {
+      name: 'ibmcloud_api_key',
+      ref: 'ibmcloud_api_key'
+    }
+  ];
+
+  return new TerraformProviderImpl({
+    name: provider.name,
+    alias: provider.alias,
+    source: provider.source,
+    variables: mergeVariables(variables, provider.variables)
+  });
+}
+
+export class TerraformProviderImpl implements TerraformProvider {
+  name: string = '';
+  alias?: string;
+  source?: string;
+  _variables: ProviderVariable[] = [];
+
+  constructor(values: {name: string, alias?: string, source?: string, variables: ProviderVariable[]}) {
+    Object.assign(this as TerraformProvider, values);
+  }
+
+  get variables(): ProviderVariable[] {
+    return this._variables || [];
+  }
+  set variables(variables: ProviderVariable[]) {
+    this._variables = variables;
+  }
+
+  private aliasString(indent: string = '  '): string {
+    if (!this.alias) {
+      return '';
+    }
+
+    return `${indent}alias = "${this.alias}"`
+  }
+
+  private variableString(indent: string = '  '): string {
+    if (this.variables.length === 0) {
+      return '';
+    }
+
+    return this._variables
+      .reduce((previousValue: Buffer, variable: ProviderVariable) => {
+
+        const value: string = `${indent}${variable.name} = var.${variable.ref}`
+
+        return Buffer.concat([
+          previousValue,
+          Buffer.from('\n'),
+          Buffer.from(value)
+        ])
+      }, Buffer.from(''))
+      .toString();
+  }
+
+  asString(): string {
+    return `provider "${this.name}" {
+${this.aliasString('  ')}
+${this.variableString('  ')}
+}`
+  }
+}
+
 export interface TerraformVariable extends IBaseVariable {
   asString(): string;
 }
@@ -166,7 +277,7 @@ export class TerraformVariableImpl implements TerraformVariable {
   private _required?: boolean;
 
   constructor(values: {name: string, defaultValue?: string, type?: string, description?: string, required?: boolean}) {
-    Object.assign(this, values);
+    Object.assign(this as TerraformVariable, values);
   }
 
   get type() {
