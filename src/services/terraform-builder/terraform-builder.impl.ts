@@ -34,8 +34,16 @@ import {Optional, of} from '../../util/optional';
 import {LoggerApi} from '../../util/logger';
 
 function notIncludesProvider(providers: ModuleProvider[]) {
+  const providerId = (provider: ModuleProvider) => {
+    if (!provider.alias) {
+      return provider.name;
+    }
+
+    return `${provider.name}-${provider.alias}`;
+  }
+
   return (provider: ModuleProvider) => {
-    return !providers.map(p => `${p.name}-${p.alias}`).includes(`${provider.name}-${provider.alias}`);
+    return !providers.map(p => providerId(p)).includes(providerId(provider));
   };
 }
 
@@ -75,7 +83,7 @@ function extractProviders(selectedModules: SingleModuleVersion[], bomProviders: 
     .filter(p => !!p)
     .reduce((result: ModuleProvider[], currentProvider: ModuleProvider) => {
 
-      if (notIncludesProvider(result)) {
+      if (notIncludesProvider(result)(currentProvider)) {
         result.push(mergeBomProvider(currentProvider, bomProviders));
       }
 
