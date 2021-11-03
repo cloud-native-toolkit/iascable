@@ -1,7 +1,7 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: 160-openshift-dev-tools
+  name: 200-openshift-dev-tools
 spec:
   modules:
     - name: ibm-resource-group

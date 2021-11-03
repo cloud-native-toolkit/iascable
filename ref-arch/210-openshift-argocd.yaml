@@ -1,7 +1,7 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: 170-openshift-argocd
+  name: 210-openshift-argocd
 spec:
   modules:
     - name: ocp-login

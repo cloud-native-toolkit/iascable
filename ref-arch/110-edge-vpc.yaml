@@ -1,13 +1,13 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: 110-mzr-management
+  name: 110-edge-vpc
   labels:
     platform: ibm
     code: 110
   annotations:
-    displayName: MZR Management VPC
-    description: Multi-Zone Management VPC with VPN and Bastion servers
+    displayName: Edge VPC
+    description: Edge VPC with VPN and Bastion servers
 spec:
   modules:
     - name: ibm-resource-group

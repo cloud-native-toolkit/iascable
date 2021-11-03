@@ -1,7 +1,7 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: 165-openshift-workload
+  name: 205-openshift-workload
 spec:
   modules:
     - name: ibm-resource-group

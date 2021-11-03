@@ -1,13 +1,13 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: 140-mzr-workload-openshift
+  name: 150-workload-vpc-openshift
   labels:
     platform: ibm
-    code: 140
+    code: 150
   annotations:
-    displayName: MZR Workload VPC OpenShift
-    description: Multi-Zone Workload VPC with Red Hat OpenShift cluster and VPC Transit Gateway to Management VPC
+    displayName: Workload VPC OpenShift
+    description: Workload VPC with Red Hat OpenShift cluster and VPC Transit Gateway to Management VPC
 spec:
   modules:
     - name: ibm-resource-group

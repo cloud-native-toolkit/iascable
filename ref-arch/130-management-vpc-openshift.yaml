@@ -1,13 +1,13 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: 130-mzr-workload
+  name: 130-management-vpc-openshift
   labels:
     platform: ibm
     code: 130
   annotations:
-    displayName: MZR Workload VPC
-    description: Multi-Zone Workload VPC with VPC Transit Gateway to Management VPC
+    displayName: Management VPC OpenShift
+    description: Management VPC and Red Hat OpenShift servers
 spec:
   modules:
     - name: ibm-resource-group
@@ -35,30 +35,12 @@ spec:
         - name: resource_group
           ref: kms_resource_group
     - name: ibm-resource-group
-      alias: mgmt_resource_group
-      variables:
-        - name: provision
-          value: false
-    - name: ibm-vpc
-      alias: management-vpc
-      dependencies:
-        - name: resource_group
-          ref: mgmt_resource_group
-      variables:
-        - name: provision
-          value: false
-        - name: name
-          required: true
-        - name: name_prefix
-          alias: mgmt_name_prefix
-          scope: global
-    - name: ibm-resource-group
       variables:
         - name: resource_group_name
-          alias: workload_resource_group_name
+          alias: mgmt_resource_group_name
           scope: global
         - name: provision
-          alias: workload_resource_group_provision
+          alias: mgmt_resource_group_provision
           scope: global
     - name: ibm-access-group
     - name: ibm-vpc
@@ -67,10 +49,10 @@ spec:
           value: 4
         - name: address_prefixes
           value:
-            - 10.40.0.0/18
-            - 10.50.0.0/18
-            - 10.60.0.0/18
-            - 10.2.0.0/18
+            - 10.10.0.0/18
+            - 10.20.0.0/18
+            - 10.30.0.0/18
+            - 10.1.0.0/18
     - name: ibm-flow-logs
       dependencies:
         - name: target
@@ -82,17 +64,33 @@ spec:
       alias: worker-subnets
       variables:
         - name: _count
+          alias: mgmt_worker_subnet_count
+          scope: global
           value: 3
         - name: label
           value: worker
         - name: ipv4_cidr_blocks
           value:
-            - 10.40.10.0/24
-            - 10.50.10.0/24
-            - 10.60.10.0/24
+            - 10.10.10.0/24
+            - 10.20.10.0/24
+            - 10.30.10.0/24
       dependencies:
         - name: gateways
           ref: ibm-vpc-gateways
+    - name: ibm-ocp-vpc
+      alias: cluster
+      variables:
+        - name: disable_public_endpoint
+          value: true
+        - name: kms_enabled
+          value: true
+        - name: worker_count
+          alias: mgmt_worker_count
+      dependencies:
+        - name: subnets
+          ref: worker-subnets
+        - name: kms_key
+          ref: kms_key
     - name: ibm-vpc-subnets
       alias: vpe-subnets
       variables:
@@ -102,9 +100,19 @@ spec:
           value: vpe
         - name: ipv4_cidr_blocks
           value:
-            - 10.40.20.0/24
-            - 10.50.20.0/24
-            - 10.60.20.0/24
+            - 10.10.20.0/24
+            - 10.20.20.0/24
+            - 10.30.20.0/24
+    - name: ibm-vpc-subnets
+      alias: vpn-subnets
+      variables:
+        - name: _count
+          value: 1
+        - name: label
+          value: vpn
+        - name: ipv4_cidr_blocks
+          value:
+            - 10.10.30.0/24
     - name: ibm-vpc-subnets
       alias: bastion-subnets
       variables:
@@ -116,10 +124,28 @@ spec:
           value: 1
         - name: ipv4_cidr_blocks
           value:
-            - 10.50.30.0/24
-            - 10.60.30.0/24
+            - 10.20.30.0/24
+            - 10.30.30.0/24
     - name: ibm-vpc-ssh
-      alias: workload_ssh_bastion
+      alias: mgmt_ssh_vpn
+      variables:
+        - name: label
+          value: vpn
+    - name: ibm-vpc-vpn-gateway
+      dependencies:
+        - name: subnets
+          ref: vpn-subnets
+    - name: vsi-vpn
+      variables:
+        - name: kms_enabled
+          value: true
+      dependencies:
+        - name: subnets
+          ref: vpn-subnets
+        - name: vpcssh
+          ref: mgmt_ssh_vpn
+    - name: ibm-vpc-ssh
+      alias: mgmt_ssh_bastion
       variables:
         - name: label
           value: bastion
@@ -133,7 +159,7 @@ spec:
         - name: subnets
           ref: bastion-subnets
         - name: vpcssh
-          ref: workload_ssh_bastion
+          ref: mgmt_ssh_bastion
     - name: ibm-resource-group
       alias: cs_resource_group
       variables:
@@ -189,30 +215,29 @@ spec:
           ref: cos
         - name: subnets
           ref: vpe-subnets
-    - name: ibm-transit-gateway
+        - name: sync
+          ref: cluster
   variables:
-    - name: workload_resource_group_name
+    - name: mgmt_resource_group_name
+    - name: mgmt_resource_group_provision
     - name: region
     - name: ibmcloud_api_key
     - name: name_prefix
+      alias: mgmt_name_prefix
       required: true
-      alias: workload_name_prefix
-    - name: mgmt_resource_group_provision
-    - name: workload_resource_group_provision
     - name: cs_resource_group_name
     - name: cs_name_prefix
-    - name: mgmt_name_prefix
-    - name: hpcs_name
-    - name: workload_ssh_vpn_public_key
+    - name: worker_count
+    - name: mgmt_ssh_vpn_public_key
       value: ""
-    - name: workload_ssh_vpn_private_key
+    - name: mgmt_ssh_vpn_private_key
       value: ""
-    - name: workload_ssh_bastion_public_key
+    - name: mgmt_ssh_bastion_public_key
       value: ""
-    - name: workload_ssh_bastion_private_key
+    - name: mgmt_ssh_bastion_private_key
       value: ""
-    - name: workload_ssh_vpn_public_key_file
-    - name: workload_ssh_vpn_private_key_file
-    - name: workload_ssh_bastion_public_key_file
-    - name: workload_ssh_bastion_private_key_file
+    - name: mgmt_ssh_vpn_public_key_file
+    - name: mgmt_ssh_vpn_private_key_file
+    - name: mgmt_ssh_bastion_public_key_file
+    - name: mgmt_ssh_bastion_private_key_file
     - name: kms_service
