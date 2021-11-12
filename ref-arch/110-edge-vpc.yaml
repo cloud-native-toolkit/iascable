@@ -35,12 +35,13 @@ spec:
         - name: resource_group
           ref: kms_resource_group
     - name: ibm-resource-group
+      alias: edge_resource_group
       variables:
         - name: resource_group_name
-          alias: mgmt_resource_group_name
+          alias: edge_resource_group_name
           scope: global
         - name: provision
-          alias: mgmt_resource_group_provision
+          alias: edge_resource_group_provision
           scope: global
     - name: ibm-access-group
     - name: ibm-vpc
@@ -49,9 +50,9 @@ spec:
           value: 4
         - name: address_prefixes
           value:
-            - 10.10.0.0/18
-            - 10.20.0.0/18
-            - 10.30.0.0/18
+            - 10.1.0.0/18
+            - 10.2.0.0/18
+            - 10.3.0.0/18
             - 10.1.0.0/18
     - name: ibm-flow-logs
       dependencies:
@@ -61,75 +62,58 @@ spec:
           ref: flow_log_bucket
     - name: ibm-vpc-gateways
     - name: ibm-vpc-subnets
-      alias: worker-subnets
+      alias: ingress-subnets
       variables:
         - name: _count
           value: 3
         - name: label
-          value: worker
+          value: ingress
         - name: ipv4_cidr_blocks
           value:
-            - 10.10.10.0/24
-            - 10.20.10.0/24
-            - 10.30.10.0/24
+            - 10.1.10.0/24
+            - 10.2.10.0/24
+            - 10.3.10.0/24
       dependencies:
         - name: gateways
           ref: ibm-vpc-gateways
     - name: ibm-vpc-subnets
-      alias: vpe-subnets
+      alias: bastion-subnets
       variables:
         - name: _count
           value: 3
         - name: label
-          value: vpe
-        - name: ipv4_cidr_blocks
-          value:
-            - 10.10.20.0/24
-            - 10.20.20.0/24
-            - 10.30.20.0/24
-    - name: ibm-vpc-subnets
-      alias: vpn-subnets
-      variables:
-        - name: _count
-          value: 1
-        - name: label
-          value: vpn
-        - name: ipv4_cidr_blocks
-          value:
-            - 10.10.30.0/24
-    - name: ibm-vpc-subnets
-      alias: bastion-subnets
-      variables:
-        - name: _count
-          value: 2
-        - name: label
           value: bastion
-        - name: zone_offset
-          value: 1
         - name: ipv4_cidr_blocks
           value:
-            - 10.20.30.0/24
-            - 10.30.30.0/24
-    - name: ibm-vpc-ssh
-      alias: mgmt_ssh_vpn
+            - 10.1.20.0/24
+            - 10.2.20.0/24
+            - 10.3.20.0/24
+    - name: ibm-vpc-subnets
+      alias: egress-subnets
       variables:
+        - name: _count
+          value: 3
         - name: label
-          value: vpn
+          value: egress
+        - name: ipv4_cidr_blocks
+          value:
+            - 10.1.30.0/24
+            - 10.2.30.0/24
+            - 10.3.30.0/24
     - name: ibm-vpc-vpn-gateway
       dependencies:
         - name: subnets
-          ref: vpn-subnets
-    - name: vsi-vpn
-      variables:
-        - name: kms_enabled
-          value: true
+          ref: ingress-subnets
+    - name: ibm-vpn-server
       dependencies:
         - name: subnets
-          ref: vpn-subnets
-        - name: vpcssh
-          ref: mgmt_ssh_vpn
+          ref: ingress-subnets
+        - name: resource_group
+          ref: edge_resource_group
+        - name: ibm-cert-manager
+          ref: cert-manager
     - name: ibm-vpc-ssh
-      alias: mgmt_ssh_bastion
+      alias: edge_ssh_bastion
       variables:
         - name: label
           value: bastion
@@ -143,7 +127,7 @@ spec:
         - name: subnets
           ref: bastion-subnets
         - name: vpcssh
-          ref: mgmt_ssh_bastion
+          ref: edge_ssh_bastion
     - name: ibm-resource-group
       alias: cs_resource_group
       variables:
@@ -184,6 +168,13 @@ spec:
       dependencies:
         - name: resource_group
           ref: cs_resource_group
+    - name: ibm-cert-manager
+      variables:
+        - name: provision
+          value: false
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
     - name: ibm-object-storage-bucket
       alias: flow_log_bucket
       variables:
@@ -192,33 +183,28 @@ spec:
         - name: allowed_ip
           value:
             - 0.0.0.0/0
-    - name: ibm-vpe-gateway
-      alias: vpe-cos
-      dependencies:
-        - name: resource
-          ref: cos
-        - name: subnets
-          ref: vpe-subnets
+    - name: ibm-transit-gateway
+
   variables:
-    - name: mgmt_resource_group_name
-    - name: mgmt_resource_group_provision
+    - name: edge_resource_group_name
+    - name: edge_resource_group_provision
     - name: region
     - name: ibmcloud_api_key
     - name: name_prefix
-      alias: mgmt_name_prefix
+      alias: edge_name_prefix
       required: true
     - name: cs_resource_group_name
     - name: cs_name_prefix
-    - name: mgmt_ssh_vpn_public_key
-      value: ""
-    - name: mgmt_ssh_vpn_private_key
-      value: ""
-    - name: mgmt_ssh_bastion_public_key
-      value: ""
-    - name: mgmt_ssh_bastion_private_key
-      value: ""
-    - name: mgmt_ssh_vpn_public_key_file
-    - name: mgmt_ssh_vpn_private_key_file
-    - name: mgmt_ssh_bastion_public_key_file
-    - name: mgmt_ssh_bastion_private_key_file
     - name: kms_service
+    - name: edge_ssh_vpn_public_key
+      value: ""
+    - name: edge_ssh_vpn_private_key
+      value: ""
+    - name: edge_ssh_bastion_public_key
+      value: ""
+    - name: edge_ssh_bastion_private_key
+      value: ""
+    - name: edge_ssh_vpn_public_key_file
+    - name: edge_ssh_vpn_private_key_file
+    - name: edge_ssh_bastion_public_key_file
+    - name: edge_ssh_bastion_private_key_file

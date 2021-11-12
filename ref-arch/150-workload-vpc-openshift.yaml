@@ -122,34 +122,17 @@ spec:
             - 10.50.20.0/24
             - 10.60.20.0/24
     - name: ibm-vpc-subnets
-      alias: bastion-subnets
+      alias: ingress-subnets
       variables:
         - name: _count
-          value: 2
+          value: 3
         - name: label
-          value: bastion
-        - name: zone_offset
-          value: 1
+          value: ingress
         - name: ipv4_cidr_blocks
           value:
+            - 10.40.30.0/24
             - 10.50.30.0/24
             - 10.60.30.0/24
-    - name: ibm-vpc-ssh
-      alias: workload_ssh_bastion
-      variables:
-        - name: label
-          value: bastion
-    - name: vsi-bastion
-      variables:
-        - name: image_name
-          scope: module
-        - name: kms_enabled
-          value: true
-      dependencies:
-        - name: subnets
-          ref: bastion-subnets
-        - name: vpcssh
-          ref: workload_ssh_bastion
     - name: ibm-resource-group
       alias: cs_resource_group
       variables:
@@ -208,6 +191,9 @@ spec:
         - name: sync
           ref: cluster
     - name: ibm-transit-gateway
+      variables:
+        - name: provision
+          value: false
   variables:
     - name: workload_resource_group_name
     - name: region
@@ -221,16 +207,4 @@ spec:
     - name: cs_name_prefix
     - name: mgmt_name_prefix
     - name: hpcs_name
-    - name: workload_ssh_vpn_public_key
-      value: ""
-    - name: workload_ssh_vpn_private_key
-      value: ""
-    - name: workload_ssh_bastion_public_key
-      value: ""
-    - name: workload_ssh_bastion_private_key
-      value: ""
-    - name: workload_ssh_vpn_public_key_file
-    - name: workload_ssh_vpn_private_key_file
-    - name: workload_ssh_bastion_public_key_file
-    - name: workload_ssh_bastion_private_key_file
     - name: kms_service

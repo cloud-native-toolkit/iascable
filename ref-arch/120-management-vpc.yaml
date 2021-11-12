@@ -88,62 +88,21 @@ spec:
             - 10.20.20.0/24
             - 10.30.20.0/24
     - name: ibm-vpc-subnets
-      alias: vpn-subnets
+      alias: ingress-subnets
       variables:
         - name: _count
-          value: 1
+          value: 3
         - name: label
-          value: vpn
+          value: ingress
         - name: ipv4_cidr_blocks
           value:
             - 10.10.30.0/24
-    - name: ibm-vpc-subnets
-      alias: bastion-subnets
-      variables:
-        - name: _count
-          value: 2
-        - name: label
-          value: bastion
-        - name: zone_offset
-          value: 1
-        - name: ipv4_cidr_blocks
-          value:
             - 10.20.30.0/24
             - 10.30.30.0/24
-    - name: ibm-vpc-ssh
-      alias: mgmt_ssh_vpn
-      variables:
-        - name: label
-          value: vpn
     - name: ibm-vpc-vpn-gateway
       dependencies:
         - name: subnets
           ref: vpn-subnets
-    - name: vsi-vpn
-      variables:
-        - name: kms_enabled
-          value: true
-      dependencies:
-        - name: subnets
-          ref: vpn-subnets
-        - name: vpcssh
-          ref: mgmt_ssh_vpn
-    - name: ibm-vpc-ssh
-      alias: mgmt_ssh_bastion
-      variables:
-        - name: label
-          value: bastion
-    - name: vsi-bastion
-      variables:
-        - name: image_name
-          scope: module
-        - name: kms_enabled
-          value: true
-      dependencies:
-        - name: subnets
-          ref: bastion-subnets
-        - name: vpcssh
-          ref: mgmt_ssh_bastion
     - name: ibm-resource-group
       alias: cs_resource_group
       variables:
@@ -199,6 +158,10 @@ spec:
           ref: cos
         - name: subnets
           ref: vpe-subnets
+    - name: ibm-transit-gateway
+      variables:
+        - name: provision
+          value: false
   variables:
     - name: mgmt_resource_group_name
     - name: mgmt_resource_group_provision
@@ -209,16 +172,4 @@ spec:
       required: true
     - name: cs_resource_group_name
     - name: cs_name_prefix
-    - name: mgmt_ssh_vpn_public_key
-      value: ""
-    - name: mgmt_ssh_vpn_private_key
-      value: ""
-    - name: mgmt_ssh_bastion_public_key
-      value: ""
-    - name: mgmt_ssh_bastion_private_key
-      value: ""
-    - name: mgmt_ssh_vpn_public_key_file
-    - name: mgmt_ssh_vpn_private_key_file
-    - name: mgmt_ssh_bastion_public_key_file
-    - name: mgmt_ssh_bastion_private_key_file
     - name: kms_service
