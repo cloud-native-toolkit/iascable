@@ -120,7 +120,8 @@ export class ModuleSelector implements ModuleSelectorApi {
         const module: Module | undefined = fullCatalog.lookupModule(bomModule);
 
         // TODO what should happen if the BOM specifies a module that cannot be found?
-        if (!module) {
+        if (!module || !module.versions || !Array.isArray(module.versions)) {
+          this.logger.debug('Invalid module: ' + module?.name, module);
           return undefined as any;
         }
 
