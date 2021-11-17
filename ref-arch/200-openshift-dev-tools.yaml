@@ -70,10 +70,10 @@ spec:
         - name: registry_namespace
           required: true
           scope: global
-    - name: cluster-config
-      variables:
-        - name: banner_text
-          value: Management
+    # - name: cluster-config
+    #   variables:
+    #     - name: banner_text
+    #       value: Management
     - name: argocd
     - name: dashboard
     - name: pactbroker

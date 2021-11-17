@@ -35,7 +35,6 @@ spec:
         - name: resource_group
           ref: kms_resource_group
     - name: ibm-resource-group
-      alias: edge_resource_group
       variables:
         - name: resource_group_name
           alias: edge_resource_group_name
@@ -108,10 +107,9 @@ spec:
       dependencies:
         - name: subnets
           ref: ingress-subnets
-        - name: resource_group
-          ref: edge_resource_group
         - name: ibm-cert-manager
           ref: cert-manager
+        - name: ibm-resource-group
     - name: ibm-vpc-ssh
       alias: edge_ssh_bastion
       variables:
@@ -193,18 +191,19 @@ spec:
     - name: name_prefix
       alias: edge_name_prefix
       required: true
+      scope: global
     - name: cs_resource_group_name
     - name: cs_name_prefix
     - name: kms_service
-    - name: edge_ssh_vpn_public_key
-      value: ""
-    - name: edge_ssh_vpn_private_key
-      value: ""
+    # - name: edge_ssh_vpn_public_key
+    #   value: ""
+    # - name: edge_ssh_vpn_private_key
+    #   value: ""
     - name: edge_ssh_bastion_public_key
       value: ""
     - name: edge_ssh_bastion_private_key
       value: ""
-    - name: edge_ssh_vpn_public_key_file
-    - name: edge_ssh_vpn_private_key_file
+    # - name: edge_ssh_vpn_public_key_file
+    # - name: edge_ssh_vpn_private_key_file
     - name: edge_ssh_bastion_public_key_file
     - name: edge_ssh_bastion_private_key_file
