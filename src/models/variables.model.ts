@@ -330,7 +330,7 @@ export class TerraformVariableImpl implements TerraformVariable {
   getDefaultValue(): string {
     const typeFormatter: Formatter = getTypeFormatter(this.type);
 
-    const {value} = typeFormatter(this.defaultValue);
+    const {value} = typeFormatter(this.defaultValue, this.type);
 
     return value;
   }
@@ -338,7 +338,7 @@ export class TerraformVariableImpl implements TerraformVariable {
   typeOutput(): string {
     const typeFormatter: Formatter = getTypeFormatter(this.type);
 
-    return typeFormatter(this.defaultValue || '').type;
+    return typeFormatter(this.defaultValue || '', this.type).type;
   }
 }
 
@@ -361,7 +361,7 @@ export class TerraformTfvars {
   }
 }
 
-type Formatter = (value: string) => {type: string, value: string};
+type Formatter = (value: string, type: string) => {type: string, value: string};
 
 const getTypeFormatter = (type: string): Formatter => {
   const lookupType = type.match(/^list\(object\(/) ? 'object-list' : type.match(/^object\(/) ? 'object' : type.match(/^list\(/) ? 'list' : type;
@@ -371,40 +371,46 @@ const getTypeFormatter = (type: string): Formatter => {
   return formatter;
 }
 
-const defaultFormatter: Formatter = (value: string) => {
-  if (value === 'null' || value === null) {
-    return {type: 'string', value: 'null'};
-  }
-
-  return {type: 'string', value: `"${value}"`};
+const defaultFormatter: Formatter = (value: string, type: string) => {
+  return {type, value};
 }
 
 const typeFormatters: {[type: string]: Formatter} = {
-  'bool': (value: string) => ({type: 'bool', value}),
-  'number': (value: string) => ({type: 'number', value}),
-  'list': (value: any) => {
+  'bool': (value: any, type: string) => {
+    return {type, value: `${value}`};
+  },
+  'number': (value: any, type: string) => {
+    return {type, value: `${value}`};
+  },
+  'list': (value: any, type: string) => {
     if (value === 'null' || value === null) {
       value = '';
     }
 
     // tslint:disable-next-line:triple-equals
-    return {type: 'string', value: value == '' ? '"[]"' : `"${JSON.stringify(value).replace(/"/g, '\\"')}"`};
+    return {type, value: value == '' ? '[]' : JSON.stringify(value)};
   },
-  'object': (value: any) => {
+  'object-list': (value: any, type: string) => {
+    if (value === 'null' || value === null) {
+      value = '';
+    }
+
+    // tslint:disable-next-line:triple-equals
+    return {type, value: value == '' ? '[]' : JSON.stringify(value)};
+  },
+  'object': (value: any, type: string) => {
+    if (value === 'null' || value === null) {
+      value = '';
+    }
+
+    // tslint:disable-next-line:triple-equals
+    return {type, value: value == '' ? '{}' : JSON.stringify(value)};
+  },
+  'string': (value: string) => {
     if (value === 'null' || value === null) {
       return {type: 'string', value: 'null'};
     }
 
-    // tslint:disable-next-line:triple-equals
-    return {type: 'string', value: value == '' ? '"{}"' : `"${JSON.stringify(value).replace(/"/g, '\\"')}"`}
+    return {type: 'string', value: `"${value}"`};
   },
-  'object-list': (value: any) => {
-    if (value === 'null' || value === null) {
-      return {type: 'string', value: 'null'};
-    }
-
-    // tslint:disable-next-line:triple-equals
-    return {type: 'string', value: value == '' ? '"[]"' : `"${JSON.stringify(value).replace(/"/g, '\\"')}"`}
-  },
-  'string': defaultFormatter,
 }
