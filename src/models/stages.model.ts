@@ -178,34 +178,30 @@ export class TerraformTfvarsFile implements OutputFile {
 
   constructor(private variables: TerraformVariable[], private bomVariables?: BillOfMaterialVariable[], name?: string) {
     if (name) {
-      this.name = `${name}.auto.tfvars`;
+      this.name = `${name}.auto.tfvars.json`;
     } else {
-      this.name = 'terraform.tfvars';
+      this.name = 'terraform.tfvars.json';
     }
   }
 
   get contents(): Promise<string | Buffer> {
 
     const variableNames: string[] = arrayOf(this.bomVariables).map(v => v.name).asArray();
-
-    const buffer: Buffer = this.variables
+    const result: object = this.variables
       .map(mergeBomVariables(arrayOf(this.bomVariables)))
-      .reduce((previousBuffer: Buffer, variable: TerraformVariable) => {
-        const terraformVar = new TerraformVariableImpl(variable);
+      .reduce((collection: any, variable: TerraformVariable) => {
 
+        const terraformVar = new TerraformVariableImpl(variable);
         if (!(terraformVar.defaultValue === undefined || terraformVar.defaultValue === null || terraformVar.required || variableNames.includes(terraformVar.name))) {
-          return previousBuffer;
+          return collection;
         }
 
-        variable = new TerraformTfvars({name: terraformVar.name, description: terraformVar.description, value: terraformVar.defaultValue || ""});
+        collection[terraformVar.name] = terraformVar.defaultValue;
 
-        return Buffer.concat([
-          previousBuffer,
-          Buffer.from(variable.asString())
-        ]);
-      }, Buffer.from(''));
+        return collection;
+      }, {});
 
-    return Promise.resolve(buffer);
+    return Promise.resolve(JSON.stringify(result, null, 2));
   }
 }
 
