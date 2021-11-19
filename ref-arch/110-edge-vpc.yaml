@@ -46,13 +46,12 @@ spec:
     - name: ibm-vpc
       variables:
         - name: address_prefix_count
-          value: 4
+          value: 3
         - name: address_prefixes
           value:
             - 10.1.0.0/18
             - 10.2.0.0/18
             - 10.3.0.0/18
-            - 10.1.0.0/18
     - name: ibm-flow-logs
       dependencies:
         - name: target
@@ -109,7 +108,6 @@ spec:
           ref: ingress-subnets
         - name: ibm-cert-manager
           ref: cert-manager
-        - name: ibm-resource-group
     - name: ibm-vpc-ssh
       alias: edge_ssh_bastion
       variables:
@@ -170,6 +168,9 @@ spec:
       variables:
         - name: provision
           value: false
+        - name: name_prefix
+          alias: cs_name_prefix
+          scope: global
       dependencies:
         - name: resource_group
           ref: cs_resource_group

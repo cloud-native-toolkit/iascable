@@ -64,13 +64,12 @@ spec:
     - name: ibm-vpc
       variables:
         - name: address_prefix_count
-          value: 4
+          value: 3
         - name: address_prefixes
           value:
             - 10.40.0.0/18
             - 10.50.0.0/18
             - 10.60.0.0/18
-            - 10.2.0.0/18
     - name: ibm-flow-logs
       dependencies:
         - name: target
