@@ -183,7 +183,13 @@ spec:
           value:
             - 0.0.0.0/0
     - name: ibm-transit-gateway
-
+      variables:
+        - name: name_prefix
+          alias: cs_name_prefix
+          scope: global
+      dependencies:
+        - name: resource-group
+          ref: cs_resource_group
   variables:
     - name: edge_resource_group_name
     - name: edge_resource_group_provision

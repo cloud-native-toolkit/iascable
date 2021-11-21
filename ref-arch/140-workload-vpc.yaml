@@ -175,6 +175,12 @@ spec:
       variables:
         - name: provision
           value: false
+        - name: name_prefix
+          alias: cs_name_prefix
+          scope: global
+      dependencies:
+        - name: resource-group
+          ref: cs_resource_group
   variables:
     - name: workload_resource_group_name
     - name: region
