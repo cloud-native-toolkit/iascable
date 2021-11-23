@@ -35,24 +35,6 @@ spec:
         - name: resource_group
           ref: kms_resource_group
     - name: ibm-resource-group
-      alias: mgmt_resource_group
-      variables:
-        - name: provision
-          value: false
-    - name: ibm-vpc
-      alias: management-vpc
-      dependencies:
-        - name: resource_group
-          ref: mgmt_resource_group
-      variables:
-        - name: provision
-          value: false
-        - name: name
-          required: true
-        - name: name_prefix
-          alias: mgmt_name_prefix
-          scope: global
-    - name: ibm-resource-group
       variables:
         - name: resource_group_name
           alias: workload_resource_group_name
@@ -181,6 +163,8 @@ spec:
       dependencies:
         - name: resource-group
           ref: cs_resource_group
+        - name: connections
+          ref: ibm-vpc
   variables:
     - name: workload_resource_group_name
     - name: region
@@ -188,10 +172,8 @@ spec:
     - name: name_prefix
       required: true
       alias: workload_name_prefix
-    - name: mgmt_resource_group_provision
     - name: workload_resource_group_provision
     - name: cs_resource_group_name
     - name: cs_name_prefix
-    - name: mgmt_name_prefix
     - name: hpcs_name
     - name: kms_service
