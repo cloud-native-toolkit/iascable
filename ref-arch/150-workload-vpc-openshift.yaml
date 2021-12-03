@@ -85,6 +85,8 @@ spec:
           value: true
         - name: worker_count
           alias: workload_worker_count
+        - name: ocp_version
+          value: 4.7
       dependencies:
         - name: subnets
           ref: worker-subnets
