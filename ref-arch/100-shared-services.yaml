@@ -126,6 +126,7 @@ spec:
       dependencies:
         - name: resource_group
     - name: ibm-iam-service-authorization
+      alias: vpn-cert-manager-auth
       variables:
         - name: source_service_name
           value: is
