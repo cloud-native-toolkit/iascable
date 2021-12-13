@@ -126,7 +126,6 @@ spec:
       dependencies:
         - name: resource_group
     - name: ibm-iam-service-authorization
-      alias: vpn-cert-manager-auth
       variables:
         - name: source_service_name
           value: is
@@ -135,11 +134,8 @@ spec:
         - name: roles
           value:
             - Writer
-      dependencies:
-        - name: target_resource_group
-          ref: resource_group
-        - name: target_resource
-          ref: ibm-cert-manager
+        - name: target_service_name
+          value: cloudcerts
   variables:
     - name: kms_resource_group_provision
     - name: cs_resource_group_provision
