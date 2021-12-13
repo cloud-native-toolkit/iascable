@@ -135,6 +135,11 @@ spec:
         - name: roles
           value:
             - Writer
+      dependencies:
+        - name: target_resource_group
+          ref: resource_group
+        - name: target_resource
+          ref: ibm-cert-manager
   variables:
     - name: kms_resource_group_provision
     - name: cs_resource_group_provision
