@@ -251,8 +251,19 @@ function getSourceForModuleRef(moduleRef: ModuleOutputRef, moduleVersion: Module
 
   logger.debug('Module version dependencies: ', moduleVersion.dependencies);
 
+  const matchModuleId = (moduleRef: ModuleOutputRef) => {
+    const moduleRefId = moduleRef.id;
+
+    return (moduleDep: ModuleDependency): boolean => {
+      const depIdWithoutExtension = moduleDep.id.replace(/.git$/, '');
+      const depIdWithExtension = depIdWithoutExtension + '.git';
+
+      return moduleRefId === depIdWithExtension || moduleRefId === depIdWithoutExtension;
+    }
+  }
+
   const moduleDep: ModuleDependency = arrayOf(moduleVersion.dependencies)
-    .filter(moduleDep => moduleDep.id === moduleRef.id)
+    .filter(matchModuleId(moduleRef))
     .first()
     .orElseThrow(new ModuleNotFound(moduleRef.id));
 
@@ -306,19 +317,39 @@ function findStageOrModuleNames(stages: {[name: string]: Stage}, modules: Single
         return [stage.name];
       }
 
-      return arrayOf(modules).filter(m => discriminator === (m.alias || m.name)).map(m => discriminator).asArray();
+      const moduleDiscriminators = arrayOf(modules).filter(m => discriminator === (m.alias || m.name)).map(m => discriminator).asArray();
+
+      return moduleDiscriminators;
+    }
+
+    const matchStageSource = (ref: ModuleRef) => {
+      const refSourceWithoutExtension = ref.source.replace(/.git$/, '');
+      const refSourceWithExtension = refSourceWithoutExtension + '.git';
+
+      return (stage: Stage): boolean => {
+        return stage.source === refSourceWithoutExtension || stage.source === refSourceWithExtension;
+      }
     }
 
     const stageNames: ArrayUtil<string> = arrayOf(Object.values(stages))
-      .filter(stage => stage.source === ref.source)
+      .filter(matchStageSource(ref))
       .map(stage => stage.name);
 
     if (stageNames.length > 0) {
       return stageNames.asArray();
     }
 
+    const matchSingleModuleVersion = (ref: ModuleRef) => {
+      const refSourceWithoutExtension = ref.source.replace(/.git$/, '');
+      const refSourceWithExtension = refSourceWithoutExtension + '.git';
+
+      return (module: {id: string}): boolean => {
+        return module.id === refSourceWithoutExtension || module.id === refSourceWithExtension;
+      }
+    }
+
     return arrayOf(modules)
-      .filter(m => m.id === ref.source)
+      .filter(matchSingleModuleVersion(ref))
       .map(m => m.alias || m.name)
       .asArray();
   }

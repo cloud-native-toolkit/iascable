@@ -124,6 +124,10 @@ export class ModuleSelector implements ModuleSelectorApi {
           return undefined as any;
         }
 
+        if (!Array.isArray(module.versions)) {
+          throw new Error('Module versions is not an array: ' + module.name);
+        }
+
         const filteredVersions: ModuleVersion[] = arrayOf(module.versions)
           .filter(m => !bomModule.version || m.version === bomModule.version)
           .ifEmpty(() => module.versions)
