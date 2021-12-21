@@ -146,6 +146,16 @@ spec:
       dependencies:
         - name: resource_group
           ref: at_resource_group
+    - name: sysdig
+      variables:
+        - name: provision
+          value: false
+        - name: name_prefix
+          alias: cs_name_prefix
+          scope: global
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
     - name: ibm-object-storage-bucket
       alias: flow_log_bucket
       variables:
@@ -176,16 +186,6 @@ spec:
         - name: connections
           ref: ibm-vpc
     - name: logdna
-      variables:
-        - name: provision
-          value: false
-        - name: name_prefix
-          alias: cs_name_prefix
-          scope: global
-      dependencies:
-        - name: resource_group
-          ref: cs_resource_group
-    - name: sysdig
       variables:
         - name: provision
           value: false
