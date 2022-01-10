@@ -1,0 +1,21 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: 300-cp-integration
+spec:
+  modules:
+    - name: ocp-login
+    - name: sealed-secret-cert
+    - name: gitops-repo
+    - name: argocd-bootstrap
+    - name: gitops-console-link-job
+    - name: gitops-namespace
+      variables:
+        - name: name
+          alias: tools
+          value: tools
+    - name: gitops-cp-catalogs
+    - name: gitops-cp-platform-navigator
+    - name: gitops-cp-mq
+    - name: gitops-cp-ace
+    - name: gitops-cp-apic
