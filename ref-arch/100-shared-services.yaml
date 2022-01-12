@@ -27,7 +27,7 @@ spec:
         - name: provision
           alias: kms_resource_group_provision
           scope: global
-          value: false
+          value: true
       dependencies:
         - name: sync
           ref: resource_group
