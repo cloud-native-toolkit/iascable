@@ -14,8 +14,6 @@ spec:
         - name: name
           alias: tools
           value: tools
-    - name: gitops-cp-catalogs
-    - name: gitops-cp-platform-navigator
     - name: gitops-cp-mq
     - name: gitops-cp-ace
     - name: gitops-cp-apic
