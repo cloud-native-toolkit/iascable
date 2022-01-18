@@ -27,7 +27,7 @@ spec:
         - name: provision
           alias: kms_resource_group_provision
           scope: global
-          value: false
+          value: true
       dependencies:
         - name: sync
           ref: resource_group
@@ -119,6 +119,24 @@ spec:
           ref: kms_resource_group
         - name: target_resource
           ref: kms
+    - name: ibm-cert-manager
+      variables:
+        - name: private_endpoint
+          value: false
+      dependencies:
+        - name: resource_group
+    - name: ibm-iam-service-authorization
+      alias: vpn-cert-manager-auth
+      variables:
+        - name: source_service_name
+          value: is
+        - name: source_resource_type
+          value: vpn-server
+        - name: roles
+          value:
+            - Writer
+        - name: target_service_name
+          value: cloudcerts
   variables:
     - name: kms_resource_group_provision
     - name: cs_resource_group_provision

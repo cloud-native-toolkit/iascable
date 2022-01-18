@@ -39,32 +39,10 @@ spec:
       variables:
         - name: provision
           value: false
-    - name: logdna
-      variables:
-        - name: provision
-          value: false
-        - name: name_prefix
-          alias: cs_name_prefix
-          scope: global
-      dependencies:
-        - name: resource_group
-          ref: cs_resource_group
-    - name: sysdig
-      variables:
-        - name: provision
-          value: false
-        - name: name_prefix
-          alias: cs_name_prefix
-          scope: global
-      dependencies:
-        - name: resource_group
-          ref: cs_resource_group
     - name: namespace
       variables:
         - name: name
           value: tools
-    - name: ibm-logdna-bind
-    - name: sysdig-bind
     - name: ibm-image-registry
       variables:
         - name: registry_namespace

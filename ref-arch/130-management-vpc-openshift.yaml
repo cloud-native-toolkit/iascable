@@ -1,13 +1,13 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: 120-mzr-management-openshift
+  name: 130-management-vpc-openshift
   labels:
     platform: ibm
-    code: 120
+    code: 130
   annotations:
-    displayName: MZR Management VPC OpenShift
-    description: Multi-Zone Management VPC with VPN, Bastion, and Red Hat OpenShift servers
+    displayName: Management VPC OpenShift
+    description: Management VPC and Red Hat OpenShift servers
 spec:
   modules:
     - name: ibm-resource-group
@@ -46,13 +46,12 @@ spec:
     - name: ibm-vpc
       variables:
         - name: address_prefix_count
-          value: 4
+          value: 3
         - name: address_prefixes
           value:
             - 10.10.0.0/18
             - 10.20.0.0/18
             - 10.30.0.0/18
-            - 10.1.0.0/18
     - name: ibm-flow-logs
       dependencies:
         - name: target
@@ -86,6 +85,8 @@ spec:
           value: true
         - name: worker_count
           alias: mgmt_worker_count
+        - name: ocp_version
+          value: 4.8
       dependencies:
         - name: subnets
           ref: worker-subnets
@@ -104,62 +105,21 @@ spec:
             - 10.20.20.0/24
             - 10.30.20.0/24
     - name: ibm-vpc-subnets
-      alias: vpn-subnets
+      alias: ingress-subnets
       variables:
         - name: _count
-          value: 1
+          value: 3
         - name: label
-          value: vpn
+          value: ingress
         - name: ipv4_cidr_blocks
           value:
             - 10.10.30.0/24
-    - name: ibm-vpc-subnets
-      alias: bastion-subnets
-      variables:
-        - name: _count
-          value: 2
-        - name: label
-          value: bastion
-        - name: zone_offset
-          value: 1
-        - name: ipv4_cidr_blocks
-          value:
             - 10.20.30.0/24
             - 10.30.30.0/24
-    - name: ibm-vpc-ssh
-      alias: mgmt_ssh_vpn
-      variables:
-        - name: label
-          value: vpn
     - name: ibm-vpc-vpn-gateway
       dependencies:
         - name: subnets
           ref: vpn-subnets
-    - name: vsi-vpn
-      variables:
-        - name: kms_enabled
-          value: true
-      dependencies:
-        - name: subnets
-          ref: vpn-subnets
-        - name: vpcssh
-          ref: mgmt_ssh_vpn
-    - name: ibm-vpc-ssh
-      alias: mgmt_ssh_bastion
-      variables:
-        - name: label
-          value: bastion
-    - name: vsi-bastion
-      variables:
-        - name: image_name
-          scope: module
-        - name: kms_enabled
-          value: true
-      dependencies:
-        - name: subnets
-          ref: bastion-subnets
-        - name: vpcssh
-          ref: mgmt_ssh_bastion
     - name: ibm-resource-group
       alias: cs_resource_group
       variables:
@@ -190,16 +150,6 @@ spec:
       dependencies:
         - name: resource_group
           ref: at_resource_group
-    - name: sysdig
-      variables:
-        - name: provision
-          value: false
-        - name: name_prefix
-          alias: cs_name_prefix
-          scope: global
-      dependencies:
-        - name: resource_group
-          ref: cs_resource_group
     - name: ibm-object-storage-bucket
       alias: flow_log_bucket
       variables:
@@ -217,6 +167,38 @@ spec:
           ref: vpe-subnets
         - name: sync
           ref: cluster
+    - name: ibm-transit-gateway
+      variables:
+        - name: provision
+          value: false
+        - name: name_prefix
+          alias: cs_name_prefix
+          scope: global
+      dependencies:
+        - name: resource-group
+          ref: cs_resource_group
+    - name: logdna
+      variables:
+        - name: provision
+          value: false
+        - name: name_prefix
+          alias: cs_name_prefix
+          scope: global
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
+    - name: sysdig
+      variables:
+        - name: provision
+          value: false
+        - name: name_prefix
+          alias: cs_name_prefix
+          scope: global
+      dependencies:
+        - name: resource_group
+          ref: cs_resource_group
+    - name: ibm-logdna-bind
+    - name: sysdig-bind
   variables:
     - name: mgmt_resource_group_name
     - name: mgmt_resource_group_provision
@@ -228,16 +210,4 @@ spec:
     - name: cs_resource_group_name
     - name: cs_name_prefix
     - name: worker_count
-    - name: mgmt_ssh_vpn_public_key
-      value: ""
-    - name: mgmt_ssh_vpn_private_key
-      value: ""
-    - name: mgmt_ssh_bastion_public_key
-      value: ""
-    - name: mgmt_ssh_bastion_private_key
-      value: ""
-    - name: mgmt_ssh_vpn_public_key_file
-    - name: mgmt_ssh_vpn_private_key_file
-    - name: mgmt_ssh_bastion_public_key_file
-    - name: mgmt_ssh_bastion_private_key_file
     - name: kms_service
