@@ -163,8 +163,6 @@ spec:
       dependencies:
         - name: resource-group
           ref: cs_resource_group
-        - name: connections
-          ref: ibm-vpc
   variables:
     - name: workload_resource_group_name
     - name: region
