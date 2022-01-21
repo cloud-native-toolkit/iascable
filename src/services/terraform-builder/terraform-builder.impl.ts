@@ -201,8 +201,9 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
           const moduleRef: ModuleOutputRef = v.moduleRef;
 
           const optional: boolean = v.optional === true || isDefinedAndNotNull(v.default);
+          const moduleOptional: boolean = module.version.dependencies?.filter(dep => dep.id === moduleRef.id)[0].optional || false
 
-          const moduleRefSource: {stageName: string} | {stageName: string}[] | undefined = getSourceForModuleRef(moduleRef, moduleVersion, stages, modules, optional, module);
+          const moduleRefSource: {stageName: string} | {stageName: string}[] | undefined = getSourceForModuleRef(moduleRef, moduleVersion, stages, modules, optional || moduleOptional, module);
 
           if (!isUndefined(moduleRefSource)) {
             const moduleRefVariable: ModuleRefVariable = new ModuleRefVariable({
