@@ -183,7 +183,7 @@ spec:
       dependencies:
         - name: resource-group
           ref: cs_resource_group
-        - name: connections
+        - name: vpc
           ref: ibm-vpc
     - name: logdna
       variables:
