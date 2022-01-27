@@ -12,7 +12,7 @@ import {
   ModuleMatcher, ModuleProvider,
   ModuleRef,
   ModuleVersion,
-  SingleModuleVersion, wrapModule, WrappedModule
+  SingleModuleVersion, injectDependsOnFunction, ModuleWithDependsOn
 } from '../../models';
 import {ModuleNotFound, ModulesNotFound} from '../../errors';
 import {Optional} from '../../util/optional';
@@ -235,7 +235,7 @@ export class SelectedModules {
   reconcileModuleRefs(): {[source: string]: ModuleMatcher} {
 
     return Object.keys(this.moduleRefs).reduce((moduleRefs: {[source: string]: ModuleMatcher}, source: string) => {
-      const refs = this.moduleRefs[source];
+      const refs: ModuleRef[] = this.moduleRefs[source];
 
       moduleRefs[source] = {source, version: resolveVersions(refs.map(r => r.version).filter(v => !!v) as string[])};
 
@@ -310,7 +310,7 @@ function getModuleDependencies(module: Module): ModuleDependency[] {
 function dependenciesContainModule(dependencies: ModuleDependency[], module: Module): boolean {
   return dependencies
     .reduce((result: string[], dep: ModuleDependency) => {
-      const sources: string[] = dep.refs.map(m => m.source);
+      const sources: string[] = (dep.refs || []).map(m => m.source);
 
       result.push(...sources);
 

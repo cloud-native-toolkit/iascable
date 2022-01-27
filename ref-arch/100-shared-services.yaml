@@ -11,13 +11,8 @@ metadata:
 spec:
   modules:
     - name: ibm-resource-group
-      variables:
-        - name: resource_group_name
-          alias: cs_resource_group_name
-          scope: global
-        - name: provision
-          alias: cs_resource_group_provision
-          scope: global
+      alias: cs_resource_group
+      default: true
     - name: ibm-resource-group
       alias: kms_resource_group
       variables:

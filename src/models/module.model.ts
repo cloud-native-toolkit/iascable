@@ -24,7 +24,10 @@ export interface ModuleTemplate {
   id: string;
   name: string;
   alias?: string;
+  default?: boolean;
+  originalAlias?: string;
   aliasIds?: string[];
+  interfaces?: string[];
   category: string;
   description?: string;
   platforms: string[];
@@ -60,9 +63,12 @@ export function isSingleModuleVersion(module: Module | SingleModuleVersion): mod
 
 export interface ModuleDependency {
   id: string;
-  refs: ModuleRef[];
+  preferred?: string;
+  refs?: ModuleRef[];
+  interface?: string;
   optional?: boolean;
   discriminator?: string;
+  _module?: Module | Module[];
 }
 
 export interface ModuleVersion {
@@ -114,8 +120,10 @@ export function dependsOnModule(module: Module, depModule: Module | undefined): 
 
   const dependencyRefs: ModuleRef[] = moduleDependencies
     .map(d => d.refs)
-    .reduce((result: ModuleRef[], current: ModuleRef[]) => {
-      result.push(...current);
+    .reduce((result: ModuleRef[], current: ModuleRef[] | undefined) => {
+      if (current) {
+        result.push(...current);
+      }
 
       return result;
     }, []);
@@ -123,9 +131,9 @@ export function dependsOnModule(module: Module, depModule: Module | undefined): 
   return dependencyRefs.some((ref: ModuleRef) => ref.source === depModule.id);
 }
 
-export type WrappedModule = Module & {dependsOn: (module: Module | undefined) => boolean};
+export type ModuleWithDependsOn = Module & {dependsOn: (module: Module | undefined) => boolean};
 
-export function wrapModule(module: Module | undefined): WrappedModule {
+export function injectDependsOnFunction(module: Module | undefined): ModuleWithDependsOn {
   const dependsOn = (depModule: Module | undefined): boolean => {
     if (isUndefined(module)) {
       return false;

@@ -99,10 +99,12 @@ export class TerraformBuilder implements TerraformBuilderApi {
 
   async buildTerraformComponent(selectedModules: SingleModuleVersion[], billOfMaterial?: BillOfMaterialModel): Promise<TerraformComponent> {
 
-    const stages: { [name: string]: Stage } = selectedModules.reduce((stages: { [name: string]: Stage }, module: SingleModuleVersion) => {
-      moduleToStage(stages, selectedModules, module);
-      return stages;
-    }, {});
+    const stages: { [name: string]: Stage } = selectedModules
+      .reduce((stages: { [name: string]: Stage }, module: SingleModuleVersion) => {
+
+        moduleToStage(stages, selectedModules, module);
+        return stages;
+      }, {});
 
     const baseVariables: IBaseVariable[] = [];
 
@@ -211,31 +213,24 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
               moduleRef: moduleRefSource,
               moduleOutputName: moduleRef.output,
               mapper: v.mapper,
+              stageName: stageName(module)
             });
 
             return moduleRefVariable;
           } else {
             const placeholderVariable: PlaceholderVariable = new PlaceholderVariable({
-              name: v.name,
-              description: v.description,
-              type: v.type || 'string',
-              scope: v.scope || 'module',
               defaultValue: defaultValue(v, module.bomModule),
-              alias: v.alias,
               variable: v,
+              stageName: stageName(module)
             });
 
             return placeholderVariable;
           }
         } else {
           const placeholderVariable: PlaceholderVariable = new PlaceholderVariable({
-            name: v.name,
-            description: v.description,
-            type: v.type || 'string',
-            scope: v.scope || 'module',
             defaultValue: defaultValue(v, module.bomModule),
-            alias: v.alias,
             variable: v,
+            stageName: stageName(module)
           });
 
           return placeholderVariable;
@@ -403,12 +398,16 @@ async function processStageVariables(stage: Stage, globalVariables: IBaseVariabl
         name: variable.name,
         type: variable.type,
         variableName: globalVariable.name,
-        description: variable.description
+        description: variable.description,
       });
     })
     .filter(v => !isUndefined(v));
 
   return Object.assign({}, stage, {variables: stageVariables});
+}
+
+const stageName = (module: {alias?: string, name: string}): string => {
+  return module.alias || module.name
 }
 
 function buildGlobalVariableName(variable: IBaseVariable) {
