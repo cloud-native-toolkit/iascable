@@ -7,7 +7,7 @@ import {
   isModuleRefVariable, Module, ModuleRef,
   ModuleRefVariable,
   SingleModuleVersion,
-  TerraformComponent
+  TerraformComponent, TerraformTfvarsFile
 } from '../../models';
 import {Container} from 'typescript-ioc';
 import {LoggerApi} from '../../util/logger';
@@ -185,6 +185,30 @@ describe('terraform-builder', () => {
           .first();
 
         expect(module.isPresent()).toBeFalsy()
+      });
+    });
+
+    describe('when BOM module includes module with important variable', () => {
+      const modules: BillOfMaterialModule[] = [
+        {name: 'ibm-vpc-subnets'},
+      ];
+
+      let bom: BillOfMaterialModel;
+      let selectedModules: SingleModuleVersion[];
+      beforeEach(async () => {
+        bom = new BillOfMaterial({spec: {modules}});
+
+        selectedModules = await moduleSelector.resolveBillOfMaterial(catalog, bom);
+      });
+
+      test('then the variable should appear in terraform.tfvars', async () => {
+        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules);
+
+        const tfvarsFile: Optional<TerraformTfvarsFile> = arrayOf(result.files).filter(f => f.name === 'terraform.tfvars').first() as any
+
+        expect(tfvarsFile.isPresent()).toBeTruthy()
+
+        expect((await tfvarsFile.get().contents).toString()).toContain('_count')
       });
     });
   });

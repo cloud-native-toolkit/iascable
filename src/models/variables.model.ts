@@ -21,6 +21,7 @@ export interface IBaseVariable {
   options?: Array<{label: string, value: string}>;
   required?: boolean;
   stageName?: string;
+  important?: boolean;
 }
 
 export interface BaseVariable extends IBaseVariable, StagePrinter {
@@ -132,6 +133,7 @@ export class PlaceholderVariable implements IPlaceholderVariable, BaseVariable {
   variable: ModuleVariable;
   stageName: string;
   variableName?: string;
+  important?: boolean;
 
   constructor(props: Partial<IBaseVariable> & {variable: ModuleVariable} & {stageName: string}) {
     this.name = props.name || props.variable.name;
@@ -142,6 +144,7 @@ export class PlaceholderVariable implements IPlaceholderVariable, BaseVariable {
     this.defaultValue = isDefinedAndNotNull(props.defaultValue) ? props.defaultValue : props.variable.defaultValue;
     this.variable = props.variable;
     this.stageName = props.stageName;
+    this.important = props.important || props.variable.important;
   }
 
   asString(): string {
@@ -289,8 +292,9 @@ export class TerraformVariableImpl implements TerraformVariable {
   private _description: string = '';
   private _defaultValue: any;
   private _required?: boolean;
+  private _important?: boolean;
 
-  constructor(values: {name: string, defaultValue?: string, type?: string, description?: string, required?: boolean}) {
+  constructor(values: {name: string, defaultValue?: string, type?: string, description?: string, required?: boolean, important?: boolean}) {
     Object.assign(this as TerraformVariable, values);
   }
 
@@ -320,6 +324,13 @@ export class TerraformVariableImpl implements TerraformVariable {
   }
   set required(required: boolean | undefined) {
     this._required = required;
+  }
+
+  get important(): boolean | undefined {
+    return this._important
+  }
+  set important(important: boolean | undefined) {
+    this._important = important
   }
 
   asString(): string {

@@ -4,24 +4,7 @@ metadata:
   name: baseline-ocp
 spec:
   modules:
-    - name: ibm-resource-group
-    - name: ibm-vpc
     - name: ibm-vpc-gateways
-    - name: ibm-vpc-subnets
-      alias: cluster-subnets
-      variables:
-        - name: subnet_count
-          value: 1
-        - name: subnet_label
-          value: cluster
     - name: ibm-ocp-vpc
-      dependencies:
-        - name: subnets
-          ref: cluster-subnets
     - name: openshift-cicd
-  variables:
-    - name: resource_group_name
-    - name: region
-    - name: ibmcloud_api_key
-    - name: name_prefix
-      required: true
+  variables: []

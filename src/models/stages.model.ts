@@ -193,7 +193,7 @@ export class TerraformTfvarsFile implements OutputFile {
       .reduce((previousBuffer: Buffer, variable: TerraformVariable) => {
         const terraformVar = new TerraformVariableImpl(variable);
 
-        if (!(terraformVar.defaultValue === undefined || terraformVar.defaultValue === null || terraformVar.required || variableNames.includes(terraformVar.name))) {
+        if (!(terraformVar.defaultValue === undefined || terraformVar.defaultValue === null || terraformVar.required || variableNames.includes(terraformVar.name)) && !terraformVar.important) {
           return previousBuffer;
         }
 

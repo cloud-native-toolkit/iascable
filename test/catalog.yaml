@@ -50645,6 +50645,7 @@ categories:
                 description: The number of subnets that should be provisioned
                 default: 3
                 optional: true
+                important: true
               - name: label
                 scope: module
                 type: string

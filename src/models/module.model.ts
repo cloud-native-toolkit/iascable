@@ -90,6 +90,7 @@ export interface ModuleVariable {
   defaultValue?: string;
   moduleRef?: ModuleOutputRef;
   mapper?: 'equality' | 'collect';
+  important?: boolean;
 }
 
 export interface ModuleOutputRef {
