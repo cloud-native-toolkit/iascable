@@ -4,7 +4,7 @@ import {
   BillOfMaterialModule,
   CatalogModel,
   GlobalRefVariable,
-  isModuleRefVariable, ModuleRef,
+  isModuleRefVariable, Module, ModuleRef,
   ModuleRefVariable,
   SingleModuleVersion,
   TerraformComponent
@@ -17,6 +17,7 @@ import {CatalogLoaderApi} from '../catalog-loader';
 import {TerraformBuilderApi} from './terraform-builder.api';
 import {TerraformBuilderNew} from './terraform-builder.new';
 import {of as arrayOf} from '../../util/array-util';
+import {Optional} from '../../util/optional';
 
 describe('terraform-builder', () => {
   test('canary verifies test infrastructure', () => {
@@ -125,6 +126,65 @@ describe('terraform-builder', () => {
           .asArray();
 
         expect(variableRefs.length).toEqual(2)
+      });
+    });
+
+    describe('when BOM module references optional dependent modules', () => {
+      const modules: BillOfMaterialModule[] = [
+        {name: 'ibm-vpc-subnets'},
+        {name: 'ibm-vpc-gateways'},
+      ];
+
+      let bom: BillOfMaterialModel;
+      let selectedModules: SingleModuleVersion[];
+      beforeEach(async () => {
+        bom = new BillOfMaterial({spec: {modules}});
+
+        selectedModules = await moduleSelector.resolveBillOfMaterial(catalog, bom);
+      });
+
+      test('then associate optional dependent module', async () => {
+        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules);
+
+        console.log('Stages: ', Object.keys(result.stages))
+        expect(Object.keys(result.stages).length).toEqual(4);
+
+        const module: Optional<Module> = arrayOf(result.stages['ibm-vpc-subnets'].module.version.dependencies)
+          .filter(d => d.id === 'gateways')
+          .map(d => d._module)
+          .mergeMap<Module>()
+          .first();
+
+        expect(module.isPresent()).toBeTruthy()
+      });
+    });
+
+    describe('when BOM module does not reference optional dependent modules', () => {
+      const modules: BillOfMaterialModule[] = [
+        {name: 'ibm-vpc-subnets'},
+      ];
+
+      let bom: BillOfMaterialModel;
+      let selectedModules: SingleModuleVersion[];
+      beforeEach(async () => {
+        bom = new BillOfMaterial({spec: {modules}});
+
+        selectedModules = await moduleSelector.resolveBillOfMaterial(catalog, bom);
+      });
+
+      test('then do not associate optional dependent module', async () => {
+        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules);
+
+        console.log('Stages: ', Object.keys(result.stages))
+        expect(Object.keys(result.stages).length).toEqual(3);
+
+        const module: Optional<Module> = arrayOf(result.stages['ibm-vpc-subnets'].module.version.dependencies)
+          .filter(d => d.id === 'gateways')
+          .map(d => d._module)
+          .mergeMap<Module>()
+          .first();
+
+        expect(module.isPresent()).toBeFalsy()
       });
     });
   });

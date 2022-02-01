@@ -50609,7 +50609,9 @@ categories:
                   - source: github.com/cloud-native-toolkit/terraform-ibm-vpc
                     version: '>= 1.0.0'
               - id: gateways
-                refs: []
+                refs:
+                  - source: github.com/cloud-native-toolkit/terraform-ibm-vpc-gateways
+                    version: '>= 0.0.0'
                 optional: true
             variables:
               - name: resource_group_id
