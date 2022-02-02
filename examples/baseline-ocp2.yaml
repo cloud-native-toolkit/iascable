@@ -1,0 +1,9 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: baseline-ocp-vpc2
+spec:
+  modules:
+    - name: ibm-ocp-vpc
+    - name: openshift-cicd
+  variables: []

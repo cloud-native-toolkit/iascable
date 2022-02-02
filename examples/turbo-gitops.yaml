@@ -1,0 +1,14 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: gitops-ocp-turbonomic
+spec:
+  modules:
+    - name: gitops-ocp-turbonomic
+    - name: gitops-bootstrap
+    - name: ocp-login
+    - name: gitops-repo
+    - name: gitops-namespace
+      variables:
+        - name: name
+          value: turbonomic

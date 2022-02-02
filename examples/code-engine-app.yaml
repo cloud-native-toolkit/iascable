@@ -1,0 +1,50 @@
+apiVersion: codeengine.cloud.ibm.com/v1alpha1
+kind: Application
+metadata:
+  name: iam-api
+spec:
+  project: ""
+  serviceAccountName: ""
+  volumes:
+    - configMap:
+        name: ""
+    - secret:
+        name: ""
+  imagePullSecrets:
+    - name: ""
+  scale:
+    concurrency: 100
+    min: 0
+    max: 10
+  revisionName: ""
+  container:
+    image: ""
+    ports:
+      - containerPort: 8080
+        name: ""
+    command: []
+    arguments: []
+    securityContext:
+      runAsUser: 0
+    resources:
+      limits:
+        cpu: ""
+        memory: ""
+    env:
+      - name: ""
+        value: ""
+    envFrom:
+      - configMapRef:
+          name: ""
+          optional: true
+      - secretRef:
+          name: ""
+        prefix: TEST_
+    volumeMounts:
+      mountPath: ""
+      name: ""
+  services:
+    - name: ""
+      prefix: ""
+      role: ""
+      credentialName: ""

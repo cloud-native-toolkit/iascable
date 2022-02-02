@@ -17,10 +17,19 @@
   },
   "license": "MIT",
   "engines": {
-    "node": ">=6.0.0"
+    "node": "^12.20.0 || ^14.13.1 || >=16.0.0"
   },
   "bin": {
     "iascable": "dist/lib/script.js"
+  },
+  "pkg": {
+    "scripts": "dist/script.js",
+    "assets": "dist/**/*",
+    "targets": [
+      "node14-linux-x64",
+      "node14-macos-x64",
+      "node14-alpine-x64"
+    ]
   },
   "scripts": {
     "lint": "tslint  --project tsconfig.json -t codeFrame 'src/**/*.ts' 'test/**/*.ts'",

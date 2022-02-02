@@ -1,0 +1,24 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: baseline-gitops-tools
+spec:
+  modules:
+    - name: ocp-login
+    - name: gitops-repo
+    - name: gitops-bootstrap
+    - name: sealed-secret-cert
+    - name: gitops-namespace
+      variables:
+        - name: name
+          value: tools
+    - name: gitops-artifactory
+    - name: gitops-sonarqube
+    - name: gitops-console-link-job
+    - name: gitops-pact-broker
+  variables:
+    - name: resource_group_name
+    - name: region
+    - name: ibmcloud_api_key
+    - name: name_prefix
+      required: true
