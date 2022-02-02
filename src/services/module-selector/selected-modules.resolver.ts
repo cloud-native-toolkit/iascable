@@ -47,6 +47,7 @@ export class SelectedModuleResolverImpl implements SelectedModulesResolver {
   }
 
   resolve(modules: Module[]): SingleModuleVersion[] {
+
     const updatedModules: Module[] = modules.map(updateAliasForDuplicateModules)
 
     const modulesWithFilteredVersions: Module[] = this.resolveDependencies(updatedModules)
@@ -229,9 +230,13 @@ export const matchInterface = (dep: ModuleDependency, module: Module): boolean =
 }
 
 export const matchRefs = (dep: ModuleDependency, module: Module): boolean => {
-  const refIds: string[] = (dep.refs || []).map(ref => ref.source)
+  const refIds: string[] = (dep.refs || [])
+    .map(ref => ref.source)
+    .map(source => source.replace(/.git$/, ''))
 
-  return refIds.includes(module.id)
+  const match: boolean = refIds.includes(module.id.replace(/.git$/, ''))
+
+  return match
 }
 
 export const matchAlias = (dep: ModuleDependency, module: Module): boolean => {

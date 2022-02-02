@@ -6,7 +6,7 @@ import {
 } from './iascable.api';
 import {
   BillOfMaterialModel,
-  BillOfMaterialModule,
+  BillOfMaterialModule, BillOfMaterialModuleById, BillOfMaterialModuleByName,
   isBillOfMaterialModule
 } from '../models/bill-of-material.model';
 import {SingleModuleVersion, TerraformComponent} from '../models/stages.model';
@@ -16,7 +16,8 @@ import {Catalog, CatalogLoaderApi} from './catalog-loader';
 import {ModuleSelectorApi} from './module-selector';
 import {TerraformBuilderApi} from './terraform-builder';
 import {TileBuilderApi} from './tile-builder';
-import {of as arrayOf} from '../util/array-util'
+import {ArrayUtil, of as arrayOf} from '../util/array-util'
+import {Optional} from '../util/optional';
 
 export class CatalogBuilder implements IascableApi {
   @Inject
@@ -57,13 +58,32 @@ export class CatalogBuilder implements IascableApi {
   }
 }
 
+const matchingBomModule = (module: SingleModuleVersion) => (bomModule: BillOfMaterialModule) => {
+  return (!!bomModule.alias && bomModule.alias === module.alias) || bomModule.name === module.name || bomModule.id === module.id
+}
+
 const applyVersionsToBomModules = (billOfMaterial: BillOfMaterialModel, modules: SingleModuleVersion[]): BillOfMaterialModel => {
 
-  const newModules: Array<string | BillOfMaterialModule> = billOfMaterial.spec.modules.map((module: string | BillOfMaterialModule) => {
-    const moduleVersion: SingleModuleVersion = findModule(module, modules);
+  const bomModules: ArrayUtil<BillOfMaterialModuleById | BillOfMaterialModuleByName> = arrayOf(billOfMaterial.spec.modules)
+    .filter(b => isBillOfMaterialModule(b))
+    .map(b => b as any)
 
-    return mergeBillOfMaterialModule(module, moduleVersion);
-  })
+  const newModules: Array<BillOfMaterialModule> = modules
+    .map((module: SingleModuleVersion) => {
+      const existingBomModule: Optional<BillOfMaterialModule> = bomModules
+        .filter(matchingBomModule(module))
+        .first()
+
+      const bomModule: BillOfMaterialModule = Object.assign(
+        {
+          name: module.name,
+          version: module.version.version
+        },
+        existingBomModule.orElse({} as any)
+      )
+
+      return bomModule
+    }, [])
 
   const newSpec = Object.assign({}, billOfMaterial.spec, {modules: newModules});
 
