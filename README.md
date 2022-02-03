@@ -19,7 +19,14 @@ iascable build [-u {CATALOG_URL}] [-i {BOM_INPUT}] [--name {COMPONENT_NAME}]
 
 ### Bill of Material schema
 
-The Bill Of Material (BOM) yaml has been modeled after a Kubernetes Custom Resource Definition. A BOM can be provided as input to the CLI and will also be generated when using the CLI interactively.
+The Bill Of Material (BOM) yaml has been modeled after a Kubernetes Custom Resource Definition. A BOM 
+is provided as input to the CLI, either a custom . By default, the module entries for the Bill of Material are pulled
+from the Cloud Native Toolkit module catalog - https://modules.cloudnativetoolkit.dev/
+
+In addition to identifying the modules, values can be provided for the variables and dependencies to
+configure those modules. The variable names match up with the variable names in the module. The 
+dependency `name`/`id` should match the `id` of the dependency in the module metadata. The `ref` value
+should match the `name` or `alias` of one of the other modules in the BOM.
 
 #### Example Bill of Material
 
