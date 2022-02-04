@@ -1,13 +1,14 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: existing-cluster
+  name: multicloud-cluster
 spec:
   modules:
     - name: ocp-login
-    - name: openshift-cicd
+    - name: argocd-bootstrap
     - name: console-link-job
     - name: cluster-config
       alias: config
-  variables:
-    - name: config_banner_text
+      variables:
+        - name: banner_text
+          important: true

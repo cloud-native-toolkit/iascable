@@ -1,8 +1,8 @@
 import {default as jsYaml} from 'js-yaml';
 import {Container} from 'typescript-ioc';
+import deepClone from 'lodash.clonedeep';
 
 import {ModuleSelectorApi} from './module-selector.api';
-import {SelectedModules} from './selected-modules.model';
 import {
   BillOfMaterial,
   BillOfMaterialModel,
@@ -129,12 +129,11 @@ export class ModuleSelector implements ModuleSelectorApi {
     const modules: Module[] = sortedModules.map(bomModule => {
       const moduleLookup: Module | undefined = fullCatalog.lookupModule(bomModule);
 
-      const module: Module = validateModule(moduleLookup, bomModule);
+      const module: Module = validateAndCloneModule(moduleLookup, bomModule);
 
       const filteredVersions: ModuleVersion[] = filterVersionsAgainstBomVersions(module.versions, bomModule);
 
       return Object.assign(
-        {},
         module,
         {
           originalAlias: module.alias,
@@ -201,7 +200,7 @@ export const sortModules = (catalog: Catalog, bomModules: BillOfMaterialModule[]
     });
 }
 
-export const validateModule = (module: Module | undefined, bomModule: BillOfMaterialModule): Module => {
+export const validateAndCloneModule = (module: Module | undefined, bomModule: BillOfMaterialModule): Module => {
   if (!module) {
     throw new ModuleNotFound(bomModule.name || bomModule.id || 'unknown', module)
   }
@@ -210,7 +209,7 @@ export const validateModule = (module: Module | undefined, bomModule: BillOfMate
     throw new ModuleMetadataInvalid('Module versions is not an array: ' + module.name, module);
   }
 
-  return module;
+  return deepClone(module);
 }
 
 export const filterVersionsAgainstBomVersions = (moduleVersions: ModuleVersion[] | undefined, bomModule: BillOfMaterialModule): ModuleVersion[] => {

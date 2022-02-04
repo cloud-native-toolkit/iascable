@@ -6,4 +6,7 @@ spec:
   modules:
     - name: ibm-vpc-gateways
     - name: ibm-ocp-vpc
+      variables:
+        - name: flavor
+          important: true
     - name: openshift-cicd

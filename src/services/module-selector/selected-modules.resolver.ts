@@ -1,28 +1,16 @@
-import {
-  BillOfMaterialModuleDependency,
-  Catalog,
-  Module,
-  ModuleDependency,
-  ModuleRef,
-  ModuleVersion,
-  SingleModuleVersion, VersionMatcher
-} from '../../models';
+import {Catalog, Module, ModuleDependency, ModuleVersion, SingleModuleVersion} from '../../models';
 import {
   DependencyModuleNotFound,
-  ModuleNotFound,
-  MultipleMatchingModules, NoMatchingModuleVersions,
+  MultipleMatchingModules,
+  NoMatchingModuleVersions,
   PreferredModuleNotFound
 } from '../../errors';
 import {of as arrayOf} from '../../util/array-util';
 import {Optional} from '../../util/optional';
 import {LoggerApi} from '../../util/logger';
 import {Container} from 'typescript-ioc';
-import {
-  findMatchingVersions,
-  parseVersionMatcher,
-  resolveVersions
-} from '../../util/version-resolver';
-import first from '../../util/first';
+import {findMatchingVersions} from '../../util/version-resolver';
+import deepClone from 'lodash.clonedeep';
 
 export const resolveSelectedModules = (fullCatalog: Catalog, modules: Module[]): SingleModuleVersion[] => {
   return new SelectedModuleResolverImpl(fullCatalog).resolve(modules);
@@ -57,7 +45,7 @@ export class SelectedModuleResolverImpl implements SelectedModulesResolver {
     const singleModuleVersions: SingleModuleVersion[] = modulesWithDependencies.map(module => {
       const version: ModuleVersion = arrayOf(module.versions).first().get()
 
-      return Object.assign({}, module, {version})
+      return Object.assign({}, module, {version, versions: []})
     })
 
     return singleModuleVersions;
@@ -133,13 +121,14 @@ export class SelectedModuleResolverImpl implements SelectedModulesResolver {
   }
 
   findDependencyInModules(modules: Module[], dep: ModuleDependency, containingModule: Module): Module | Module[] | undefined {
-    const matches: Module[] = modules.filter(m => {
-      if (dep.discriminator) {
-        return matchAlias(dep, m) && (matchInterface(dep, m) || matchRefs(dep, m))
-      }
+    const matches: Module[] = modules
+      .filter(m => {
+        if (dep.discriminator) {
+          return matchAlias(dep, m) && (matchInterface(dep, m) || matchRefs(dep, m))
+        }
 
-      return matchInterface(dep, m) || matchRefs(dep, m)
-    })
+        return matchInterface(dep, m) || matchRefs(dep, m)
+      })
 
     if (dep.discriminator !== '*' && matches.length > 1 && this.strict) {
       const isDefault = (m: Module) => (!!m.alias && m.alias === m.originalAlias) || !!m.default
@@ -175,12 +164,13 @@ export class SelectedModuleResolverImpl implements SelectedModulesResolver {
       const preferredModule: Optional<Module> = arrayOf(modules)
         .filter(m => m.id === dep.preferred)
         .first()
+        .map(deepClone)
 
       return preferredModule.orElseThrow(new PreferredModuleNotFound(dep.preferred, dep, containingModule))
     }
 
     if (modules.length > 0) {
-      return modules[0]
+      return deepClone(modules[0])
     }
 
     throw new DependencyModuleNotFound(dep, containingModule)

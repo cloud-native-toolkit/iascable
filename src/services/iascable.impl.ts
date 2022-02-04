@@ -58,8 +58,10 @@ export class CatalogBuilder implements IascableApi {
   }
 }
 
-const matchingBomModule = (module: SingleModuleVersion) => (bomModule: BillOfMaterialModule) => {
-  return (!!bomModule.alias && bomModule.alias === module.alias) || bomModule.name === module.name || bomModule.id === module.id
+const matchingBomModule = (module: SingleModuleVersion) => (bomModule: BillOfMaterialModule): boolean => {
+  const result = (!!bomModule.alias && bomModule.alias === module.alias) || (!bomModule.alias && bomModule.name === module.name || bomModule.id === module.id)
+
+  return result
 }
 
 const applyVersionsToBomModules = (billOfMaterial: BillOfMaterialModel, modules: SingleModuleVersion[]): BillOfMaterialModel => {
@@ -77,6 +79,7 @@ const applyVersionsToBomModules = (billOfMaterial: BillOfMaterialModel, modules:
       const bomModule: BillOfMaterialModule = Object.assign(
         {
           name: module.name,
+          alias: module.alias,
           version: module.version.version
         },
         existingBomModule.orElse({} as any)
