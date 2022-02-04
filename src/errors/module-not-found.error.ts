@@ -28,37 +28,37 @@ export class ModuleMetadataInvalid extends Error {
 
 export class MultipleMatchingModules extends Error {
   constructor(public readonly module: ModuleId, public readonly dep: ModuleDependency, public readonly matchingModules: Module[]) {
-    super(`More than one module resolves dependency for module (${moduleId(module)}): ${dep.id}, ${matchingModules.map(m => m.alias || m.name)}`);
+    super(`More than one module resolves dependency for module: module=${moduleId(module)}, ${dependencyString(dep)}, matchingModules=${matchingModules.map(m => m.alias || m.name)}`);
   }
 }
 
 export class PreferredModuleNotFound extends Error {
   constructor(public readonly preferred: string, public readonly dep: ModuleDependency, public readonly module: ModuleId) {
-    super(`Preferred module not found (dep: ${dep.id}, module: ${moduleId(module)}): ${preferred}`);
+    super(`Preferred module not found: module=${moduleId(module)}, dependency=${dep.id}, preferred=${preferred}`);
   }
 }
 
 export class DependencyModuleNotFound extends Error {
   constructor(public readonly dep: ModuleDependency, public readonly module: ModuleId) {
-    super(`Dependency module not found (${moduleId(module)}): ${dep.id}-${JSON.stringify(dep.refs)}`);
+    super(`Dependent module not found: module=${moduleId(module)}, ${dependencyString(dep)}`);
   }
 }
 
 export class NoMatchingModuleVersions extends Error {
   constructor(public readonly dep: ModuleDependency, public readonly module: ModuleId) {
-    super(`No available module versions (${moduleId(module)}): ${dep.id}`);
+    super(`No available module versions: module=${moduleId(module)}, ${dependencyString(dep)}`);
   }
 }
 
 export class ModuleDependencyNotFound extends Error {
   constructor(public readonly dep: ModuleOutputRef, public readonly module: ModuleId) {
-    super(`Unable to find dependency for output ref (${moduleId(module)}): ${dep.id}.${dep.output}`);
+    super(`Unable to find dependency for output ref: module=${moduleId(module)}, ${dep.id}.${dep.output}`);
   }
 }
 
 export class ModuleDependencyModuleNotFound extends Error {
   constructor(public readonly dep: ModuleDependency, public readonly module: ModuleId) {
-    super(`Unable to find module to satisfy module dependency (${moduleId(module)}): ${dep.id}`);
+    super(`Unable to find module to satisfy module dependency: module=${moduleId(module)}, ${dependencyString(dep)}`);
   }
 }
 
@@ -69,4 +69,10 @@ export interface ModuleId {
 
 const moduleId = (module: ModuleId): string => {
   return module.alias || module.name
+}
+
+const dependencyString = (dep: ModuleDependency): string => {
+  const refs: string = dep.interface ? `interface=${dep.interface}` : `refs=${JSON.stringify(dep.refs)}`
+
+  return `dependency=${dep.id}, ${refs}`
 }

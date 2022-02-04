@@ -111,7 +111,12 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput>)
     console.log(`Writing output to: ${outputDir}`)
     await outputResult(join(outputDir, name), result);
   } catch (err) {
-    logger.error('Error building config', {err})
+    console.log('')
+    console.error(`Error: ${err.message}`)
+
+    if (argv.debug) {
+      logger.error('Error building config', {err})
+    }
   }
 };
 
