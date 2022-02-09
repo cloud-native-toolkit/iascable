@@ -106,8 +106,6 @@ spec:
       dependencies:
         - name: subnets
           ref: ingress-subnets
-        - name: ibm-cert-manager
-          ref: cert-manager
     - name: ibm-vpc-ssh
       alias: edge_ssh_bastion
       variables:

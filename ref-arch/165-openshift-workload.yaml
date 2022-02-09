@@ -17,8 +17,6 @@ spec:
           optional: true
         - name: cos
           optional: true
-        - name: vpc
-          optional: true
       variables:
         - name: exists
           value: true
