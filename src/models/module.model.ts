@@ -68,6 +68,7 @@ export interface ModuleDependency {
   interface?: string;
   optional?: boolean;
   discriminator?: string;
+  manualResolution?: boolean;
   _module?: Module | Module[];
 }
 

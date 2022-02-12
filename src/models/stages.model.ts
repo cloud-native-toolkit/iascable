@@ -38,20 +38,23 @@ export class TerraformStageFile implements OutputFile {
   constructor(private stages: {[name: string]: Stage}) {
   }
 
-  name = 'main.tf';
+  name = 'stages.tf';
   type = OutputFileType.terraform;
 
   get contents(): Promise<string | Buffer> {
-    const buffer: Buffer = Object.values(this.stages).reduce((previousBuffer: Buffer, stage: Stage) => {
-      if (!stage.asString) {
-        stage = new StageImpl(stage);
-      }
+    const buffer: Buffer = Object
+      .values(this.stages)
+      .sort((a: Stage, b: Stage) => a.name.localeCompare(b.name))
+      .reduce((previousBuffer: Buffer, stage: Stage) => {
+        if (!stage.asString) {
+          stage = new StageImpl(stage);
+        }
 
-      return Buffer.concat([
-        previousBuffer,
-        Buffer.from(stage.asString(this.stages))
-      ]);
-    }, Buffer.from(''));
+        return Buffer.concat([
+          previousBuffer,
+          Buffer.from(stage.asString(this.stages))
+        ]);
+      }, Buffer.from(''));
 
     return Promise.resolve(buffer);
   }
@@ -316,6 +319,7 @@ ${indent}}
   variablesAsString(stages: {[name: string]: {name: string}}, indent: string = '  '): string {
     const variableString: string = this.variables
       .filter(v => !!v)
+      .sort((a: BaseVariable, b: BaseVariable) => a.name.localeCompare(b.name))
       .map(v => fromBaseVariable(v))
       .filter(v => {
         const result = !!(v.asString);

@@ -123,12 +123,23 @@ export class SelectedModuleResolverImpl implements SelectedModulesResolver {
   findDependencyInModules(modules: Module[], dep: ModuleDependency, containingModule: Module): Module | Module[] | undefined {
     const matches: Module[] = modules
       .filter(m => {
+        // don't match a module against itself
+        if (m === containingModule) {
+          return false
+        }
+
         if (dep.discriminator) {
           return matchAlias(dep, m) && (matchInterface(dep, m) || matchRefs(dep, m))
         }
 
         return matchInterface(dep, m) || matchRefs(dep, m)
       })
+
+    if (!dep.discriminator && dep.manualResolution) {
+      this.logger.debug('No discriminator provided for dependency that requires manual resolution', {dep})
+
+      return undefined
+    }
 
     if (dep.discriminator !== '*' && matches.length > 1 && this.strict) {
       const isDefault = (m: Module) => (!!m.alias && m.alias === m.originalAlias) || !!m.default

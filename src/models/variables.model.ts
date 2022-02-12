@@ -135,7 +135,7 @@ export class PlaceholderVariable implements IPlaceholderVariable, BaseVariable {
   variableName?: string;
   important?: boolean;
 
-  constructor(props: Partial<IBaseVariable> & {variable: ModuleVariable} & {stageName: string}) {
+  constructor(props: Partial<IBaseVariable> & {variable: ModuleVariable} & {stageName: string} & {variableName?: string}) {
     this.name = props.name || props.variable.name;
     this.description = props.description || props.variable.description;
     this.type = props.type || props.variable.type || 'string';
@@ -145,6 +145,7 @@ export class PlaceholderVariable implements IPlaceholderVariable, BaseVariable {
     this.variable = props.variable;
     this.stageName = props.stageName;
     this.important = props.important || props.variable.important;
+    this.variableName = props.variableName || buildVariableName(this);
   }
 
   asString(): string {
@@ -158,6 +159,14 @@ export class PlaceholderVariable implements IPlaceholderVariable, BaseVariable {
 
     return `${this.name} = var.${this.variableName}`;
   }
+}
+
+const buildVariableName = (props: IPlaceholderVariable): string => {
+  if (props.scope === 'global') {
+    return props.alias || props.name as string
+  }
+
+  return `${props.stageName}_${props.alias || props.name}`
 }
 
 export function isPlaceholderVariable(value: IBaseVariable): value is PlaceholderVariable {

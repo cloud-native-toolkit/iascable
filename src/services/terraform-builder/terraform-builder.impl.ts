@@ -366,40 +366,52 @@ async function processStageVariables(stage: Stage, globalVariables: IBaseVariabl
     return stage;
   }
 
+  const mapBaseVariable = (variable: BaseVariable) => {
+
+    if (!isPlaceholderVariable(variable)) {
+      return variable;
+    }
+
+    if (variable.scope === 'ignore' && variable.defaultValue) {
+      // nothing to do since the variable should be ignored and a default value has been provided
+      return undefined;
+    }
+
+    const name = variable.scope === 'global'
+      ? buildGlobalVariableName(variable)
+      : buildModuleVariableName(variable, stage.name);
+
+    const globalVariable: IBaseVariable = arrayOf(globalVariables)
+      .filter(v => v.name === name)
+      .first()
+      .orElseGet(() => {
+        const newVariable: IBaseVariable = Object.assign({type: 'string'}, variable, {name});
+
+        globalVariables.push(newVariable);
+
+        return newVariable;
+      });
+
+    return new GlobalRefVariable({
+      name: variable.name,
+      type: variable.type,
+      variableName: globalVariable.name,
+      description: variable.description,
+    });
+  }
+
   // @ts-ignore
   const stageVariables: IBaseVariable[] = stage.variables
     .map(mergeBomVariablesIntoBaseVariable(arrayOf(billOfMaterialVariables)))
     .map((variable: BaseVariable) => {
-      if (!isPlaceholderVariable(variable)) {
-        return variable;
+      console.log('Mapping variable: ', variable)
+      const newVariable = mapBaseVariable(variable)
+
+      if (variable.name === 'name_prefix') {
+        console.log('New variable: ', newVariable, variable)
       }
 
-      if (variable.scope === 'ignore' && variable.defaultValue) {
-        // nothing to do since the variable should be ignored and a default value has been provided
-        return undefined;
-      }
-
-      const name = variable.scope === 'global'
-        ? buildGlobalVariableName(variable)
-        : buildModuleVariableName(variable, stage.name);
-
-      const globalVariable: IBaseVariable = arrayOf(globalVariables)
-        .filter(v => v.name === name)
-        .first()
-        .orElseGet(() => {
-          const newVariable: IBaseVariable = Object.assign({type: 'string'}, variable, {name});
-
-          globalVariables.push(newVariable);
-
-          return newVariable;
-        });
-
-      return new GlobalRefVariable({
-        name: variable.name,
-        type: variable.type,
-        variableName: globalVariable.name,
-        description: variable.description,
-      });
+      return newVariable;
     })
     .filter(v => !isUndefined(v));
 
