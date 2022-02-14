@@ -146,7 +146,6 @@ describe('terraform-builder', () => {
       test('then associate optional dependent module', async () => {
         const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules);
 
-        console.log('Stages: ', Object.keys(result.stages))
         expect(Object.keys(result.stages).length).toEqual(4);
 
         const module: Optional<Module> = arrayOf(result.stages['ibm-vpc-subnets'].module.version.dependencies)
@@ -175,7 +174,6 @@ describe('terraform-builder', () => {
       test('then do not associate optional dependent module', async () => {
         const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules);
 
-        console.log('Stages: ', Object.keys(result.stages))
         expect(Object.keys(result.stages).length).toEqual(3);
 
         const module: Optional<Module> = arrayOf(result.stages['ibm-vpc-subnets'].module.version.dependencies)
@@ -209,6 +207,30 @@ describe('terraform-builder', () => {
         expect(tfvarsFile.isPresent()).toBeTruthy()
 
         expect((await tfvarsFile.get().contents).toString()).toContain('_count')
+      });
+    });
+
+    describe('when BOM module references provider', () => {
+      const modules: BillOfMaterialModule[] = [
+        {name: 'gitops-storageclass'},
+      ];
+
+      let bom: BillOfMaterialModel;
+      let selectedModules: SingleModuleVersion[];
+      beforeEach(async () => {
+        bom = new BillOfMaterial({spec: {modules}});
+
+        selectedModules = await moduleSelector.resolveBillOfMaterial(catalog, bom);
+      });
+
+      test('then result should include provider modules', async () => {
+        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules);
+
+        expect(result.stages['clis']).toBeDefined()
+        expect(result.providers?.length).toEqual(1)
+
+        const variable = result.providers?.filter(p => p.name === 'gitops')[0].variables.filter(v => v.name === 'bin_dir')[0]
+        expect(variable).toBeDefined()
       });
     });
   });

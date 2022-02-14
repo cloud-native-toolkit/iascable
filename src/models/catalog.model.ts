@@ -1,6 +1,6 @@
 import {LoggerApi} from '../util/logger';
 import {Container} from 'typescript-ioc';
-import {Module} from './module.model';
+import {Module, ModuleDependency, ModuleProvider, ModuleVariable} from './module.model';
 import {BillOfMaterialModule} from './bill-of-material.model';
 import {of as ofArray} from '../util/array-util';
 import {Optional} from '../util/optional';
@@ -12,8 +12,21 @@ export interface CatalogCategoryModel {
   modules: Module[];
 }
 
+export interface CatalogProviderModel {
+  name: string;
+  source?: string;
+  alias?: string;
+  dependencies: ModuleDependency[];
+  variables: ModuleVariable[];
+}
+
+export const isCatalogProviderModel = (value: any): value is CatalogProviderModel => {
+  return !!value && !!(value as CatalogProviderModel).dependencies && !!(value as CatalogProviderModel).variables
+}
+
 export interface CatalogModel {
   categories: CatalogCategoryModel[];
+  providers?: CatalogProviderModel[];
 }
 
 export interface CatalogFilter {
@@ -43,10 +56,12 @@ export class Catalog implements CatalogModel {
   private logger: LoggerApi;
 
   public readonly categories: CatalogCategoryModel[];
+  public readonly providers: CatalogProviderModel[];
   public readonly filterValue?: {platform?: string, provider?: string};
 
   constructor(values: CatalogModel, filterValue?: {platform?: string, provider?: string}) {
     this.categories = values.categories;
+    this.providers = values.providers || []
     this.filterValue = filterValue;
 
     this.logger = Container.get(LoggerApi).child('Catalog');
@@ -86,6 +101,17 @@ export class Catalog implements CatalogModel {
       .filter((category: CatalogCategoryModel) => (category.modules.length > 0))
 
     return new Catalog({categories: filteredCategories}, {platform, provider});
+  }
+
+  lookupProvider(provider: ModuleProvider): Optional<CatalogProviderModel> {
+
+    return ofArray(this.providers)
+      .filter((p: CatalogProviderModel) => {
+        const result = p.name === provider.name && p.source === provider.source
+
+        return result
+      })
+      .first()
   }
 
   lookupModule(moduleId: {id: string, name?: string} | {name: string, id?: string}): Module | undefined {

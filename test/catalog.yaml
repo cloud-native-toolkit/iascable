@@ -1,3 +1,21 @@
+providers:
+  - name: ibm
+    source: ibm-cloud/ibm
+    variables:
+      - name: ibmcloud_api_key
+        scope: global
+      - name: region
+  - name: gitops
+    source: cloud-native-toolkit/gitops
+    dependencies:
+      - id: clis
+        refs:
+          - source: github.com/cloud-native-toolkit/terraform-util-clis
+    variables:
+      - name: bin_dir
+        moduleRef:
+          id: clis
+          output: bin_dir
 categories:
   - category: ai-ml
     categoryName: AI/ML
@@ -79052,6 +79070,9 @@ categories:
           - platforms:
               - kubernetes
               - ocp4
+            providers:
+              - name: gitops
+                source: cloud-native-toolkit/gitops
             dependencies:
               - id: gitops
                 refs:
@@ -80481,6 +80502,14 @@ categories:
     categoryName: Utilities
     selection: multiple
     modules:
+      - cloudProvider: ""
+        id: github.com/cloud-native-toolkit/terraform-util-clis
+        name: clis
+        versions:
+          - version: v1.0.0
+            variables: []
+            outputs:
+              - name: bin_dir
       - cloudProvider: ""
         softwareProvider: ""
         type: terraform

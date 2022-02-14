@@ -3,11 +3,14 @@ import {BillOfMaterialModule} from './bill-of-material.model';
 import {isUndefined} from '../util/object-util';
 import {ArrayUtil, of as arrayOf} from '../util/array-util';
 import {Optional} from '../util/optional';
+import {CatalogProviderModel} from './catalog.model';
 
 export interface ModuleProvider {
   name: string;
   alias?: string;
   source?: string;
+  variables?: ModuleVariable[];
+  dependencies?: ModuleDependency[];
 }
 
 export interface ModuleRef {
@@ -57,7 +60,7 @@ export interface SingleModuleVersion extends ModuleTemplate {
   bomModule?: BillOfMaterialModule;
 }
 
-export function isSingleModuleVersion(module: Module | SingleModuleVersion): module is SingleModuleVersion {
+export function isSingleModuleVersion(module: any): module is SingleModuleVersion {
   return !!module && !!(module as SingleModuleVersion).version;
 }
 
@@ -77,7 +80,7 @@ export interface ModuleVersion {
   dependencies?: ModuleDependency[];
   variables: ModuleVariable[];
   outputs: ModuleOutput[];
-  providers?: ModuleProvider[];
+  providers?: Array<ModuleProvider | CatalogProviderModel>;
 }
 
 export interface ModuleVariable {

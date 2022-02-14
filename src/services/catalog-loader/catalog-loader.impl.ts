@@ -3,7 +3,7 @@ import {promises} from 'fs';
 import {default as superagent, Response} from 'superagent';
 import {JSON_SCHEMA, load} from 'js-yaml';
 
-import {Catalog, CatalogLoaderApi, CatalogModel} from './catalog-loader.api';
+import {Catalog, CatalogLoaderApi, CatalogModel, CatalogProviderModel} from './catalog-loader.api';
 import {LoggerApi} from '../../util/logger';
 
 export class CatalogLoader implements CatalogLoaderApi {
@@ -21,7 +21,14 @@ export class CatalogLoader implements CatalogLoaderApi {
       ? await this.loadCatalogFromFile(catalogUrl.replace('file:/', ''))
       : await this.loadCatalogFromUrl(catalogUrl);
 
-    return new Catalog(this.parseYaml(catalogYaml));
+    const catalog = new Catalog(this.parseYaml(catalogYaml));
+
+    catalog.providers.forEach((p: CatalogProviderModel) => {
+      p.dependencies = p.dependencies || []
+      p.variables = p.variables || []
+    })
+
+    return catalog
   }
 
   async loadCatalogFromFile(fileName: string): Promise<string> {

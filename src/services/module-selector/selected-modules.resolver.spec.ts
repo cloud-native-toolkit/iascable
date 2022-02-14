@@ -251,9 +251,44 @@ describe('selected-modules.resolver', () => {
         id: 'and-another',
         name: 'and-another',
         interfaces: ['interface2']
+      }, {
+        id: 'github.com/cloud-native-toolkit/terraform-util-clis',
+        name: 'clis',
+        versions: [{
+          version: 'v1.0.0',
+          outputs: [{
+            name: 'bin_dir'
+          }]
+        }]
+      }, {
+        id: 'provider-test',
+        name: 'provider-test',
+        versions: [{
+          version: 'v1.0.0',
+          providers: [{
+            name: 'gitops',
+            source: 'cloud-native-toolkit/gitops'
+          }],
+        }]
       }] as any
 
       catalog = new Catalog({
+        providers: [{
+          name: 'gitops',
+          source: 'cloud-native-toolkit/gitops',
+          dependencies: [{
+            id: 'clis',
+            refs: [{source: 'github.com/cloud-native-toolkit/terraform-util-clis'}]
+          }],
+          variables: [{
+            name: 'bin_dir',
+            type: 'string',
+            moduleRef: {
+              id: 'clis',
+              output: 'bin_dir'
+            }
+          }]
+        }],
         categories: [{
           category: 'ignore',
           selection: 'single',
@@ -419,7 +454,6 @@ describe('selected-modules.resolver', () => {
         })
       })
 
-
       describe('when single module is selected and bomModule is defined', () => {
         test('then resolve the correct module', async () => {
           const bomModule: BillOfMaterialModule = {
@@ -442,6 +476,16 @@ describe('selected-modules.resolver', () => {
           expect(result.length).toEqual(4)
           // @ts-ignore
           expect(result[0].versions[0].dependencies[0]._module).toEqual(modules[2])
+        })
+      })
+
+      describe('when module depends in a provider that has dependencies', () => {
+        test('then include the provider dependency', async () => {
+          const actual: Module[] = classUnderTest.resolveDependencies(baseModules.filter(m => m.id === 'provider-test'))
+
+          expect(actual.length).toEqual(2)
+          // @ts-ignore
+          expect(actual.map(m => m.name)).toContain('clis')
         })
       })
     })

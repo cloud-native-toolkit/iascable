@@ -30,7 +30,7 @@ export interface TerraformComponentModel {
   baseVariables: IBaseVariable[];
   bomVariables?: BillOfMaterialVariable[];
   modules?: SingleModuleVersion[];
-  providers?: ModuleProvider[];
+  providers?: TerraformProvider[];
   files: OutputFile[];
 }
 
