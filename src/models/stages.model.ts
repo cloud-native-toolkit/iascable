@@ -38,7 +38,7 @@ export class TerraformStageFile implements OutputFile {
   constructor(private stages: {[name: string]: Stage}) {
   }
 
-  name = 'stages.tf';
+  name = 'main.tf';
   type = OutputFileType.terraform;
 
   get contents(): Promise<string | Buffer> {
