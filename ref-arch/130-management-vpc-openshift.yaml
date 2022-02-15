@@ -4,7 +4,7 @@ metadata:
   name: 130-management-vpc-openshift
   labels:
     platform: ibm
-    code: 130
+    code: '130'
   annotations:
     displayName: Management VPC OpenShift
     description: Management VPC and Red Hat OpenShift servers
@@ -35,13 +35,11 @@ spec:
         - name: resource_group
           ref: kms_resource_group
     - name: ibm-resource-group
+      alias: mgmt_resource_group
+      default: true
       variables:
-        - name: resource_group_name
-          alias: mgmt_resource_group_name
-          scope: global
         - name: provision
-          alias: mgmt_resource_group_provision
-          scope: global
+          important: true
     - name: ibm-access-group
     - name: ibm-vpc
       variables:

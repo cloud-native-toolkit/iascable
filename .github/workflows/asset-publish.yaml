@@ -1,0 +1,61 @@
+name: Asset publish
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  publish-assets:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: actions/setup-node@v2-beta
+        with:
+          node-version: '14'
+
+      - name: Build
+        run: npm ci && npm run build
+
+      - name: Install pkg
+        run: npm install -g pkg
+
+      - name: Build Asset
+        run: pkg -o iascable --options no-warnings .
+
+      - name: Upload Linux cli
+        id: upload-linux-cli
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./iascable-linux
+          asset_name: iascable-linux
+          asset_content_type: application/octet-stream
+
+      - name: Upload MacOS cli
+        id: upload-macos-cli
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./iascable-macos
+          asset_name: iascable-macos
+          asset_content_type: application/octet-stream
+
+      - name: Upload Alpine cli
+        id: upload-alpine-cli
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./iacable-alpine
+          asset_name: iascable-alpine
+          asset_content_type: application/octet-stream

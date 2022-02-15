@@ -1,0 +1,85 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: all-in-one
+spec:
+  modules:
+    - name: ibm-resource-group
+    - name: ibm-access-group
+    - name: ibm-vpc
+      variables:
+        - name: address_prefix_count
+          value: 3
+        - name: address_prefixes
+          value:
+            - 10.10.0.0/18
+            - 10.20.0.0/18
+            - 10.30.0.0/18
+    - name: ibm-vpc-gateways
+    - name: ibm-vpc-subnets
+      variables:
+        - name: _count
+          value: 1
+        - name: label
+          value: worker
+        - name: ipv4_cidr_blocks
+          value:
+            - 10.10.10.0/24
+      dependencies:
+        - name: gateways
+          ref: ibm-vpc-gateways
+    - name: ibm-ocp-vpc
+      variables:
+        - name: disable_public_endpoint
+          value: false
+    - name: ibm-object-storage
+    - name: sysdig
+    - name: logdna
+    - name: ibm-logdna-bind
+    - name: sysdig-bind
+    - name: ibm-image-registry
+      variables:
+        - name: registry_namespace
+          required: true
+          scope: global
+    - name: cluster-config
+      variables:
+        - name: banner_text
+          value: Management
+    - name: argocd
+    - name: dashboard
+    - name: pactbroker
+    - name: artifactory
+    - name: sonarqube
+    - name: tekton
+    - name: tekton-resources
+    - name: source-control
+  variables:
+    - name: mgmt_resource_group_name
+    - name: mgmt_resource_group_provision
+    - name: region
+    - name: ibmcloud_api_key
+    - name: name_prefix
+      alias: mgmt_name_prefix
+      required: true
+    - name: cs_resource_group_name
+    - name: cs_name_prefix
+    - name: worker_count
+    - name: mgmt_ssh_vpn_public_key
+      value: ""
+    - name: mgmt_ssh_vpn_private_key
+      value: ""
+    - name: mgmt_ssh_bastion_public_key
+      value: ""
+    - name: mgmt_ssh_bastion_private_key
+      value: ""
+    - name: mgmt_ssh_scc_public_key
+      value: ""
+    - name: mgmt_ssh_scc_private_key
+      value: ""
+    - name: mgmt_ssh_vpn_public_key_file
+    - name: mgmt_ssh_vpn_private_key_file
+    - name: mgmt_ssh_bastion_public_key_file
+    - name: mgmt_ssh_bastion_private_key_file
+    - name: mgmt_ssh_scc_public_key_file
+    - name: mgmt_ssh_scc_private_key_file

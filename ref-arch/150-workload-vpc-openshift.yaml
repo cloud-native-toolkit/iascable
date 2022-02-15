@@ -4,7 +4,7 @@ metadata:
   name: 150-workload-vpc-openshift
   labels:
     platform: ibm
-    code: 150
+    code: '150'
   annotations:
     displayName: Workload VPC OpenShift
     description: Workload VPC with Red Hat OpenShift cluster and VPC Transit Gateway to Management VPC

@@ -1,0 +1,16 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: app-connect
+spec:
+  modules:
+    - name: ibm-vpc
+    - name: ibm-ocp-vpc
+    - name: cp-app-connect
+  variables:
+    - name: cs_resource_group_provision
+    - name: name_prefix
+      alias: cs_name_prefix
+    - name: region
+    - name: cs_resource_group_name
+    - name: kms_service

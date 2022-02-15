@@ -89,10 +89,26 @@ export class Catalog implements CatalogModel {
   }
 
   lookupModule(moduleId: {id: string, name?: string} | {name: string, id?: string}): Module | undefined {
-    return ofArray(this.modules)
-      .filter(m => m.id === moduleId.id || m.name === moduleId.name)
+    this.logger.debug('Looking up module from catalog: ', {moduleId, modules: this.modules})
+
+    const result: Module | undefined = ofArray(this.modules)
+      .filter(m => {
+        const match: boolean = idsMatch(m, moduleId) || m.name === moduleId.name
+
+        this.logger.debug(`  Matched module: ${match}`, {moduleId, module: m})
+
+        return match
+      })
       .first()
       .orElse(undefined as any);
+
+    this.logger.debug('  Found matching module: ', {result})
+
+    return result
+  }
+
+  findModulesWithInterface(interfaceId: string): Module[] {
+    return this.modules.filter(m => (m.interfaces || []).includes(interfaceId))
   }
 }
 
@@ -125,4 +141,13 @@ function matchingModuleVersions(modules?: BillOfMaterialModule[]): (m: Module) =
 
     return Object.assign({}, m, {versions});
   }
+}
+
+const idsMatch = (a: {id?: string}, b: {id?: string}): boolean => {
+
+  return cleanId(a.id) === cleanId(b.id)
+}
+
+const cleanId = (id?: string): string => {
+  return (id || '').replace(/[.]git$/g, '')
 }

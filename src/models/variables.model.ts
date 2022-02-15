@@ -5,6 +5,7 @@ import {
   BillOfMaterialProviderVariable,
   BillOfMaterialVariable
 } from './bill-of-material.model';
+import {isDefinedAndNotNull} from '../util/object-util';
 
 export interface StagePrinter {
   asString(stages: {[name: string]: {name: string}}): string;
@@ -19,6 +20,8 @@ export interface IBaseVariable {
   scope?: 'module' | 'global' | 'ignore';
   options?: Array<{label: string, value: string}>;
   required?: boolean;
+  stageName?: string;
+  important?: boolean;
 }
 
 export interface BaseVariable extends IBaseVariable, StagePrinter {
@@ -44,7 +47,7 @@ export class ModuleRefVariable implements IModuleVariable, BaseVariable {
     this.name = values.name;
     this.description = values.description;
     this.type = values.type;
-    this.scope = values.scope;
+    this.scope = 'global';
     this.moduleRef = values.moduleRef;
     this.moduleOutputName = values.moduleOutputName;
     this.mapper = values.mapper || 'equality';
@@ -116,6 +119,7 @@ export function isGlobalRefVariable(value: IBaseVariable): value is GlobalRefVar
 
 export interface IPlaceholderVariable extends IBaseVariable {
   variable: ModuleVariable;
+  variableName?: string;
 }
 
 export class PlaceholderVariable implements IPlaceholderVariable, BaseVariable {
@@ -127,20 +131,42 @@ export class PlaceholderVariable implements IPlaceholderVariable, BaseVariable {
   defaultValue?: string;
 
   variable: ModuleVariable;
+  stageName: string;
+  variableName?: string;
+  important?: boolean;
 
-  constructor(props: IPlaceholderVariable) {
-    this.name = props.name;
-    this.description = props.description;
-    this.type = props.type;
-    this.scope = props.scope;
-    this.alias = props.alias;
-    this.defaultValue = props.defaultValue;
+  constructor(props: Partial<IBaseVariable> & {variable: ModuleVariable} & {stageName: string} & {variableName?: string}) {
+    this.name = props.name || props.variable.name;
+    this.description = props.description || props.variable.description;
+    this.type = props.type || props.variable.type || 'string';
+    this.scope = props.scope || props.variable.scope || 'module';
+    this.alias = props.alias || props.variable.alias;
+    this.defaultValue = isDefinedAndNotNull(props.defaultValue) ? props.defaultValue : props.variable.defaultValue;
     this.variable = props.variable;
+    this.stageName = props.stageName;
+    this.important = props.important || props.variable.important;
+    this.variableName = props.variableName || buildVariableName(this);
   }
 
   asString(): string {
-    return '';
+    if (!this.variableName) {
+      return ''
+    }
+
+    if (this.type?.match(/^list\(/)) {
+      return `${this.name} = var.${this.variableName} == null ? null : jsondecode(var.${this.variableName})`;
+    }
+
+    return `${this.name} = var.${this.variableName}`;
   }
+}
+
+const buildVariableName = (props: IPlaceholderVariable): string => {
+  if (props.scope === 'global') {
+    return props.alias || props.name as string
+  }
+
+  return `${props.stageName}_${props.alias || props.name}`
 }
 
 export function isPlaceholderVariable(value: IBaseVariable): value is PlaceholderVariable {
@@ -275,8 +301,9 @@ export class TerraformVariableImpl implements TerraformVariable {
   private _description: string = '';
   private _defaultValue: any;
   private _required?: boolean;
+  private _important?: boolean;
 
-  constructor(values: {name: string, defaultValue?: string, type?: string, description?: string, required?: boolean}) {
+  constructor(values: {name: string, defaultValue?: string, type?: string, description?: string, required?: boolean, important?: boolean}) {
     Object.assign(this as TerraformVariable, values);
   }
 
@@ -306,6 +333,13 @@ export class TerraformVariableImpl implements TerraformVariable {
   }
   set required(required: boolean | undefined) {
     this._required = required;
+  }
+
+  get important(): boolean | undefined {
+    return this._important
+  }
+  set important(important: boolean | undefined) {
+    this._important = important
   }
 
   asString(): string {

@@ -1,5 +1,6 @@
 import {LoggerApi} from './logger.api';
 import {isDefinedAndNotNull, isUndefined} from '../object-util';
+import {ObjectFactory} from 'typescript-ioc';
 
 export enum LogLevel {
   ERROR = 0,
@@ -95,4 +96,8 @@ export class ConsoleLogger implements LoggerApi {
   isLogEnabled(logLevel: LogLevel): boolean {
     return this.logLevel >= logLevel;
   }
+}
+
+export const consoleLoggerFactory = (logLevel: LogLevel): ObjectFactory => {
+  return () => new ConsoleLogger(logLevel, undefined)
 }

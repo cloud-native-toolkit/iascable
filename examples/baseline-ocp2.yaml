@@ -1,12 +1,9 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: baseline-ocp
+  name: baseline-ocp-vpc2
 spec:
   modules:
-    - name: ibm-vpc-gateways
     - name: ibm-ocp-vpc
-      variables:
-        - name: flavor
-          important: true
     - name: openshift-cicd
+  variables: []

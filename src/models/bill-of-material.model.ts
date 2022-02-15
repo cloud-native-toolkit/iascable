@@ -5,7 +5,8 @@ import {of as arrayOf} from '../util/array-util';
 import {BillOfMaterialParsingError} from '../errors';
 
 export interface BillOfMaterialModuleDependency {
-  name: string;
+  name?: string;
+  id?: string;
   ref: string;
   optional?: boolean;
 }
@@ -27,6 +28,7 @@ export interface BillOfMaterialModuleProvider {
 export interface BaseBillOfMaterialModule {
   alias?: string;
   version?: string;
+  default?: boolean;
   variables?: BillOfMaterialModuleVariable[];
   dependencies?: BillOfMaterialModuleDependency[];
   providers?: BillOfMaterialModuleProvider[];
@@ -126,12 +128,15 @@ export class BillOfMaterial implements BillOfMaterialModel {
   }
 
   static getModules(model?: BillOfMaterialModel): BillOfMaterialModule[] {
-    const modules: Array<string | BillOfMaterialModule> = of<BillOfMaterialModel>(model)
+    const modulesOrIds: Array<string | BillOfMaterialModule> = of<BillOfMaterialModel>(model)
       .map(m => m.spec)
       .map(s => s.modules)
       .orElse([]);
 
-    return modules.map(m => isBillOfMaterialModule(m) ? m : {id: m});
+    const modules: BillOfMaterialModule[] = modulesOrIds
+      .map(m => isBillOfMaterialModule(m) ? m : {id: m});
+
+    return modules;
   }
 
   constructor(nameOrValue: string | Partial<BillOfMaterialModel> = {}, name?: string) {

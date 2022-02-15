@@ -1,11 +1,10 @@
 apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
-  name: 300-cp-integration
+  name: gitops-ocp-turbonomic
 spec:
   modules:
+    - name: gitops-ocp-turbonomic
     - name: ocp-login
     - name: argocd-bootstrap
-    - name: gitops-cp-mq
-    - name: gitops-cp-ace
-    - name: gitops-cp-apic
+    - name: gitops-repo

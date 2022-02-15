@@ -1,0 +1,7 @@
+apiVersion: codeengine.cloud.ibm.com/v1alpha1
+kind: Project
+metadata:
+  name: my-project
+spec:
+  tags:
+    - ""

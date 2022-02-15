@@ -1,0 +1,9 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: openshift-argocd
+spec:
+  modules:
+    - name: ocp-login
+    - name: openshift-cicd
+  variables: []

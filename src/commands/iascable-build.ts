@@ -85,6 +85,11 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput>)
   const cmd: IascableApi = Container.get(IascableApi);
   const logger: LoggerApi = Container.get(LoggerApi).child('build');
 
+  if (!argv.reference && !argv.input) {
+    console.log('Bill of Materials not provided. Provide the path to the bill of material file with the -i or -r flag.')
+    return
+  }
+
   const bom: BillOfMaterialModel | undefined = argv.reference
     ? await loadReferenceBom(argv.reference, argv.name)
     : await loadBillOfMaterialFromFile(argv.input, argv.name);
@@ -106,7 +111,12 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput>)
     console.log(`Writing output to: ${outputDir}`)
     await outputResult(join(outputDir, name), result);
   } catch (err) {
-    logger.error('Error building config', {err})
+    console.log('')
+    console.error(`Error: ${err.message}`)
+
+    if (argv.debug) {
+      logger.error('Error building config', {err})
+    }
   }
 };
 

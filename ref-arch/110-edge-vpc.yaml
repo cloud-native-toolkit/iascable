@@ -4,7 +4,7 @@ metadata:
   name: 110-edge-vpc
   labels:
     platform: ibm
-    code: 110
+    code: '110'
   annotations:
     displayName: Edge VPC
     description: Edge VPC with VPN and Bastion servers
@@ -35,13 +35,11 @@ spec:
         - name: resource_group
           ref: kms_resource_group
     - name: ibm-resource-group
+      alias: edge_resource_group
+      default: true
       variables:
-        - name: resource_group_name
-          alias: edge_resource_group_name
-          scope: global
         - name: provision
-          alias: edge_resource_group_provision
-          scope: global
+          important: true
     - name: ibm-access-group
     - name: ibm-vpc
       variables:

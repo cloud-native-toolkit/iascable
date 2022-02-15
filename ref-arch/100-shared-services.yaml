@@ -4,20 +4,18 @@ metadata:
   name: 100-shared-services
   labels:
     platform: ibm
-    code: 100
+    code: '100'
   annotations:
     displayName: Shared services
     description: Managed services that are shared across the management and workload networks
 spec:
   modules:
     - name: ibm-resource-group
+      alias: cs_resource_group
       variables:
-        - name: resource_group_name
-          alias: cs_resource_group_name
-          scope: global
         - name: provision
-          alias: cs_resource_group_provision
-          scope: global
+          important: true
+      default: true
     - name: ibm-resource-group
       alias: kms_resource_group
       variables:
@@ -25,12 +23,11 @@ spec:
           alias: kms_resource_group_name
           scope: global
         - name: provision
-          alias: kms_resource_group_provision
-          scope: global
+          important: trie
           value: true
       dependencies:
         - name: sync
-          ref: resource_group
+          ref: cs_resource_group
     - name: ibm-kms
       alias: kms
       variables:

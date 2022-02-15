@@ -4,7 +4,7 @@ metadata:
   name: 140-workload-vpc
   labels:
     platform: ibm
-    code: 140
+    code: '140'
   annotations:
     displayName: Workload VPC
     description: Workload VPC with VPC Transit Gateway to Management VPC
@@ -35,13 +35,11 @@ spec:
         - name: resource_group
           ref: kms_resource_group
     - name: ibm-resource-group
+      alias: workload_resource_group
+      default: true
       variables:
-        - name: resource_group_name
-          alias: workload_resource_group_name
-          scope: global
         - name: provision
-          alias: workload_resource_group_provision
-          scope: global
+          important: true
     - name: ibm-access-group
     - name: ibm-vpc
       variables:

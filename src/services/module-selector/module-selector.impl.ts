@@ -1,8 +1,8 @@
 import {default as jsYaml} from 'js-yaml';
 import {Container} from 'typescript-ioc';
+import deepClone from 'lodash.clonedeep';
 
 import {ModuleSelectorApi} from './module-selector.api';
-import {SelectedModules} from './selected-modules.model';
 import {
   BillOfMaterial,
   BillOfMaterialModel,
@@ -12,14 +12,15 @@ import {
   CatalogModel,
   Module, ModuleVersion,
   SingleModuleVersion,
-  wrapModule,
-  WrappedModule
+  injectDependsOnFunction,
+  ModuleWithDependsOn
 } from '../../models';
 import {QuestionBuilder} from '../../util/question-builder';
 import {QuestionBuilderImpl} from '../../util/question-builder/question-builder.impl';
 import {LoggerApi} from '../../util/logger';
-import {BillOfMaterialModuleConfigError, ModuleNotFound} from '../../errors';
+import {BillOfMaterialModuleConfigError, ModuleMetadataInvalid, ModuleNotFound} from '../../errors';
 import {of as arrayOf} from '../../util/array-util';
+import {resolveSelectedModules} from './selected-modules.resolver';
 
 export class ModuleSelector implements ModuleSelectorApi {
   logger: LoggerApi;
@@ -113,41 +114,38 @@ export class ModuleSelector implements ModuleSelectorApi {
   async resolveBillOfMaterial(catalogModel: CatalogModel, input: BillOfMaterialModel): Promise<SingleModuleVersion[]> {
     const fullCatalog: Catalog = Catalog.fromModel(catalogModel);
 
-    const bomModules: BillOfMaterialModule[] = BillOfMaterial.getModules(input);
+    const bomModules: BillOfMaterialModule[] = BillOfMaterial.getModules(input)
 
-    const modules: Module[] = sortModules(fullCatalog, bomModules)
-      .map(bomModule => {
-        const module: Module | undefined = fullCatalog.lookupModule(bomModule);
+    const modules: Module[] = this.lookupModules(fullCatalog, bomModules)
 
-        // TODO what should happen if the BOM specifies a module that cannot be found?
-        if (!module || !module.versions || !Array.isArray(module.versions)) {
-          this.logger.debug('Invalid module: ' + module?.name, module);
-          return undefined as any;
-        }
+    this.logger.debug('Modules', modules)
 
-        if (!Array.isArray(module.versions)) {
-          throw new Error('Module versions is not an array: ' + module.name);
-        }
+    return resolveSelectedModules(fullCatalog, modules)
+  }
 
-        const filteredVersions: ModuleVersion[] = arrayOf(module.versions)
-          .filter(m => !bomModule.version || m.version === bomModule.version)
-          .ifEmpty(() => module.versions)
-          .asArray();
+  lookupModules(fullCatalog: Catalog, bomModules: BillOfMaterialModule[]): Module[] {
+    const sortedModules: BillOfMaterialModule[] = sortModules(fullCatalog, bomModules)
 
-        return Object.assign(
-          {},
-          module,
-          {
-            alias: bomModule.alias || module.alias,
-            versions: filteredVersions,
-            bomModule: Object.assign({}, bomModule)}
-        ) as Module;
-      })
-      .filter(m => !!m);
+    const modules: Module[] = sortedModules.map(bomModule => {
+      const moduleLookup: Module | undefined = fullCatalog.lookupModule(bomModule);
 
-    this.logger.debug('Modules', modules);
+      const module: Module = validateAndCloneModule(moduleLookup, bomModule);
 
-    return new SelectedModules(fullCatalog).resolveModules(modules);
+      const filteredVersions: ModuleVersion[] = filterVersionsAgainstBomVersions(module.versions, bomModule);
+
+      return Object.assign(
+        module,
+        {
+          originalAlias: module.alias,
+          alias: bomModule.alias || module.alias,
+          versions: filteredVersions,
+          bomModule: Object.assign({}, bomModule)
+        },
+        bomModule.default ? {default: true} : {}
+      ) as Module;
+    });
+
+    return modules;
   }
 
   async validateBillOfMaterialModuleConfigYaml(catalogModel: CatalogModel, moduleRef: string, yaml: string) {
@@ -171,8 +169,8 @@ export class ModuleSelector implements ModuleSelectorApi {
       .map(v => v.name)
       .asArray();
     const unmatchedDependencyNames: string[] = arrayOf(moduleConfig.dependencies)
-      .filter(d => !availableDependencyNames.includes(d.name))
-      .map(d => d.name)
+      .filter(d => !availableDependencyNames.includes(d.name || d.id || ''))
+      .map(d => d.name || d.id || '')
       .asArray();
 
     if (unmatchedVariableNames.length > 0 || unmatchedDependencyNames.length > 0) {
@@ -185,17 +183,46 @@ function billOfMaterialIncludesModule(modules: BillOfMaterialModule[], module: M
   return modules.filter(m => m.id === module.id || m.name === module.name).length > 0;
 }
 
-export function sortModules(catalog: Catalog, bomModules: BillOfMaterialModule[]): BillOfMaterialModule[] {
-  return bomModules.slice().sort((a: BillOfMaterialModule, b: BillOfMaterialModule) => {
-    const moduleA: WrappedModule = wrapModule(catalog.lookupModule(a));
-    const moduleB: WrappedModule = wrapModule(catalog.lookupModule(b));
+export const sortModules = (catalog: Catalog, bomModules: BillOfMaterialModule[]): BillOfMaterialModule[] => {
+  return bomModules
+    .slice()
+    .sort((a: BillOfMaterialModule, b: BillOfMaterialModule) => {
+      const moduleA: ModuleWithDependsOn = injectDependsOnFunction(catalog.lookupModule(a));
+      const moduleB: ModuleWithDependsOn = injectDependsOnFunction(catalog.lookupModule(b));
 
-    if (moduleB.dependsOn(moduleA)) {
-      return -1;
-    } else if (moduleA.dependsOn(moduleB)) {
-      return 1;
-    } else {
-      return moduleA.name.localeCompare(moduleB.name);
-    }
-  });
+      if (moduleB.dependsOn(moduleA)) {
+        return -1;
+      } else if (moduleA.dependsOn(moduleB)) {
+        return 1;
+      } else {
+        return moduleA.name.localeCompare(moduleB.name);
+      }
+    });
+}
+
+export const validateAndCloneModule = (module: Module | undefined, bomModule: BillOfMaterialModule): Module => {
+  if (!module) {
+    throw new ModuleNotFound(bomModule.name || bomModule.id || 'unknown', module)
+  }
+
+  if (!module.versions || !Array.isArray(module.versions)) {
+    throw new ModuleMetadataInvalid('Module versions is not an array: ' + module.name, module);
+  }
+
+  return deepClone(module);
+}
+
+export const filterVersionsAgainstBomVersions = (moduleVersions: ModuleVersion[] | undefined, bomModule: BillOfMaterialModule): ModuleVersion[] => {
+  if (!moduleVersions) {
+    return [];
+  }
+
+  if (!bomModule.version) {
+    return moduleVersions;
+  }
+
+  return arrayOf(moduleVersions)
+    .filter(m => m.version === bomModule.version)
+    .ifEmpty(() => moduleVersions)
+    .asArray();
 }

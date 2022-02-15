@@ -99,10 +99,12 @@ export class TerraformBuilder implements TerraformBuilderApi {
 
   async buildTerraformComponent(selectedModules: SingleModuleVersion[], billOfMaterial?: BillOfMaterialModel): Promise<TerraformComponent> {
 
-    const stages: { [name: string]: Stage } = selectedModules.reduce((stages: { [name: string]: Stage }, module: SingleModuleVersion) => {
-      moduleToStage(stages, selectedModules, module);
-      return stages;
-    }, {});
+    const stages: { [name: string]: Stage } = selectedModules
+      .reduce((stages: { [name: string]: Stage }, module: SingleModuleVersion) => {
+
+        moduleToStage(stages, selectedModules, module);
+        return stages;
+      }, {});
 
     const baseVariables: IBaseVariable[] = [];
 
@@ -211,31 +213,24 @@ function moduleVariablesToStageVariables(module: SingleModuleVersion, stages: {[
               moduleRef: moduleRefSource,
               moduleOutputName: moduleRef.output,
               mapper: v.mapper,
+              stageName: stageName(module)
             });
 
             return moduleRefVariable;
           } else {
             const placeholderVariable: PlaceholderVariable = new PlaceholderVariable({
-              name: v.name,
-              description: v.description,
-              type: v.type || 'string',
-              scope: v.scope || 'module',
               defaultValue: defaultValue(v, module.bomModule),
-              alias: v.alias,
               variable: v,
+              stageName: stageName(module)
             });
 
             return placeholderVariable;
           }
         } else {
           const placeholderVariable: PlaceholderVariable = new PlaceholderVariable({
-            name: v.name,
-            description: v.description,
-            type: v.type || 'string',
-            scope: v.scope || 'module',
             defaultValue: defaultValue(v, module.bomModule),
-            alias: v.alias,
             variable: v,
+            stageName: stageName(module)
           });
 
           return placeholderVariable;
@@ -371,44 +366,60 @@ async function processStageVariables(stage: Stage, globalVariables: IBaseVariabl
     return stage;
   }
 
+  const mapBaseVariable = (variable: BaseVariable) => {
+
+    if (!isPlaceholderVariable(variable)) {
+      return variable;
+    }
+
+    if (variable.scope === 'ignore' && variable.defaultValue) {
+      // nothing to do since the variable should be ignored and a default value has been provided
+      return undefined;
+    }
+
+    const name = variable.scope === 'global'
+      ? buildGlobalVariableName(variable)
+      : buildModuleVariableName(variable, stage.name);
+
+    const globalVariable: IBaseVariable = arrayOf(globalVariables)
+      .filter(v => v.name === name)
+      .first()
+      .orElseGet(() => {
+        const newVariable: IBaseVariable = Object.assign({type: 'string'}, variable, {name});
+
+        globalVariables.push(newVariable);
+
+        return newVariable;
+      });
+
+    return new GlobalRefVariable({
+      name: variable.name,
+      type: variable.type,
+      variableName: globalVariable.name,
+      description: variable.description,
+    });
+  }
+
   // @ts-ignore
   const stageVariables: IBaseVariable[] = stage.variables
     .map(mergeBomVariablesIntoBaseVariable(arrayOf(billOfMaterialVariables)))
     .map((variable: BaseVariable) => {
-      if (!isPlaceholderVariable(variable)) {
-        return variable;
+      console.log('Mapping variable: ', variable)
+      const newVariable = mapBaseVariable(variable)
+
+      if (variable.name === 'name_prefix') {
+        console.log('New variable: ', newVariable, variable)
       }
 
-      if (variable.scope === 'ignore' && variable.defaultValue) {
-        // nothing to do since the variable should be ignored and a default value has been provided
-        return undefined;
-      }
-
-      const name = variable.scope === 'global'
-        ? buildGlobalVariableName(variable)
-        : buildModuleVariableName(variable, stage.name);
-
-      const globalVariable: IBaseVariable = arrayOf(globalVariables)
-        .filter(v => v.name === name)
-        .first()
-        .orElseGet(() => {
-          const newVariable: IBaseVariable = Object.assign({type: 'string'}, variable, {name});
-
-          globalVariables.push(newVariable);
-
-          return newVariable;
-        });
-
-      return new GlobalRefVariable({
-        name: variable.name,
-        type: variable.type,
-        variableName: globalVariable.name,
-        description: variable.description
-      });
+      return newVariable;
     })
     .filter(v => !isUndefined(v));
 
   return Object.assign({}, stage, {variables: stageVariables});
+}
+
+const stageName = (module: {alias?: string, name: string}): string => {
+  return module.alias || module.name
 }
 
 function buildGlobalVariableName(variable: IBaseVariable) {
