@@ -75,7 +75,8 @@ export interface BillOfMaterialProvider {
 
 export interface BillOfMaterialProviderVariable {
   name: string;
-  ref: string;
+  alias: string;
+  scope: string;
 }
 
 export interface BillOfMaterialSpec {

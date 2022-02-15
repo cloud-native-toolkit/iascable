@@ -6,6 +6,8 @@ import {
   BillOfMaterialVariable
 } from './bill-of-material.model';
 import {isDefinedAndNotNull} from '../util/object-util';
+import {CatalogProviderModel} from './catalog.model';
+import {Stage} from './stages.model';
 
 export interface StagePrinter {
   asString(stages: {[name: string]: {name: string}}): string;
@@ -185,16 +187,12 @@ export function fromBaseVariable(variable: IBaseVariable): BaseVariable {
   }
 }
 
-export interface ProviderVariable {
-  name: string;
-  ref: string;
-}
-
 export interface TerraformProvider {
   name: string;
   alias?: string;
   source?: string;
-  variables: ProviderVariable[];
+  variables: BaseVariable[];
+  stages: {[name: string]: {name: string}}
 
   asString(): string;
 }
@@ -209,50 +207,21 @@ export function mergeVariables(variables: BillOfMaterialProviderVariable[], bomV
   })
 }
 
-export function buildTerraformProvider(provider: BillOfMaterialProvider): TerraformProvider {
-  if (provider.name !== 'ibm') {
-    return new TerraformProviderImpl({
-      name: provider.name,
-      alias: provider.alias,
-      source: provider.source,
-      variables: []
-    });
-  }
-
-  const variablePrefix = provider.alias ? `${provider.alias}_` : '';
-
-  const variables: ProviderVariable[] = [
-    {
-      name: 'region',
-      ref: `${variablePrefix}region`
-    }, {
-      name: 'ibmcloud_api_key',
-      ref: 'ibmcloud_api_key'
-    }
-  ];
-
-  return new TerraformProviderImpl({
-    name: provider.name,
-    alias: provider.alias,
-    source: provider.source,
-    variables: mergeVariables(variables, provider.variables)
-  });
-}
-
 export class TerraformProviderImpl implements TerraformProvider {
   name: string = '';
   alias?: string;
   source?: string;
-  _variables: ProviderVariable[] = [];
+  _variables: BaseVariable[] = [];
+  stages: {[name: string]: {name: string}} = {}
 
-  constructor(values: {name: string, alias?: string, source?: string, variables: ProviderVariable[]}) {
-    Object.assign(this as TerraformProvider, values);
+  constructor({name, alias, source, variables}: {name: string, alias?: string, source?: string, variables?: BaseVariable[]}, stages: {[name: string]: {name: string}}) {
+    Object.assign(this as any, {name, alias, source, variables}, {stages});
   }
 
-  get variables(): ProviderVariable[] {
+  get variables(): BaseVariable[] {
     return this._variables || [];
   }
-  set variables(variables: ProviderVariable[]) {
+  set variables(variables: BaseVariable[]) {
     this._variables = variables;
   }
 
@@ -270,9 +239,9 @@ export class TerraformProviderImpl implements TerraformProvider {
     }
 
     return this._variables
-      .reduce((previousValue: Buffer, variable: ProviderVariable) => {
+      .reduce((previousValue: Buffer, variable: BaseVariable) => {
 
-        const value: string = `${indent}${variable.name} = var.${variable.ref}`
+        const value: string = `${indent}${variable.asString(this.stages)}`
 
         return Buffer.concat([
           previousValue,

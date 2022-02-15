@@ -6,10 +6,10 @@ import {
   BillOfMaterialModuleVariable,
   BillOfMaterialProvider,
   BillOfMaterialVariable,
-  buildTerraformProvider,
   IBaseVariable,
   IPlaceholderVariable,
   isPlaceholderVariable,
+  isSingleModuleVersion,
   Module,
   ModuleDependency,
   ModuleOutputRef,
@@ -17,12 +17,12 @@ import {
   ModuleRefVariable,
   ModuleVariable,
   PlaceholderVariable,
-  ProviderVariable,
   SingleModuleVersion,
   Stage,
   StageImpl,
   TerraformComponent,
-  TerraformProvider
+  TerraformProvider,
+  TerraformProviderImpl
 } from '../../models';
 import {ModuleDependencyModuleNotFound, ModuleDependencyNotFound} from '../../errors';
 import {ArrayUtil, of as arrayOf} from '../../util/array-util'
@@ -31,7 +31,38 @@ import {Optional} from '../../util/optional';
 
 interface TerraformResult {
   stages: {[name: string]: Stage}
-  baseVariables: IBaseVariable[]
+  baseVariables: IBaseVariable[],
+  providers: TerraformProvider[]
+}
+
+const extractProvidersFromModule = (module: SingleModuleVersion, {stages, providers}: {stages: {[name: string]: {name: string}}, providers: TerraformProvider[]}, bomProviders: BillOfMaterialProvider[] = []): {providers: TerraformProvider[], providerVariables: BaseVariable[]} => {
+
+  return (module.version.providers || [])
+    .map(mergeBomProvider(bomProviders))
+    .reduce(
+      (result: {providers: TerraformProvider[], providerVariables: BaseVariable[]}, provider: ModuleProvider) => {
+
+        const variables: BaseVariable[] = (provider.variables || []).map(mapModuleVariable(provider))
+
+        if (!providers.map(buildProviderId).includes(buildProviderId(provider))) {
+          const terraformProvider: TerraformProvider = new TerraformProviderImpl({
+            name: provider.name,
+            alias: provider.alias,
+            variables
+          }, stages)
+
+          result.providers.push(terraformProvider)
+          result.providerVariables.push(...variables)
+        }
+
+        return result
+      },
+      {providers: [], providerVariables: []}
+    )
+}
+
+const buildProviderId = (provider: {name: string, alias?: string}): string => {
+  return provider.alias ? `${provider.name}-${provider.alias}` : provider.name
 }
 
 export class TerraformBuilderNew implements TerraformBuilderApi {
@@ -39,32 +70,34 @@ export class TerraformBuilderNew implements TerraformBuilderApi {
 
     const terraform: TerraformResult = modules.reduce(
       (result: TerraformResult, module: SingleModuleVersion) => {
-        const variables = this.moduleVariablesToStageVariables(module)
+        const stageVariables: BaseVariable[] = this.moduleVariablesToStageVariables(module)
+        const {providers, providerVariables} = extractProvidersFromModule(module, result, billOfMaterial?.spec.providers)
 
         const stage: Stage = new StageImpl({
           name: componentName(module),
           source: module.id,
           module,
-          variables,
+          variables: stageVariables,
         });
 
         result.stages[stage.name] = stage
-        result.baseVariables.push(...variables)
+        result.baseVariables.push(...stageVariables)
+
+        result.providers.push(...providers)
+        result.baseVariables.push(...providerVariables)
 
         return result
       },
-      {stages: {}, baseVariables: []}
+      {stages: {}, baseVariables: [], providers: []}
     )
 
-    const providers: TerraformProvider[] = extractProviders(modules, billOfMaterial?.spec.providers);
-
-    const baseVariables: IBaseVariable[] = this.processBaseVariables(terraform.baseVariables, providers, billOfMaterial?.spec.variables)
+    const baseVariables: IBaseVariable[] = this.processBaseVariables(terraform.baseVariables, billOfMaterial?.spec.variables)
 
     const name: string | undefined = billOfMaterial?.metadata.name;
     return new TerraformComponent({
       stages: terraform.stages,
       baseVariables,
-      providers,
+      providers: terraform.providers,
       modules,
       bomVariables: billOfMaterial?.spec.variables,
       files: []
@@ -75,48 +108,15 @@ export class TerraformBuilderNew implements TerraformBuilderApi {
 
     const stageVariables: BaseVariable[] = module.version.variables
       .map(mergeBomVariables(arrayOf(module.bomModule?.variables)))
-      .map(v => {
-        if (v.scope === 'ignore') {
-          // nothing to do. skip this variable
-          return undefined as any
-        } else if (v.moduleRef) {
-          const dep: ModuleDependency = findModuleDependency(v.moduleRef, module)
-
-          const depModule: Module | Module[] | undefined = dep._module
-          if (!depModule) {
-            if (!dep.optional) {
-              throw new ModuleDependencyModuleNotFound(dep, module)
-            }
-
-            return new PlaceholderVariable({
-              defaultValue: defaultValue(v, module.bomModule),
-              variable: v,
-              stageName: componentName(module)
-            })
-          }
-
-          return new ModuleRefVariable({
-            name: v.name,
-            moduleRef: Array.isArray(depModule) ? depModule.map(m => moduleRef(m)) : moduleRef(depModule),
-            moduleOutputName: v.moduleRef.output,
-            mapper: v.mapper
-          })
-        } else {
-          return new PlaceholderVariable({
-            defaultValue: defaultValue(v, module.bomModule),
-            variable: v,
-            stageName: componentName(module)
-          });
-        }
-      })
+      .map(mapModuleVariable(module))
       .filter(isDefinedAndNotNull)
 
     return stageVariables
   }
 
-  processBaseVariables(variables: IBaseVariable[], providers: TerraformProvider[], billOfMaterialVariables: BillOfMaterialVariable[] = []): IBaseVariable[] {
+  processBaseVariables(variables: IBaseVariable[], billOfMaterialVariables: BillOfMaterialVariable[] = []): IBaseVariable[] {
 
-    const globalVariables: IBaseVariable[] = variables
+    return variables
       .map(mergeBomVariablesIntoBaseVariable(billOfMaterialVariables))
       .reduce((variables: IBaseVariable[], variable: IBaseVariable) => {
         if (!isPlaceholderVariable(variable)) {
@@ -137,18 +137,6 @@ export class TerraformBuilderNew implements TerraformBuilderApi {
 
         return variables
       }, [])
-
-    return arrayOf(providers)
-      .map(p => p.variables)
-      .mergeMap<ProviderVariable>()
-      .reduce((variables: IBaseVariable[], providerVariable: ProviderVariable) => {
-
-        if (providerVariable.ref && !variablesInclude(variables, providerVariable.ref)) {
-          variables.push({name: providerVariable.ref})
-        }
-
-        return variables
-      }, globalVariables)
   }
 }
 
@@ -160,12 +148,12 @@ const moduleRef = (module: {alias?: string, name: string}): {stageName: string} 
   return {stageName: componentName(module)}
 }
 
-const findModuleDependency = (ref: ModuleOutputRef, parentModule: SingleModuleVersion): ModuleDependency => {
-  const result: Optional<ModuleDependency> = arrayOf(parentModule.version.dependencies)
+const findModuleDependency = (ref: ModuleOutputRef, module: {dependencies?: ModuleDependency[]}, parent: {name: string, alias?: string}): ModuleDependency => {
+  const result: Optional<ModuleDependency> = arrayOf(module.dependencies)
     .filter(dep => dep.id === ref.id)
     .first()
 
-  return result.orElseThrow(new ModuleDependencyNotFound(ref, parentModule))
+  return result.orElseThrow(new ModuleDependencyNotFound(ref, parent))
 }
 
 const mergeBomVariables = (bomVariables: ArrayUtil<BillOfMaterialModuleVariable>) => {
@@ -204,24 +192,6 @@ function defaultValue(variable: ModuleVariable, bomModule?: BillOfMaterialModule
     });
 }
 
-const extractProviders = (selectedModules: SingleModuleVersion[], bomProviders: BillOfMaterialProvider[] = []): TerraformProvider[] => {
-  const moduleProviders: ModuleProvider[] = arrayOf(selectedModules)
-    .map(m => m.version)
-    .map(v => v.providers)
-    .mergeMap<ModuleProvider>()
-    .filter(p => !!p)
-    .reduce((result: ModuleProvider[], currentProvider: ModuleProvider) => {
-
-      if (notIncludesProvider(result)(currentProvider)) {
-        result.push(mergeBomProvider(currentProvider, bomProviders));
-      }
-
-      return result;
-    }, []);
-
-  return moduleProviders.map(buildTerraformProvider);
-}
-
 type ModuleProviderPredicate = (provider: ModuleProvider) => boolean
 
 const notIncludesProvider = (providers: ModuleProvider[]): ModuleProviderPredicate => {
@@ -238,12 +208,26 @@ const notIncludesProvider = (providers: ModuleProvider[]): ModuleProviderPredica
   };
 }
 
-const mergeBomProvider = (provider: ModuleProvider, bomProviders: BillOfMaterialProvider[]): ModuleProvider => {
+
+const mergeBomProvider = (bomProviders: BillOfMaterialProvider[]) => {
+  return (provider: ModuleProvider) => {
+    const result: ModuleProvider = arrayOf(bomProviders)
+      .filter(p => p.name === provider.name && p.alias === provider.alias)
+      .first()
+      .map(bomP => Object.assign({}, provider, bomP))
+      .orElse(provider as any);
+
+    return result;
+  }
+}
+
+
+const mergeBomProviderOld = (provider: ModuleProvider, bomProviders: BillOfMaterialProvider[]): ModuleProvider => {
   const result: ModuleProvider = arrayOf(bomProviders)
     .filter(p => p.name === provider.name && p.alias === provider.alias)
     .first()
     .map(bomP => Object.assign({}, provider, bomP))
-    .orElse(provider);
+    .orElse(provider as any);
 
   return result;
 }
@@ -295,4 +279,41 @@ const createNewGlobalVariableAndAddToList = (globalVariables: IBaseVariable[], v
 
 const variablesInclude = (variables: IBaseVariable[], name: string): boolean => {
   return variables.map(v => v.name).includes(name)
+}
+
+const mapModuleVariable = (module: SingleModuleVersion | ModuleProvider) => {
+  return (v: ModuleVariable) => {
+    if (v.scope === 'ignore') {
+      // nothing to do. skip this variable
+      return undefined as any
+    } else if (v.moduleRef) {
+      const dep: ModuleDependency = findModuleDependency(v.moduleRef, isSingleModuleVersion(module) ? module.version : module, module)
+
+      const depModule: Module | Module[] | undefined = dep._module
+      if (!depModule) {
+        if (!dep.optional) {
+          throw new ModuleDependencyModuleNotFound(dep, module)
+        }
+
+        return new PlaceholderVariable({
+          defaultValue: defaultValue(v, isSingleModuleVersion(module) ? module.bomModule : undefined),
+          variable: v,
+          stageName: componentName(module)
+        })
+      }
+
+      return new ModuleRefVariable({
+        name: v.name,
+        moduleRef: Array.isArray(depModule) ? depModule.map(m => moduleRef(m)) : moduleRef(depModule),
+        moduleOutputName: v.moduleRef.output,
+        mapper: v.mapper
+      })
+    } else {
+      return new PlaceholderVariable({
+        defaultValue: defaultValue(v, isSingleModuleVersion(module) ? module.bomModule : undefined),
+        variable: v,
+        stageName: componentName(module)
+      });
+    }
+  }
 }

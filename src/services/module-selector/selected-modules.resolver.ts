@@ -1,11 +1,18 @@
-import {Catalog, Module, ModuleDependency, ModuleVersion, SingleModuleVersion} from '../../models';
+import {
+  Catalog, CatalogProviderModel, isCatalogProviderModel,
+  Module,
+  ModuleDependency,
+  ModuleProvider,
+  ModuleVersion,
+  SingleModuleVersion
+} from '../../models';
 import {
   DependencyModuleNotFound,
   MultipleMatchingModules,
   NoMatchingModuleVersions,
   PreferredModuleNotFound
 } from '../../errors';
-import {of as arrayOf} from '../../util/array-util';
+import {ArrayUtil, of as arrayOf} from '../../util/array-util';
 import {Optional} from '../../util/optional';
 import {LoggerApi} from '../../util/logger';
 import {Container} from 'typescript-ioc';
@@ -66,8 +73,15 @@ export class SelectedModuleResolverImpl implements SelectedModulesResolver {
 
     this.logger.debug('Resolving module dependencies: ', {module, moduleVersion})
 
-    const moduleDependencies: ModuleDependency[] | undefined = moduleVersion.dependencies;
-    if (!moduleDependencies || moduleDependencies.length === 0) {
+    const providers: Array<ModuleProvider | CatalogProviderModel> = this.getProviders(moduleVersion)
+    moduleVersion.providers = providers
+
+    const providerDependencies: ModuleDependency[] = this.getProviderDependencies(providers)
+
+    const moduleDependencies: ArrayUtil<ModuleDependency> = arrayOf(moduleVersion.dependencies)
+      .push(...providerDependencies);
+
+    if (moduleDependencies.isEmpty()) {
       return modules
     }
 
@@ -118,6 +132,23 @@ export class SelectedModuleResolverImpl implements SelectedModulesResolver {
       }, modules.slice())
 
     return modulesWithDependencies
+  }
+
+  getProviders(moduleVersion: ModuleVersion): Array<ModuleProvider | CatalogProviderModel> {
+
+    return arrayOf(moduleVersion.providers)
+      .map<ModuleProvider | CatalogProviderModel>((p: ModuleProvider) => {
+        return this.catalog.lookupProvider(p).orElse(p as any)
+      })
+      .asArray()
+  }
+
+  getProviderDependencies(moduleProviders: Array<ModuleProvider | CatalogProviderModel>): ModuleDependency[] {
+
+    return arrayOf(moduleProviders)
+      .map((p: ModuleProvider | CatalogProviderModel) => isCatalogProviderModel(p) ? p.dependencies : [])
+      .mergeMap<ModuleDependency>()
+      .asArray()
   }
 
   findDependencyInModules(modules: Module[], dep: ModuleDependency, containingModule: Module): Module | Module[] | undefined {
