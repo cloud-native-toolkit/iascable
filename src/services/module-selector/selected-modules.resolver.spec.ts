@@ -367,11 +367,11 @@ describe('selected-modules.resolver', () => {
     describe('given resolveDependencies()', () => {
       describe('when single module is selected', () => {
         test('then populate dependency tree from catalog', async () => {
-          const actual: Module[] = classUnderTest.resolveDependencies([baseModules[0]])
+          const actual: Module[] = classUnderTest.resolveDependencies(baseModules.filter(m => m.id === 'test'))
 
           expect(actual.length).toEqual(3)
           // @ts-ignore
-          expect(actual[0].versions[0].dependencies[0]._module).toEqual(baseModules[1])
+          expect(actual[0].versions[0].dependencies[0]._module.name).toEqual(baseModules[1].name)
           expect(actual[2].versions[0].version).toEqual('1.0.0')
         })
       })
