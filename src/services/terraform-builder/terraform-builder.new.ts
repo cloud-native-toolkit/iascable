@@ -48,6 +48,7 @@ const extractProvidersFromModule = (module: SingleModuleVersion, {stages, provid
           const terraformProvider: TerraformProvider = new TerraformProviderImpl({
             name: provider.name,
             alias: provider.alias,
+            source: provider.source,
             variables
           }, stages)
 
