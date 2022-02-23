@@ -278,9 +278,18 @@ export class StageImpl implements Stage, StagePrinter {
     this.variables = values.variables;
   }
 
+  sourceString(indent: string = '  '): string {
+    if (this.module.registryId) {
+      return `${indent}source = "${this.module.registryId}"
+${indent}version = "${this.module.version.version.replace('v', '')}"`
+    }
+
+    return `${indent}source = "${this.module.id}?ref=${this.module.version.version}"`
+  }
+
   asString(stages: {[name: string]: {name: string}}): string {
     return `module "${this.name}" {
-  source = "${this.module.id}?ref=${this.module.version.version}"
+${this.sourceString()}
 
 ${this.providersAsString(this.module.version.providers)}${this.variablesAsString(stages)}
 }

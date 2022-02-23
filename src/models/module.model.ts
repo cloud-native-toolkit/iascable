@@ -25,6 +25,7 @@ export interface ModuleMatcher {
 
 export interface ModuleTemplate {
   id: string;
+  registryId?: string;
   name: string;
   alias?: string;
   default?: boolean;
