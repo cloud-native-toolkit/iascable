@@ -24,7 +24,7 @@
   },
   "pkg": {
     "scripts": "dist/script.js",
-    "assets": "dist/**/*",
+    "assets": ["dist/**/*","ref-arch/*"],
     "targets": [
       "node14-linux-x64",
       "node14-macos-x64",
