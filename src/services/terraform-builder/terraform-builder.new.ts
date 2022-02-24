@@ -26,7 +26,7 @@ import {
 } from '../../models';
 import {ModuleDependencyModuleNotFound, ModuleDependencyNotFound} from '../../errors';
 import {ArrayUtil, of as arrayOf} from '../../util/array-util'
-import {isDefinedAndNotNull} from '../../util/object-util';
+import {isDefinedAndNotNull, isUndefinedOrNull} from '../../util/object-util';
 import {Optional} from '../../util/optional';
 
 interface TerraformResult {
@@ -240,7 +240,7 @@ const mergeBomVariablesIntoBaseVariable = (bomVariableArray: BillOfMaterialModul
 
   return (variable: IBaseVariable): IBaseVariable => {
     const optionalBomVariable: Optional<BillOfMaterialModuleVariable> = bomVariables
-      .filter(v => v.name === variable.name)
+      .filter(v => v.name === variable.name && isUndefinedOrNull(variable.alias))
       .first();
 
     if (!optionalBomVariable.isPresent()) {
@@ -250,7 +250,6 @@ const mergeBomVariablesIntoBaseVariable = (bomVariableArray: BillOfMaterialModul
     const bomVariable: BillOfMaterialModuleVariable = optionalBomVariable.get();
 
     return Object.assign(
-      {},
       variable,
       bomVariable,
       {
