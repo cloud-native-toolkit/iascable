@@ -12,3 +12,4 @@ compiled
 docs
 output/
 credentials.properties
+pkg-bin/
