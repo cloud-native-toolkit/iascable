@@ -25,7 +25,6 @@ jobs:
           npm ci
           npm test
           npm run build
-          npm run pkg
 
   release:
     if: ${{ github.event_name == 'push' }}
