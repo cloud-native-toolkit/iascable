@@ -1,6 +1,6 @@
 {
   "name": "@cloudnativetoolkit/iascable",
-  "version": "2.7.3",
+  "version": "2.7.4",
   "description": "",
   "keywords": [],
   "main": "dist/iascable.umd.js",
@@ -24,7 +24,10 @@
   },
   "pkg": {
     "scripts": "dist/script.js",
-    "assets": ["dist/**/*","ref-arch/*"],
+    "assets": [
+      "dist/**/*",
+      "ref-arch/*"
+    ],
     "targets": [
       "node14-linux-x64",
       "node14-macos-x64",
