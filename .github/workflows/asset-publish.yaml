@@ -25,37 +25,11 @@ jobs:
         run: npm install -g pkg
 
       - name: Build Asset
-        run: pkg -o iascable --options no-warnings .
+        run: npm run pkg
 
-      - name: Upload Linux cli
-        id: upload-linux-cli
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload assets
+        uses: softprops/action-gh-release@v1
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./iascable-linux
-          asset_name: iascable-linux
-          asset_content_type: application/octet-stream
+          files: pkg-bin/*
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload MacOS cli
-        id: upload-macos-cli
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./iascable-macos
-          asset_name: iascable-macos
-          asset_content_type: application/octet-stream
-
-      - name: Upload Alpine cli
-        id: upload-alpine-cli
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./iacable-alpine
-          asset_name: iascable-alpine
-          asset_content_type: application/octet-stream
