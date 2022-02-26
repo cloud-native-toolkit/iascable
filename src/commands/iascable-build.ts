@@ -164,8 +164,15 @@ async function outputTile(rootPath: string, tile: Tile | undefined) {
   return promises.writeFile(join(rootPath, tile.file.name), await tile.file.contents);
 }
 
+async function outputLaunchScript(rootPath: string) {
+  await promises.mkdir(rootPath, {recursive: true})
+
+  return promises.copyFile(join(__dirname, '../../scripts', 'launch.sh'), join(rootPath, 'launch.sh'))
+}
+
 async function outputResult(rootPath: string, result: IascableResult): Promise<void> {
   await outputBillOfMaterial(rootPath, result.billOfMaterial);
   await outputTerraform(join(rootPath, 'terraform'), result.terraformComponent);
   await outputTile(rootPath, result.tile);
+  await outputLaunchScript(rootPath);
 }

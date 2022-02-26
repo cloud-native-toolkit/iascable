@@ -8,7 +8,8 @@
   "typings": "dist/types/iascable.d.ts",
   "files": [
     "dist",
-    "ref-arch"
+    "ref-arch",
+    "scripts"
   ],
   "author": "Sean Sundberg <seansund@us.ibm.com>",
   "repository": {
@@ -39,7 +40,7 @@
     "prepare": "npm run build",
     "prebuild": "rimraf dist",
     "build": "tsc --module commonjs && rollup -c rollup.config.ts && typedoc --out docs --theme minimal src",
-    "postbuild": "chmod +x dist/lib/script*.js",
+    "postbuild": "chmod +x dist/lib/script*.js && cp -R ./scripts ./dist/",
     "start": "rollup -c rollup.config.ts -w",
     "test": "jest",
     "tdd": "jest --coverage --watch",
