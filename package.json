@@ -26,6 +26,7 @@
   "pkg": {
     "scripts": "dist/script.js",
     "assets": [
+      "dist/*",
       "dist/**/*",
       "ref-arch/*"
     ],
