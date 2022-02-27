@@ -168,6 +168,10 @@ async function outputLaunchScript(rootPath: string) {
   await promises.mkdir(rootPath, {recursive: true})
 
   return promises.copyFile(join(__dirname, '../../scripts', 'launch.sh'), join(rootPath, 'launch.sh'))
+    .catch(() => {
+      console.log('  Error writing launch script')
+      return {}
+    })
 }
 
 async function outputResult(rootPath: string, result: IascableResult): Promise<void> {
