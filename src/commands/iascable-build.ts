@@ -167,11 +167,19 @@ async function outputTile(rootPath: string, tile: Tile | undefined) {
 async function outputLaunchScript(rootPath: string) {
   await promises.mkdir(rootPath, {recursive: true})
 
-  return promises.copyFile(join(__dirname, '../../scripts', 'launch.sh'), join(rootPath, 'launch.sh'))
+  return promises.copyFile(join(getScriptsPath(), 'launch.sh'), join(rootPath, '../launch.sh'))
     .catch(() => {
       console.log('  Error writing launch script')
       return {}
     })
+}
+
+function getScriptsPath(): string {
+  if (new RegExp('dist/').test(__dirname)) {
+    return join(__dirname, '../../../scripts')
+  }
+
+  return join(__dirname, '../../scripts')
 }
 
 async function outputResult(rootPath: string, result: IascableResult): Promise<void> {

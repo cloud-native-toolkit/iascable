@@ -3,7 +3,7 @@
 # IBM Ecosystem Labs
 
 SCRIPT_DIR="$(cd $(dirname $0); pwd -P)"
-SRC_DIR="${SCRIPT_DIR}/terraform"
+SRC_DIR="${SCRIPT_DIR}"
 
 DOCKER_IMAGE="quay.io/ibmgaragecloud/cli-tools:v1.1"
 
