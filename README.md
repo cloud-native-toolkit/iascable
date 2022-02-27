@@ -7,8 +7,16 @@ modules.
 
 #### Installation
 
+To install the latest version of iascable into `/usr/local/bin`, run the following:
+
 ```shell
-npm i -g @cloudnativetoolkit/iascable
+curl -sL https://raw.githubusercontent.com/cloud-native-toolkit/iascable/main/install.sh | sh
+```
+
+If you would like to install a different version of the CLI and/or put it in a different directory, use the following:
+
+```shell
+curl -sL https://raw.githubusercontent.com/cloud-native-toolkit/iascable/main/install.sh | RELEASE=2.8.1 DEST_DIR=~/bin sh
 ```
 
 #### Commands
