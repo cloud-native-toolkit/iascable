@@ -2,6 +2,12 @@ apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
   name: 160-openshift-dev-tools
+  labels:
+    platform: ibm
+    code: '160'
+  annotations:
+    displayName: OpenShift Developer Tools
+    description: Open-Source collection of assets for application development on OpenShift
 spec:
   modules:
     - name: ibm-resource-group

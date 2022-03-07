@@ -2,6 +2,12 @@ apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
   name: 165-openshift-workload
+  labels:
+    platform: ibm
+    code: '165'
+  annotations:
+    displayName: OpenShift Workload
+    description: Configures workload cluster
 spec:
   modules:
     - name: ibm-resource-group
