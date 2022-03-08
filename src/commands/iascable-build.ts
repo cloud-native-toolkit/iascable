@@ -1,6 +1,6 @@
 import {Container} from 'typescript-ioc';
 import {Arguments, Argv} from 'yargs';
-import {promises, fchmod} from 'fs';
+import {promises, fchmod, lstatSync, chmodSync} from 'fs';
 import {default as jsYaml} from 'js-yaml';
 import {dirname, join} from 'path';
 
@@ -137,8 +137,20 @@ function buildCatalogBuilderOptions(input: IascableInput): IascableOptions {
   };
 }
 
+async function chmodRecursive(root: string, mode: number) {
+  chmodSync(root, mode)
+
+  const childDirs: string[] = (await promises.readdir(root))
+    .map(value => join(root, value))
+    .filter(value => lstatSync(value).isDirectory())
+
+  childDirs.forEach(dir => chmodRecursive(join(root, dir), mode))
+}
+
 async function outputBillOfMaterial(rootPath: string, billOfMaterial: BillOfMaterialModel) {
   await promises.mkdir(rootPath, {recursive: true})
+
+  await chmodRecursive(rootPath, 0o777)
 
   return promises.writeFile(join(rootPath, 'bom.yaml'), jsYaml.dump(billOfMaterial));
 }
@@ -147,6 +159,7 @@ async function outputTerraform(rootPath: string, terraformComponent: TerraformCo
   return Promise.all(terraformComponent.files.map(async (file: OutputFile) => {
     const path = join(rootPath, file.name);
     await promises.mkdir(dirname(path), {recursive: true})
+    await chmodRecursive(rootPath, 0o777)
 
     const fileContents = await file.contents;
 
@@ -160,6 +173,7 @@ async function outputTile(rootPath: string, tile: Tile | undefined) {
   }
 
   await promises.mkdir(rootPath, {recursive: true})
+  await chmodRecursive(rootPath, 0o777)
 
   return promises.writeFile(join(rootPath, tile.file.name), await tile.file.contents);
 }
