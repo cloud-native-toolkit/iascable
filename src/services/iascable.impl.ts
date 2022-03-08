@@ -51,7 +51,7 @@ export class CatalogBuilder implements IascableApi {
     const tile: Tile | undefined = options?.tileConfig ? await this.tileBuilder.buildTileMetadata(terraformComponent.baseVariables, options.tileConfig) : undefined;
 
     return {
-      billOfMaterial,
+      billOfMaterial: terraformComponent.billOfMaterial || billOfMaterial,
       terraformComponent,
       tile,
     };

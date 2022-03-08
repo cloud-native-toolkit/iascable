@@ -101,6 +101,7 @@ export class TerraformBuilderNew implements TerraformBuilderApi {
       providers: terraform.providers,
       modules,
       bomVariables: billOfMaterial?.spec.variables,
+      billOfMaterial,
       files: []
     }, name);
   }
