@@ -8,7 +8,7 @@ import {
 } from './variables.model';
 import {OutputFile, OutputFileType, UrlFile} from './file.model';
 import {ModuleProvider, SingleModuleVersion} from './module.model';
-import {BillOfMaterialVariable} from './bill-of-material.model';
+import {BillOfMaterialModel, BillOfMaterialVariable} from './bill-of-material.model';
 import {ArrayUtil, of as arrayOf} from '../util/array-util';
 import {Optional} from '../util/optional';
 import {isDefinedAndNotNull} from '../util/object-util';
@@ -31,6 +31,7 @@ export interface TerraformComponentModel {
   bomVariables?: BillOfMaterialVariable[];
   modules?: SingleModuleVersion[];
   providers?: TerraformProvider[];
+  billOfMaterial?: BillOfMaterialModel;
   files: OutputFile[];
 }
 
@@ -178,27 +179,31 @@ export class TerraformTfvarsFile implements OutputFile {
 
   name : string;
   type = OutputFileType.terraform;
+  variables: TerraformVariable[];
 
-  constructor(private variables: TerraformVariable[], private bomVariables?: BillOfMaterialVariable[], name?: string) {
+  constructor(variables: TerraformVariable[], public bomVariables?: BillOfMaterialVariable[], name?: string) {
     if (name) {
       this.name = `${name}.auto.tfvars`;
     } else {
       this.name = 'terraform.tfvars';
     }
+
+    const variableNames: string[] = arrayOf(this.bomVariables).map(v => v.name).asArray();
+
+    this.variables = variables
+      .map(mergeBomVariables(arrayOf(bomVariables)))
+      .filter(variable => {
+        const terraformVar = new TerraformVariableImpl(variable);
+
+        return !(!(terraformVar.defaultValue === undefined || terraformVar.defaultValue === null || terraformVar.required || variableNames.includes(terraformVar.name)) && !terraformVar.important)
+      })
   }
 
   get contents(): Promise<string | Buffer> {
 
-    const variableNames: string[] = arrayOf(this.bomVariables).map(v => v.name).asArray();
-
     const buffer: Buffer = this.variables
-      .map(mergeBomVariables(arrayOf(this.bomVariables)))
       .reduce((previousBuffer: Buffer, variable: TerraformVariable) => {
         const terraformVar = new TerraformVariableImpl(variable);
-
-        if (!(terraformVar.defaultValue === undefined || terraformVar.defaultValue === null || terraformVar.required || variableNames.includes(terraformVar.name)) && !terraformVar.important) {
-          return previousBuffer;
-        }
 
         variable = new TerraformTfvars({name: terraformVar.name, description: terraformVar.description, value: terraformVar.defaultValue || ""});
 
@@ -218,26 +223,39 @@ export class TerraformComponent implements TerraformComponentModel {
   bomVariables?: BillOfMaterialVariable[] = []
   modules?: SingleModuleVersion[];
   providers?: TerraformProvider[];
+  billOfMaterial?: BillOfMaterialModel;
+  readonly files: OutputFile[];
 
   constructor(model: TerraformComponentModel, private name: string | undefined) {
     Object.assign(this as TerraformComponentModel, model);
-  }
 
-  set files(f: OutputFile[]) {
-    // nothing to do
-  }
+    const tfvarsFile = new TerraformTfvarsFile(this.baseVariables, this.bomVariables, this.name);
 
-  get files(): OutputFile[] {
+    if (this.billOfMaterial) {
+      const bomVariables: BillOfMaterialVariable[] = tfvarsFile.variables.map(v => Object.assign(
+        {
+          name: v.name,
+        },
+        isDefinedAndNotNull(v.type) ? {type: v.type} : {},
+        isDefinedAndNotNull(v.description) ? {description: v.description} : {},
+        isDefinedAndNotNull(v.defaultValue) ? {defaultValue: v.defaultValue} : {},
+        isDefinedAndNotNull((v as any).sensitive || (v as any).variable?.sensitive) ? {sensitive: (v as any).sensitive || (v as any).variable?.sensitive} : {}
+      ))
+      const bomSpec = Object.assign({}, this.billOfMaterial.spec, {variables: bomVariables})
+
+      this.billOfMaterial = Object.assign({}, this.billOfMaterial, {spec: bomSpec})
+    }
+
     const files: Array<OutputFile | undefined> = [
       new TerraformStageFile(this.stages),
       new TerraformVariablesFile(this.baseVariables, this.bomVariables),
       this.providers !== undefined && this.providers.length > 0 ? new TerraformProvidersFile(this.providers) : undefined,
       this.providers !== undefined && this.providers.length > 0 ? new TerraformVersionFile(this.providers) : undefined,
-      new TerraformTfvarsFile(this.baseVariables, this.bomVariables, this.name),
+      tfvarsFile,
       ...buildModuleReadmes(this.modules),
     ];
 
-    return files.filter(f => f !== undefined) as OutputFile[];
+    this.files = files.filter(f => f !== undefined) as OutputFile[];
   }
 }
 
