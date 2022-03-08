@@ -1,6 +1,6 @@
 {
   "name": "@cloudnativetoolkit/iascable",
-  "version": "2.9.5",
+  "version": "2.10.0",
   "description": "",
   "keywords": [],
   "main": "dist/iascable.umd.js",
