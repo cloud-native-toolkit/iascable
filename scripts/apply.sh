@@ -7,9 +7,9 @@ if [[ -z "${VARIABLES_FILE}" ]]; then
   VARIABLES_FILE="${SCRIPT_DIR}/variables.yaml"
 fi
 
-YQ=$(command -v ${YQ}4 || command -v ${YQ})
+YQ=$(command -v yq4 || command -v yq)
 if [[ -z "${YQ}" ]] || [[ $(${YQ} --version | sed -E "s/.*version ([34]).*/\1/g") == "3" ]]; then
-  echo "${YQ} v4 is required"
+  echo "yq v4 is required"
   exit 1
 fi
 
