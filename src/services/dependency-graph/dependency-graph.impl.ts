@@ -1,5 +1,11 @@
 import {DependencyGraphApi} from './dependency-graph.api';
-import {BillOfMaterialModel, Catalog, SingleModuleVersion} from '../../models';
+import {
+  BillOfMaterialModel,
+  Catalog,
+  ModuleDependency,
+  ModuleVersion,
+  SingleModuleVersion
+} from '../../models';
 import {DotGraph, DotNode} from '../../models/graph.model';
 import {of as arrayOf} from '../../util/array-util';
 import {Optional} from '../../util/optional';
@@ -27,14 +33,14 @@ export class DependencyGraphImpl implements DependencyGraphApi {
 
   buildGraph(modules: SingleModuleVersion[]): DotGraph {
 
-    const graph: DotGraph = {nodes: [], direction: 'UP', type: 'digraph'}
+    const graph: DotGraph = {nodes: [], rankdir: 'BT', type: 'digraph'}
 
-    modules.forEach(module => this.processModule(module, graph))
+    modules.forEach(module => this.processModule(module, graph, modules))
 
     return graph;
   }
 
-  processModule(module: SingleModuleVersion, graph: DotGraph): DotNode {
+  processModule(module: SingleModuleVersion, graph: DotGraph, modules: SingleModuleVersion[]): DotNode {
 
     const optionalDotNode: Optional<DotNode> = retrieveNode(graph, module)
     if (optionalDotNode.isPresent()) {
@@ -49,13 +55,49 @@ export class DependencyGraphImpl implements DependencyGraphApi {
 
     graph.nodes.push(dotNode);
 
-    dotNode.dependencies = arrayOf(module.version?.dependencies)
-      .filter(dep => !!dep._module)
-      .map(dep => this.processModule(dep._module as any, graph))
+    const version: ModuleVersion | undefined = lookupVersion(module)
+    dotNode.dependencies = arrayOf(version?.dependencies)
+      .map(dep => {
+        if (dep._module) {
+          return dep._module
+        }
+
+        return lookupModule(dep, module, modules).orElse(undefined as any)
+      })
+      .filter(module => !!module)
+      .map(module => this.processModule(module as any, graph, modules))
       .asArray();
 
     return dotNode;
   }
+}
+
+const lookupVersion = (module: any): ModuleVersion | undefined => {
+  if (module.version) {
+    return module.version
+  }
+
+  if (module.versions && module.versions.length > 0) {
+    return module.versions[0]
+  }
+
+  return undefined
+}
+
+const lookupModule = (dep: ModuleDependency, parentModule: SingleModuleVersion, modules: SingleModuleVersion[]): Optional<SingleModuleVersion> => {
+  return arrayOf(modules)
+    .filter(module => {
+      if (dep.interface) {
+        if (/.*#sync/g.test(dep.interface)) {
+          return false
+        }
+
+        return ((module.interfaces || []).includes(dep.interface) && module !== parentModule)
+      }
+
+      return (dep.refs || []).map(ref => ref.source).includes(module.id)
+    })
+    .first()
 }
 
 const nodeId = (node: DotNode): string => `${node.name}-${node.type}`;

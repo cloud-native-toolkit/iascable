@@ -2,7 +2,7 @@ import {OutputFile, OutputFileType} from './file.model';
 
 export interface DotGraph {
   type: string;
-  direction: string;
+  rankdir: string;
   nodes: DotNode[];
 }
 
@@ -27,14 +27,16 @@ export class DotGraphFile implements OutputFile {
 
 export const graphToString = (graph: DotGraph): string => {
   const nodes: string[] = graph.nodes.reduce((result: string[], node: DotNode) => {
-    node.dependencies.forEach(dep => {
-      result.push(`  "${nodeId(node)}" -> "${nodeId(dep)}"`)
-    })
+    const nodes: string[] = Array.from(new Set(node.dependencies.map(dep => `"${nodeId(node)}" -> "${nodeId(dep)}"`)))
+
+    result.push(...nodes)
+    result.push(`"${nodeId(node)}"`)
 
     return result
   }, [])
 
   return `${graph.type} {
+    rankdir="${graph.rankdir}"
     ${nodes.join('\n')}
   }`
 }
