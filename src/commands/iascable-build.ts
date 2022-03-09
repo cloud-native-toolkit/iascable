@@ -15,6 +15,7 @@ import {
   loadReferenceBom
 } from '../services';
 import {LoggerApi} from '../util/logger';
+import {DotGraphFile} from '../models/graph.model';
 
 export const command = 'build';
 export const desc = 'Configure (and optionally deploy) the iteration zero assets';
@@ -155,6 +156,18 @@ async function outputBillOfMaterial(rootPath: string, billOfMaterial: BillOfMate
   return promises.writeFile(join(rootPath, 'bom.yaml'), jsYaml.dump(billOfMaterial));
 }
 
+async function outputDependencyGraph(rootPath: string, graph?: DotGraphFile) {
+  if (!graph) {
+    return
+  }
+
+  await promises.mkdir(rootPath, {recursive: true})
+
+  await chmodRecursive(rootPath, 0o777)
+
+  return promises.writeFile(join(rootPath, graph.name), await graph.contents);
+}
+
 async function outputTerraform(rootPath: string, terraformComponent: TerraformComponent) {
   return Promise.all(terraformComponent.files.map(async (file: OutputFile) => {
     const path = join(rootPath, file.name);
@@ -236,6 +249,7 @@ async function outputResult(rootPath: string, result: IascableResult): Promise<v
   await outputBillOfMaterial(rootPath, result.billOfMaterial);
   await outputTerraform(join(rootPath, 'terraform'), result.terraformComponent);
   await outputTile(rootPath, result.tile);
+  await outputDependencyGraph(rootPath, result.graph)
   await outputLaunchScript(rootPath);
   await outputApplyScript(rootPath);
   await outputDestroyScript(rootPath);
