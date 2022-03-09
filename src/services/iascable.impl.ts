@@ -18,6 +18,8 @@ import {TerraformBuilderApi} from './terraform-builder';
 import {TileBuilderApi} from './tile-builder';
 import {ArrayUtil, of as arrayOf} from '../util/array-util'
 import {Optional} from '../util/optional';
+import {DependencyGraphApi} from './dependency-graph';
+import {DotGraph, DotGraphFile} from '../models/graph.model';
 
 export class CatalogBuilder implements IascableApi {
   @Inject
@@ -30,6 +32,8 @@ export class CatalogBuilder implements IascableApi {
   terraformBuilder!: TerraformBuilderApi;
   @Inject
   tileBuilder!: TileBuilderApi;
+  @Inject
+  dependencyGraph!: DependencyGraphApi;
 
   async build(catalogUrl: string, input?: BillOfMaterialModel, options?: IascableOptions): Promise<IascableResult> {
     const catalog: Catalog = await this.loader.loadCatalog(catalogUrl);
@@ -50,10 +54,13 @@ export class CatalogBuilder implements IascableApi {
 
     const tile: Tile | undefined = options?.tileConfig ? await this.tileBuilder.buildTileMetadata(terraformComponent.baseVariables, options.tileConfig) : undefined;
 
+    const graph: DotGraph = await this.dependencyGraph.buildFromModules(modules)
+
     return {
       billOfMaterial: terraformComponent.billOfMaterial || billOfMaterial,
       terraformComponent,
       tile,
+      graph: new DotGraphFile(graph)
     };
   }
 }

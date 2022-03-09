@@ -1,9 +1,11 @@
 import {BillOfMaterialModel, CatalogFilter, TerraformComponent, Tile, TileConfig} from '../models';
+import {DotGraphFile} from '../models/graph.model';
 
 export interface IascableResult {
   billOfMaterial: BillOfMaterialModel;
   terraformComponent: TerraformComponent;
   tile?: Tile;
+  graph?: DotGraphFile;
 }
 
 export interface IascableOptions {

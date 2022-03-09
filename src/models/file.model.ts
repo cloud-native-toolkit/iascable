@@ -3,7 +3,8 @@ import * as superagent from 'superagent';
 export enum OutputFileType {
   terraform = 'terraform',
   tileConfig = 'tile-config',
-  documentation = 'documentation'
+  documentation = 'documentation',
+  dotGraph = 'dot-graph'
 }
 
 export interface OutputFile {
