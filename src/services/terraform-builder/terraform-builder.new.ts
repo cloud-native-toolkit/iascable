@@ -187,7 +187,15 @@ function defaultValue(variable: ModuleVariable, bomModule?: BillOfMaterialModule
     .map(v => v.value)
     .orElseGet(() => {
       if (isDefinedAndNotNull(variable)) {
-        return variable.default;
+        if (variable.type !== 'string' && typeof variable.default === 'string') {
+          try {
+            return JSON.parse(variable.default);
+          } catch (err) {
+            return variable.default;
+          }
+        } else {
+          return variable.default;
+        }
       }
 
       return variable.defaultValue;
