@@ -366,7 +366,9 @@ cat "\${SCRIPT_DIR}/bom.yaml" | \${YQ} e '.spec.variables[] | .name' - | while r
   done
 
   echo "\${name} = \\"\${value}\\"" >> "\${SCRIPT_DIR}/terraform/terraform.tfvars"
-  NAME="\${name}" VALUE="\${value}" \${YQ} e -i -P '.variables += [{"name": env(NAME), "value": env(VALUE)}]' "\${TMP_VARIABLES_FILE}"
+  if [[ "\${sensitive}" != "true" ]]; then
+    NAME="\${name}" VALUE="\${value}" \${YQ} e -i -P '.variables += [{"name": env(NAME), "value": env(VALUE)}]' "\${TMP_VARIABLES_FILE}"
+  fi
 done
 
 cp "\${TMP_VARIABLES_FILE}" "\${VARIABLES_FILE}"
@@ -374,5 +376,5 @@ rm "\${TMP_VARIABLES_FILE}"
 
 cd \${SCRIPT_DIR}/terraform
 terraform init
-terraform apply -auto-approve
+terraform apply
 `
