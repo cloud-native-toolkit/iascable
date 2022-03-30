@@ -26,4 +26,4 @@ else
 fi
 
 echo "Installing version ${RELEASE} of iascable for ${TYPE} into ${DEST_DIR}"
-curl -sLo "${DEST_DIR}/iascable" "https://github.com/cloud-native-toolkit/iascable/releases/download/${RELEASE}/iascable-${TYPE}" && chmod +x "${DEST_DIR}/iascable"
+curl --progress-bar -Lo "${DEST_DIR}/iascable" "https://github.com/cloud-native-toolkit/iascable/releases/download/${RELEASE}/iascable-${TYPE}" && chmod +x "${DEST_DIR}/iascable"
