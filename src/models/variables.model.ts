@@ -74,7 +74,13 @@ export class ModuleRefVariable implements IModuleVariable, BaseVariable {
     } else {
       const module: { name: string } = stages[this.moduleRef.stageName];
 
-      return this.moduleRefString(module);
+      const moduleRefString = this.moduleRefString(module);
+
+      if (this.mapper === 'collect') {
+        return '[' + moduleRefString + ']';
+      }
+
+      return moduleRefString;
     }
   }
 
@@ -335,7 +341,7 @@ export class TerraformVariableImpl implements TerraformVariable {
 
     const {value} = typeFormatter(this.defaultValue);
 
-    if (this.name === 'cluster_vpc_subnets') {
+    if (this.name === 'xxxx') {
       console.log('Variable: ' + this.name, {defaultValue: this.defaultValue, formattedValue: value, typeFormatter: typeFormatter.toString(), type: this.type})
     }
 
@@ -347,7 +353,7 @@ export class TerraformVariableImpl implements TerraformVariable {
 
     const type = typeFormatter(this.defaultValue || '').type;
 
-    if (this.name === 'cluster_vpc_subnets') {
+    if (this.name === 'xxxxx') {
       console.log('Variable: ' + this.name, {type: type, originalType: this.type, typeFormatter: typeFormatter.toString()})
     }
 
