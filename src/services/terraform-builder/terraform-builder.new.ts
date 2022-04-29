@@ -26,7 +26,7 @@ import {
 } from '../../models';
 import {ModuleDependencyModuleNotFound, ModuleDependencyNotFound} from '../../errors';
 import {ArrayUtil, of as arrayOf} from '../../util/array-util'
-import {isDefinedAndNotNull, isUndefinedOrNull} from '../../util/object-util';
+import {isDefined, isDefinedAndNotNull, isUndefinedOrNull} from '../../util/object-util';
 import {Optional} from '../../util/optional';
 
 interface TerraformResult {
@@ -175,7 +175,7 @@ const mergeBomVariables = (bomVariables: ArrayUtil<BillOfMaterialModuleVariable>
       variable,
       bomVariable,
       {
-        default: isDefinedAndNotNull(bomVariable.value) ? bomVariable.value : variable.default
+        default: isDefined(bomVariable.value) ? bomVariable.value : variable.default
       });
   };
 }
@@ -187,19 +187,28 @@ function defaultValue(variable: ModuleVariable, bomModule?: BillOfMaterialModule
     .map(v => v.value)
     .orElseGet(() => {
       if (isDefinedAndNotNull(variable)) {
-        if (variable.type !== 'string' && typeof variable.default === 'string') {
-          try {
-            return JSON.parse(variable.default);
-          } catch (err) {
-            return variable.default;
-          }
-        } else {
-          return variable.default;
-        }
+        const result = variableValue(variable.type, variable.default)
+
+        return result;
+      } else {
+        console.log('Variable is not defined or is null')
       }
 
-      return variable.defaultValue;
+      return '';
     });
+}
+
+const variableValue = (type: string, defaultValue: any): any => {
+  if (type !== 'string' && typeof defaultValue === 'string') {
+    try {
+      return JSON.parse(defaultValue);
+    } catch (err) {
+      return defaultValue;
+    }
+  } else {
+    return defaultValue;
+  }
+
 }
 
 type ModuleProviderPredicate = (provider: ModuleProvider) => boolean
@@ -263,7 +272,7 @@ const mergeBomVariablesIntoBaseVariable = (bomVariableArray: BillOfMaterialModul
       bomVariable,
       {
         alias: isDefinedAndNotNull(variable.alias) ? variable.alias : bomVariable.alias,
-        defaultValue: isDefinedAndNotNull(bomVariable.value) ? bomVariable.value : variable.defaultValue
+        defaultValue: isDefined(bomVariable.value) ? bomVariable.value : variable.defaultValue
       });
   };
 }

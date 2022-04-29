@@ -11,6 +11,10 @@ export function isUndefinedOrNull(value: any): boolean {
   return value === undefined || value === null;
 }
 
+export function isDefined(value: any): boolean {
+  return value !== undefined;
+}
+
 export function isDefinedAndNotNull(value: any): boolean {
   return value !== undefined && value !== null;
 }

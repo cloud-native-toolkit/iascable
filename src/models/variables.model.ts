@@ -1,13 +1,7 @@
-import {ModuleProvider, ModuleVariable} from './module.model';
+import {BillOfMaterialProviderVariable} from './bill-of-material.model';
+import {ModuleVariable} from './module.model';
 import {ArrayUtil, of as arrayOf} from '../util/array-util';
-import {
-  BillOfMaterialProvider,
-  BillOfMaterialProviderVariable,
-  BillOfMaterialVariable
-} from './bill-of-material.model';
-import {isDefinedAndNotNull} from '../util/object-util';
-import {CatalogProviderModel} from './catalog.model';
-import {Stage} from './stages.model';
+import {isDefined} from '../util/object-util';
 
 export interface StagePrinter {
   asString(stages: {[name: string]: {name: string}}): string;
@@ -149,7 +143,7 @@ export class PlaceholderVariable implements IPlaceholderVariable, BaseVariable {
     this.type = props.type || props.variable.type || 'string';
     this.scope = props.scope || props.variable.scope || 'module';
     this.alias = props.alias || props.variable.alias;
-    this.defaultValue = isDefinedAndNotNull(props.defaultValue) ? props.defaultValue : props.variable.defaultValue;
+    this.defaultValue = isDefined(props.defaultValue) ? props.defaultValue : props.variable.defaultValue;
     this.variable = props.variable;
     this.stageName = props.stageName;
     this.important = props.important || props.variable.important;
@@ -341,7 +335,7 @@ export class TerraformVariableImpl implements TerraformVariable {
 
     const {value} = typeFormatter(this.defaultValue);
 
-    if (this.name === 'xxxx') {
+    if (this.name === 'xxxxx') {
       console.log('Variable: ' + this.name, {defaultValue: this.defaultValue, formattedValue: value, typeFormatter: typeFormatter.toString(), type: this.type})
     }
 
@@ -412,16 +406,33 @@ const typeFormatters: {[type: string]: Formatter} = {
       value = '';
     }
 
+    if (typeof value === 'string') {
+      try {
+        value = JSON.parse(value)
+      } catch (error) {
+        value = [];
+      }
+    }
+
     // tslint:disable-next-line:triple-equals
     return {type: 'string', value: value == '' ? '"[]"' : `"${JSON.stringify(value).replace(/"/g, '\\"')}"`};
   }),
   'object': buildTypeFormatter('object', (value: any) => {
     if (value === 'null' || value === null) {
+      console.log('Null value for object')
       return {type: 'string', value: 'null'};
     }
 
+    if (typeof value === 'string') {
+      try {
+        value = JSON.parse(value)
+      } catch (error) {
+        value = null
+      }
+    }
+
     // tslint:disable-next-line:triple-equals
-    return {type: 'string', value: value == '' ? '"{}"' : `"${JSON.stringify(value).replace(/"/g, '\\"')}"`}
+    return {type: 'string', value: value === null ? 'null' : (value == '' ? '"{}"' : `"${JSON.stringify(value).replace(/"/g, '\\"')}"`)}
   }),
   'object-list': buildTypeFormatter('object-list', (value: any) => {
     if (value === 'null' || value === null) {
