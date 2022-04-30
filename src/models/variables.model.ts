@@ -419,7 +419,6 @@ const typeFormatters: {[type: string]: Formatter} = {
   }),
   'object': buildTypeFormatter('object', (value: any) => {
     if (value === 'null' || value === null) {
-      console.log('Null value for object')
       return {type: 'string', value: 'null'};
     }
 
