@@ -30,12 +30,14 @@ export const builder = (yargs: Argv<any>) => {
       alias: 'i',
       description: 'The path to the bill of materials to use as input',
       conflicts: 'reference',
+      type: 'array',
       demandOption: false,
     })
     .option('reference', {
       alias: 'r',
       description: 'The reference BOM to use for the build',
       conflicts: 'input',
+      type: 'array',
       demandOption: false,
     })
     .option('outDir', {
@@ -57,26 +59,24 @@ export const builder = (yargs: Argv<any>) => {
       demandOption: false,
     })
     .option('name', {
-      description: 'The name for the tile. Required if you want to generate the tile metadata.',
+      description: 'The name used to override the module name in the bill of material.',
       demandOption: false,
+      type: 'array'
     })
     .option('tileDescription', {
       description: 'The description of the tile.',
       demandOption: false,
     })
-    .option('ci', {
-      type: 'boolean',
-      demandOption: false,
-      conflicts: 'prompt',
-    })
-    .option('prompt', {
-      type: 'boolean',
-      demandOption: false,
-      conflicts: 'ci',
-    })
     .option('debug', {
       type: 'boolean',
       describe: 'Flag to turn on more detailed output message',
+    })
+    .check((argv) => {
+      if (!(argv.reference && argv.reference.length > 0) && !(argv.input && argv.input.length > 0)) {
+        throw new Error('Bill of Materials not provided. Provide the path to the bill of material file with the -i or -r flag.')
+      }
+
+      return true
     });
 };
 
@@ -86,31 +86,26 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput>)
   const cmd: IascableApi = Container.get(IascableApi);
   const logger: LoggerApi = Container.get(LoggerApi).child('build');
 
-  if (!argv.reference && !argv.input) {
-    console.log('Bill of Materials not provided. Provide the path to the bill of material file with the -i or -r flag.')
-    return
-  }
-
-  const bom: BillOfMaterialModel | undefined = argv.reference
-    ? await loadReferenceBom(argv.reference, argv.name)
-    : await loadBillOfMaterialFromFile(argv.input, argv.name);
+  const boms: Array<BillOfMaterialModel> = await loadBoms(argv.reference, argv.input, argv.name);
 
   if ((argv.input || argv.reference) && !argv.prompt) {
     argv.ci = true;
   }
 
-  const name = bom?.metadata?.name || 'component';
-  console.log('Name:', name);
-
   const options: IascableOptions = buildCatalogBuilderOptions(argv);
 
   try {
-    const result = await cmd.build(argv.catalogUrl, bom, options);
+    const results: IascableResult[] = await cmd.buildBoms(argv.catalogUrl, boms, options);
 
     const outputDir = argv.outDir || './output';
 
     console.log(`Writing output to: ${outputDir}`)
-    await outputResult(join(outputDir, name), result);
+    for (let i = 0; i < results.length; i++) {
+      const result = results[i];
+      const name = result.billOfMaterial.metadata?.name || 'component';
+
+      await outputResult(join(outputDir, name), result);
+    }
   } catch (err) {
     console.log('')
     console.error(`Error: ${err.message}`)
@@ -121,6 +116,27 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput>)
   }
 };
 
+async function loadBoms(referenceNames?: string[], inputNames?: string[], names: string[] = []): Promise<Array<BillOfMaterialModel>> {
+  const boms: Array<BillOfMaterialModel> = [];
+
+  const bomNames: string[] = referenceNames && referenceNames.length > 0 ? referenceNames : inputNames as string[];
+  const bomFunction = referenceNames && referenceNames.length > 0 ? loadReferenceBom : loadBillOfMaterialFromFile;
+
+  for (let i = 0; i < bomNames.length; i++) {
+    const name = names.length > i ? names[i] : ''
+
+    const bom: BillOfMaterialModel | undefined = await bomFunction(bomNames[i], name)
+
+    if (!bom) {
+      throw new Error(`Unable to load BOM: ${bomNames[i]}`)
+    }
+
+    boms.push(bom);
+  }
+
+  return boms;
+}
+
 function buildCatalogBuilderOptions(input: IascableInput): IascableOptions {
   const tileConfig = {
     label: input.tileLabel,
@@ -129,7 +145,7 @@ function buildCatalogBuilderOptions(input: IascableInput): IascableOptions {
   };
 
   return {
-    interactive: !input.ci,
+    interactive: false,
     filter: {
       platform: input.platform,
       provider: input.provider,
@@ -206,6 +222,7 @@ async function outputLaunchScript(rootPath: string) {
       if (err) throw err;
     });
   } catch (error) {
+    // nothing to do
   }
 }
 
@@ -224,6 +241,7 @@ async function outputApplyScript(rootPath: string) {
       if (err) throw err;
     });
   } catch (error) {
+    // nothing to do
   }
 }
 
@@ -242,6 +260,7 @@ async function outputDestroyScript(rootPath: string) {
       if (err) throw err;
     });
   } catch (error) {
+    // nothing to do
   }
 }
 

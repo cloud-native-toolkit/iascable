@@ -38,13 +38,39 @@ export class CatalogBuilder implements IascableApi {
   async build(catalogUrl: string, input?: BillOfMaterialModel, options?: IascableOptions): Promise<IascableResult> {
     const catalog: Catalog = await this.loader.loadCatalog(catalogUrl);
 
-    const interactive: boolean = !!(options?.interactive);
-    const filter: {platform?: string; provider?: string} = options?.filter ? options.filter : {};
-
-    const bom: BillOfMaterialModel | undefined = interactive ? await this.moduleSelector.buildBillOfMaterial(catalog, input, filter) : input;
-    if (!bom) {
+    if (!input) {
       throw new Error('Bill of Material is required');
     }
+
+    return this.buildBom(catalog, input, options);
+  }
+
+  async buildBoms(catalogUrl: string, boms: BillOfMaterialModel[], options?: IascableOptions): Promise<IascableResult[]> {
+    const catalog: Catalog = await this.loader.loadCatalog(catalogUrl);
+
+    if (!boms || boms.length === 0) {
+      throw new Error('Bill of Material is required');
+    }
+
+    const result: IascableResult[] = [];
+
+    // for loop here because we don't want them to run on parallel and don't want to use a separate library to
+    // throttle
+    for (let i = 0; i < boms.length; i++) {
+      const bom: BillOfMaterialModel = boms[i];
+
+      const name = bom?.metadata?.name || 'component';
+      console.log('Name:', name);
+
+      const bomResult = await this.buildBom(catalog, bom, options);
+
+      result.push(bomResult)
+    }
+
+    return result;
+  }
+
+  async buildBom(catalog: Catalog, bom: BillOfMaterialModel, options?: IascableOptions): Promise<IascableResult> {
 
     const modules: SingleModuleVersion[] = await this.moduleSelector.resolveBillOfMaterial(catalog, bom);
 
