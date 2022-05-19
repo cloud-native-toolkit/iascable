@@ -264,7 +264,9 @@ export const matchInterface = (dep: ModuleDependency, module: Module): boolean =
 export const matchRefs = (dep: ModuleDependency, module: Module): boolean => {
   const refIds: string[] = (dep.refs || [])
     .map(ref => ref.source)
-    .map(source => source.replace(/.git$/, ''))
+    .map(source => source
+      .replace(/.git$/, '')
+      .replace(/^https?:\/\//, ''))
 
   const match: boolean = refIds.includes(module.id.replace(/.git$/, ''))
 
