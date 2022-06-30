@@ -1,8 +1,8 @@
 import {
   BaseVariable,
-  fromBaseVariable,
+  fromBaseVariable, IBaseOutput,
   IBaseVariable,
-  StagePrinter,
+  StagePrinter, TerraformOutput, TerraformOutputImpl,
   TerraformProvider,
   TerraformTfvars,
   TerraformVariable,
@@ -33,6 +33,7 @@ export interface Stage extends IStage, StagePrinter {
 export interface TerraformComponentModel {
   stages: { [source: string]: Stage };
   baseVariables: IBaseVariable[];
+  baseOutputs: IBaseOutput[];
   bomVariables?: BillOfMaterialVariable[];
   modules?: SingleModuleVersion[];
   providers?: TerraformProvider[];
@@ -181,6 +182,31 @@ export class TerraformVariablesFile implements OutputFile {
   }
 }
 
+export class TerraformOutputFile implements OutputFile {
+  constructor(private outputs: TerraformOutput[]) {
+  }
+
+  name = 'output.tf';
+  type = OutputFileType.terraform;
+
+  get contents(): Promise<string | Buffer> {
+
+    const buffer: Buffer = this.outputs
+      .reduce((previousBuffer: Buffer, output: TerraformOutput) => {
+        if (!output.asString) {
+          output = new TerraformOutputImpl(output);
+        }
+
+        return Buffer.concat([
+          previousBuffer,
+          Buffer.from(output.asString())
+        ]);
+      }, Buffer.from(''));
+
+    return Promise.resolve(buffer);
+  }
+}
+
 export class TerraformTfvarsFile implements OutputFile {
 
   name : string;
@@ -226,6 +252,7 @@ export class TerraformTfvarsFile implements OutputFile {
 export class TerraformComponent implements TerraformComponentModel {
   stages: { [name: string]: Stage } = {};
   baseVariables: TerraformVariable[] = [];
+  baseOutputs: TerraformOutput[] = [];
   bomVariables?: BillOfMaterialVariable[] = []
   modules?: SingleModuleVersion[];
   providers?: TerraformProvider[];
@@ -256,6 +283,7 @@ export class TerraformComponent implements TerraformComponentModel {
     const files: Array<OutputFile | undefined> = [
       new TerraformStageFile(this.stages),
       new TerraformVariablesFile(this.baseVariables, this.bomVariables),
+      new TerraformOutputFile(this.baseOutputs),
       this.providers !== undefined && this.providers.length > 0 ? new TerraformProvidersFile(this.providers) : undefined,
       this.providers !== undefined && this.providers.length > 0 ? new TerraformVersionFile(this.providers) : undefined,
       tfvarsFile,

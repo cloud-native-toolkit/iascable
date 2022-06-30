@@ -113,14 +113,15 @@ export interface ModuleVariable {
   sensitive?: boolean;
 }
 
+export interface ModuleOutput {
+  name: string
+  description?: string
+  sensitive?: boolean
+}
+
 export interface ModuleOutputRef {
   id: string;
   output: string;
-}
-
-export interface ModuleOutput {
-  name: string;
-  description?: string;
 }
 
 export function dependsOnModule(module: Module, depModule: Module | undefined): boolean {
