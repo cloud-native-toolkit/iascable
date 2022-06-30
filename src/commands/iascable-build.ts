@@ -67,6 +67,12 @@ export const builder = (yargs: Argv<any>) => {
       description: 'The description of the tile.',
       demandOption: false,
     })
+    .option('flattenOutput', {
+      alias: ['flatten'],
+      description: 'Flatten the generated output into a single directory (i.e. remove the terraform folder).',
+      type: 'boolean',
+      demandOption: false,
+    })
     .option('debug', {
       type: 'boolean',
       describe: 'Flag to turn on more detailed output message',
@@ -80,7 +86,7 @@ export const builder = (yargs: Argv<any>) => {
     });
 };
 
-export const handler = async (argv: Arguments<IascableInput & CommandLineInput>) => {
+export const handler = async (argv: Arguments<IascableInput & CommandLineInput & {flattenOutput: boolean}>) => {
   process.env.LOG_LEVEL = argv.debug ? 'debug' : 'info';
 
   const cmd: IascableApi = Container.get(IascableApi);
@@ -104,7 +110,7 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput>)
       const result = results[i];
       const name = result.billOfMaterial.metadata?.name || 'component';
 
-      await outputResult(join(outputDir, name), result);
+      await outputResult(join(outputDir, name), result, argv.flattenOutput);
     }
   } catch (err) {
     console.log('')
@@ -264,9 +270,9 @@ async function outputDestroyScript(rootPath: string) {
   }
 }
 
-async function outputResult(rootPath: string, result: IascableResult): Promise<void> {
+async function outputResult(rootPath: string, result: IascableResult, flatten: boolean = false): Promise<void> {
   await outputBillOfMaterial(rootPath, result.billOfMaterial);
-  await outputTerraform(join(rootPath, 'terraform'), result.terraformComponent);
+  await outputTerraform(flatten ? rootPath : join(rootPath, 'terraform'), result.terraformComponent);
   await outputTile(rootPath, result.tile);
   await outputDependencyGraph(rootPath, result.graph)
   await outputLaunchScript(rootPath);
