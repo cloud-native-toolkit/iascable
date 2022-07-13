@@ -2,6 +2,8 @@ apiVersion: cloud.ibm.com/v1alpha1
 kind: BillOfMaterial
 metadata:
   name: baseline-ocp-vpc2
+  annotations:
+    path: test
 spec:
   modules:
     - name: ibm-ocp-vpc

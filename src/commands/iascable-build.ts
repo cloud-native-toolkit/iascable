@@ -108,9 +108,8 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput &
     console.log(`Writing output to: ${outputDir}`)
     for (let i = 0; i < results.length; i++) {
       const result = results[i];
-      const name = result.billOfMaterial.metadata?.name || 'component';
 
-      await outputResult(join(outputDir, name), result, argv.flattenOutput);
+      await outputResult(buildRootPath(outputDir, result.billOfMaterial), result, argv.flattenOutput);
     }
   } catch (err) {
     console.log('')
@@ -121,6 +120,17 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput &
     }
   }
 };
+
+const buildRootPath = (outputDir: string, bom: BillOfMaterialModel): string => {
+  const pathParts: string[] = [
+    outputDir,
+    bom.metadata?.annotations?.path || '',
+    bom.metadata?.name || 'component'
+  ]
+    .filter(v => !!v)
+
+  return join(...pathParts)
+}
 
 async function loadBoms(referenceNames?: string[], inputNames?: string[], names: string[] = []): Promise<Array<BillOfMaterialModel>> {
   const boms: Array<BillOfMaterialModel> = [];
