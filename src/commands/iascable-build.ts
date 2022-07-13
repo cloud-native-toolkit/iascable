@@ -109,7 +109,7 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput &
     for (let i = 0; i < results.length; i++) {
       const result = results[i];
 
-      await outputResult(buildRootPath(outputDir, result.billOfMaterial), result, argv.flattenOutput);
+      await outputResult(outputDir, result, argv.flattenOutput);
     }
   } catch (err) {
     console.log('')
@@ -224,7 +224,7 @@ async function outputTile(rootPath: string, tile: Tile | undefined) {
 }
 
 async function outputLaunchScript(rootPath: string) {
-  const launchScriptPath: string = join(rootPath, '../launch.sh')
+  const launchScriptPath: string = join(rootPath, 'launch.sh')
 
   await promises.writeFile(launchScriptPath, launchScript)
     .catch(err => {
@@ -280,14 +280,16 @@ async function outputDestroyScript(rootPath: string) {
   }
 }
 
-async function outputResult(rootPath: string, result: IascableResult, flatten: boolean = false): Promise<void> {
+async function outputResult(outputDir: string, result: IascableResult, flatten: boolean = false): Promise<void> {
+  const rootPath: string = buildRootPath(outputDir, result.billOfMaterial)
+
   await outputBillOfMaterial(rootPath, result.billOfMaterial);
   await outputTerraform(flatten ? rootPath : join(rootPath, 'terraform'), result.terraformComponent);
   await outputTile(rootPath, result.tile);
   await outputDependencyGraph(rootPath, result.graph)
-  await outputLaunchScript(rootPath);
   await outputApplyScript(rootPath);
   await outputDestroyScript(rootPath);
+  await outputLaunchScript(outputDir);
 }
 
 const launchScript: string = `#!/bin/bash
