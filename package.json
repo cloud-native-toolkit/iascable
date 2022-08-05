@@ -142,6 +142,7 @@
   },
   "dependencies": {
     "ajv-cli": "^5.0.0",
+    "axios": "^0.27.2",
     "compare-versions": "^3.6.0",
     "inquirer": "^7.3.3",
     "inquirer-checkbox-plus": "^1.0.2",

@@ -5,6 +5,8 @@ import {BillOfMaterialModule} from './bill-of-material.model';
 import {of as ofArray} from '../util/array-util';
 import {Optional} from '../util/optional';
 import {findMatchingVersions} from '../util/version-resolver';
+import {AxiosResponse, default as axios} from 'axios'
+import {ClientRequest} from "http";
 
 export interface CatalogCategoryModel {
   category: string;
@@ -119,7 +121,13 @@ export class Catalog implements CatalogModel {
 
     const result: Module | undefined = ofArray(this.modules)
       .filter(m => {
-        const match: boolean = idsMatch(m, moduleId) || m.name === moduleId.name
+
+        const cleanModuleId = {
+          id: getResolvedId(moduleId.id!),
+          name: moduleId.name
+        }
+
+        const match: boolean = idsMatch(m, cleanModuleId) || m.name === cleanModuleId.name
 
         this.logger.debug(`  Matched module: ${match}`, {moduleId, module: m})
 
@@ -170,10 +178,72 @@ function matchingModuleVersions(modules?: BillOfMaterialModule[]): (m: Module) =
 }
 
 const idsMatch = (a: {id?: string}, b: {id?: string}): boolean => {
-
   return cleanId(a.id) === cleanId(b.id)
 }
 
-const cleanId = (id?: string): string => {
+const cleanId = async (id?: string): Promise<string> => {
   return (id || '').replace(/[.]git$/g, '')
 }
+
+const getResolvedId = (id:string): string => {
+  console.log("resolving");
+  var returnVal:string = "";
+  (async () => await resolveIdWithRedirects(id))().then( (value:string) => {
+    returnVal = value;
+    console.log("returned: ", returnVal)
+    return Promise.resolve(value)
+  });
+  console.log("returning")
+  return returnVal
+}
+
+const resolveIdWithRedirects = async (id: string): Promise<string> => {
+  let originalId = id.valueOf();
+
+  //let axios = new Axios();
+
+  // try {
+    //console.log(">>>>>>>>>>>>>>>>>>>>>> resolveIdWithRedirects")
+    //console.log(id);
+    if (id && id.length>0) {
+
+      console.log(id, idMap.get(id))
+      if (idMap.get(id) == undefined) {
+
+        const host = id.slice(0, id.indexOf("/"))
+        const path = id.slice(id.indexOf("/"))
+        //console.log( host, path)
+
+        const res = await axios.head('https://' + id) as AxiosResponse;
+        console.log(path == res.request.path, path, res.request.path, )
+        //process.exit()
+       // console.log(id, (id == "github.com/terraform-ibm-modules/terraform-ibm-toolkit-resource-group"));
+
+        if (path != res.request.path) {
+          //console.log(res)
+          //idMap[id] = host + res.path
+          idMap.set(id, host + res.request.path)
+        }
+        else {
+          //idMap[id] = id
+          idMap.set(id, id)
+        }
+
+      }
+    }
+  //
+  //   const response = await fetch('https://'+id)
+  // console.log(response)
+  //JSON.stringify(response);
+  //   const json = await response.json()
+  //
+  //   console.log(json);
+  // } catch (error) {
+  //   console.log(error.response.body);
+  // }
+
+  const retVal:string = idMap.get(id) || ''
+  return Promise.resolve(retVal);
+}
+
+let idMap:Map<string, string> = new Map<string, string>()
