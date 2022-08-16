@@ -7,18 +7,7 @@ SRC_DIR="${SCRIPT_DIR}/automation"
 
 AUTOMATION_BASE=$(basename "${SCRIPT_DIR}")
 
-if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
-  echo "Usage: launch.sh [{docker cmd}] [--pull]"
-  echo "  where:"
-  echo "    {docker cmd} is the docker command that should be used (e.g. docker, podman). Defaults to docker"
-  echo "    --pull is a flag indicating the latest version of the container image should be pulled"
-  exit 0
-fi
-
-DOCKER_CMD="docker"
-if [[ -n "$1" ]] && [[ "$1" != "--pull" ]]; then
-  DOCKER_CMD="${1:-docker}"
-fi
+DOCKER_CMD="${1:-docker}"
 
 if [[ ! -d "${SRC_DIR}" ]]; then
   SRC_DIR="${SCRIPT_DIR}"
@@ -48,7 +37,10 @@ then
   fi
 fi
 
-DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools:v1.2"
+DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools:v1.2-v2.1.3"
+#IBM DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools-ibmcloud:v1.2-v0.3.3"
+#AWS DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools-aws:v1.2-v0.2.1"
+#AZURE DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools-azure:v1.2-v0.2.1"
 
 SUFFIX=$(echo $(basename ${SCRIPT_DIR}) | base64 | sed -E "s/[^a-zA-Z0-9_.-]//g" | sed -E "s/.*(.{5})/\1/g")
 CONTAINER_NAME="cli-tools-${SUFFIX}"
@@ -58,24 +50,37 @@ echo "Cleaning up old container: ${CONTAINER_NAME}"
 ${DOCKER_CMD} kill ${CONTAINER_NAME} 1> /dev/null 2> /dev/null
 ${DOCKER_CMD} rm ${CONTAINER_NAME} 1> /dev/null 2> /dev/null
 
-ARG_ARRAY=( "$@" )
-
-if [[ " ${ARG_ARRAY[*]} " =~ " --pull " ]]; then
-  echo "Pulling container image: ${DOCKER_IMAGE}"
-  ${DOCKER_CMD} pull "${DOCKER_IMAGE}"
+if [[ -n "$1" ]]; then
+    echo "Pulling container image: ${DOCKER_IMAGE}"
+    ${DOCKER_CMD} pull "${DOCKER_IMAGE}"
 fi
 
-ENV_FILE=""
+
+ENV_VARS=""
 if [[ -f "credentials.properties" ]]; then
-  ENV_FILE="--env-file credentials.properties"
+  echo "parsing credentials.properties..."
+  props=$(grep -v '^#' credentials.properties)
+  while read line ; do
+    #remove export statement prefixes
+    CLEAN="$(echo $line | sed 's/export //' )"
+
+    #parse key-value pairs
+    TOKENS=(${CLEAN//\"/ })
+    KEY="${TOKENS[0]%?}"
+    VALUE="${TOKENS[1]}"
+
+    ENV_VARS="-e $KEY=$VALUE $ENV_VARS"
+  done <<< "$props"
 fi
+
 
 echo "Initializing container ${CONTAINER_NAME} from ${DOCKER_IMAGE}"
 ${DOCKER_CMD} run -itd --name ${CONTAINER_NAME} \
+   --device /dev/net/tun --cap-add=NET_ADMIN \
    -u "${UID}" \
    -v "${SRC_DIR}:/terraform" \
    -v "workspace-${AUTOMATION_BASE}:/workspaces" \
-   ${ENV_FILE} \
+   ${ENV_VARS} \
    -w /terraform \
    ${DOCKER_IMAGE}
 
