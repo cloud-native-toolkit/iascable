@@ -186,6 +186,8 @@ const cleanId = (id?: string): string => {
 
 
 const getResolvedId = (id:string): string => {
+  id = cleanId(id);
+
   let hasKeys = false;
   for (const key in idMap) {
     if (idMap.hasOwnProperty(key)) {
