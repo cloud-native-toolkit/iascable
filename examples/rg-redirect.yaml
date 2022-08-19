@@ -1,0 +1,9 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: component
+spec:
+  modules:
+    #- github.com/cloud-native-toolkit/terraform-ibm-resource-group
+    - github.com/terraform-ibm-modules/terraform-ibm-toolkit-resource-group
+  variables: []

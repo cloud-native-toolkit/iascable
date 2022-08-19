@@ -119,8 +119,13 @@ export class Catalog implements CatalogModel {
 
     const result: Module | undefined = ofArray(this.modules)
       .filter(m => {
-        const match: boolean = idsMatch(m, moduleId) || m.name === moduleId.name
 
+        const cleanModuleId = {
+          id: getResolvedId(moduleId.id!),
+          name: moduleId.name
+        }
+
+        const match: boolean = idsMatch(m, cleanModuleId) || m.name === cleanModuleId.name
         this.logger.debug(`  Matched module: ${match}`, {moduleId, module: m})
 
         return match
@@ -177,3 +182,31 @@ const idsMatch = (a: {id?: string}, b: {id?: string}): boolean => {
 const cleanId = (id?: string): string => {
   return (id || '').replace(/[.]git$/g, '')
 }
+
+
+
+const getResolvedId = (id:string): string => {
+  let hasKeys = false;
+  for (const key in idMap) {
+    if (idMap.hasOwnProperty(key)) {
+      hasKeys = true;
+      break;
+    }
+  }
+  if (!hasKeys) {
+    var fs = require('fs');
+    var modules = JSON.parse(fs.readFileSync('migrated-modules.json', 'utf8'));
+
+    for (const newLocation in modules) {
+      const values = modules[newLocation];
+      for (var i = 0; i < values.length; i++) {
+        const oldLocation:string = values[i] as string;
+        idMap[oldLocation] = newLocation
+      }
+    }
+  }
+
+  return idMap[id] as string || id;
+}
+
+let idMap: { [key: string]: any } = {};
