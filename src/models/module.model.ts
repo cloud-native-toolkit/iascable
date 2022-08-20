@@ -27,6 +27,7 @@ export interface ModuleTemplate {
   id: string;
   registryId?: string;
   name: string;
+  idAliases?: string[];
   alias?: string;
   default?: boolean;
   originalAlias?: string;

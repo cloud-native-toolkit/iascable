@@ -160,10 +160,10 @@ export class SelectedModuleResolverImpl implements SelectedModulesResolver {
         }
 
         if (dep.discriminator) {
-          return matchAlias(dep, m) && (matchInterface(dep, m) || matchRefs(dep, m))
+          return matchAlias(dep, m) && (matchInterface(dep, m) || matchRefs(dep, m, this.catalog))
         }
 
-        return matchInterface(dep, m) || matchRefs(dep, m)
+        return matchInterface(dep, m) || matchRefs(dep, m, this.catalog)
       })
 
     if (!dep.discriminator && dep.manualResolution) {
@@ -204,7 +204,7 @@ export class SelectedModuleResolverImpl implements SelectedModulesResolver {
 
     if (modules.length > 1 && dep.preferred) {
       const preferredModule: Optional<Module> = arrayOf(modules)
-        .filter(m => m.id === dep.preferred)
+        .filter(m => this.catalog.getModuleId(m.id) === this.catalog.getModuleId(dep.preferred || ''))
         .first()
         .map(deepClone)
 
@@ -261,14 +261,13 @@ export const matchInterface = (dep: ModuleDependency, module: Module): boolean =
   return !!(dep.interface && interfaces.includes(dep.interface));
 }
 
-export const matchRefs = (dep: ModuleDependency, module: Module): boolean => {
+export const matchRefs = (dep: ModuleDependency, module: Module, catalog: Catalog): boolean => {
   const refIds: string[] = (dep.refs || [])
     .map(ref => ref.source)
-    .map(source => source
-      .replace(/.git$/, '')
-      .replace(/^https?:\/\//, ''))
+    .map(source => catalog.getModuleId(source))
 
-  const match: boolean = refIds.includes(module.id.replace(/.git$/, ''))
+  const match: boolean = refIds
+    .includes(module.id.replace(/.git$/, ''))
 
   return match
 }

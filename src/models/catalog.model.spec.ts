@@ -28,6 +28,17 @@ describe('catalog model', () => {
       });
     });
 
+    describe('when called with an old id', () => {
+      test('then it should return a module', async () => {
+        const id = 'github.com/cloud-native-toolkit/terraform-ibm-resource-group';
+        const expectedId = 'github.com/terraform-ibm-modules/terraform-ibm-resource-group'
+
+        const actualResult = classUnderTest.lookupModule({id});
+        expect(actualResult).toBeDefined();
+        expect(actualResult?.id).toBe(expectedId);
+      });
+    });
+
     describe('when called with a valid name', () => {
       test('then it should return a module', async () => {
         const name = 'ibm-container-platform';

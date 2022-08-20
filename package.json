@@ -38,7 +38,8 @@
   "scripts": {
     "lint": "tslint  --project tsconfig.json -t codeFrame 'src/**/*.ts' 'test/**/*.ts'",
     "prepare": "npm run build",
-    "prebuild": "rimraf dist",
+    "clean": "rimraf dist",
+    "prebuild": "npm run clean",
     "build": "tsc --module commonjs && rollup -c rollup.config.ts && typedoc --out docs --theme minimal src",
     "postbuild": "chmod +x dist/lib/script*.js && cp -R ./scripts ./dist",
     "start": "rollup -c rollup.config.ts -w",
