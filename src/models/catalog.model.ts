@@ -5,6 +5,7 @@ import {BillOfMaterialModule} from './bill-of-material.model';
 import {of as ofArray} from '../util/array-util';
 import {Optional} from '../util/optional';
 import {findMatchingVersions} from '../util/version-resolver';
+import first from '../util/first';
 
 export interface CatalogCategoryModel {
   category: string;
@@ -27,6 +28,7 @@ export const isCatalogProviderModel = (value: any): value is CatalogProviderMode
 export interface CatalogModel {
   categories: CatalogCategoryModel[];
   providers?: CatalogProviderModel[];
+  aliases?: ModuleIdAlias[];
 }
 
 export interface CatalogFilter {
@@ -58,11 +60,16 @@ export class Catalog implements CatalogModel {
   public readonly categories: CatalogCategoryModel[];
   public readonly providers: CatalogProviderModel[];
   public readonly filterValue?: {platform?: string, provider?: string};
+  public readonly flattenedAliases: DenormalizedModuleIdAliases;
+  public readonly moduleIdAliases: ModuleIdAlias[];
 
   constructor(values: CatalogModel, filterValue?: {platform?: string, provider?: string}) {
     this.categories = values.categories;
     this.providers = values.providers || []
     this.filterValue = filterValue;
+
+    this.moduleIdAliases = values.aliases || [];
+    this.flattenedAliases = denormalizeModuleIdAliases(values.aliases)
 
     this.logger = Container.get(LoggerApi).child('Catalog');
   }
@@ -119,13 +126,14 @@ export class Catalog implements CatalogModel {
 
     const result: Module | undefined = ofArray(this.modules)
       .filter(m => {
-        const match: boolean = idsMatch(m, moduleId) || m.name === moduleId.name
+        const match: boolean = this.idsMatch(m, moduleId) || m.name === moduleId.name
 
         this.logger.debug(`  Matched module: ${match}`, {moduleId, module: m})
 
         return match
       })
       .first()
+      .map(m => Object.assign({}, m))
       .orElse(undefined as any);
 
     this.logger.debug('  Found matching module: ', {result})
@@ -136,6 +144,20 @@ export class Catalog implements CatalogModel {
   findModulesWithInterface(interfaceId: string): Module[] {
     return this.modules.filter(m => (m.interfaces || []).includes(interfaceId))
   }
+
+  getModuleId(moduleId: string): string {
+    const cleanedId = cleanId(moduleId)
+
+    return this.flattenedAliases[cleanedId] || cleanedId
+  }
+
+  idsMatch(a: {id?: string}, b: {id?: string}): boolean {
+    const aId = this.getModuleId(a.id || '')
+    const bId = this.getModuleId(b.id || '')
+
+    return aId === bId
+  }
+
 }
 
 function matchingPlatforms(platform?: string): (m: Module) => boolean {
@@ -169,11 +191,37 @@ function matchingModuleVersions(modules?: BillOfMaterialModule[]): (m: Module) =
   }
 }
 
-const idsMatch = (a: {id?: string}, b: {id?: string}): boolean => {
-
-  return cleanId(a.id) === cleanId(b.id)
+const cleanId = (id?: string): string => {
+  return (id || '')
+    .replace(/[.]git$/g, '')
+    .replace(/^https?:\/\//, '')
 }
 
-const cleanId = (id?: string): string => {
-  return (id || '').replace(/[.]git$/g, '')
+export interface ModuleIdAlias {
+  id: string
+  aliases: string[]
+}
+
+interface DenormalizedModuleIdAliases {
+  [aliasId: string]: string
+}
+
+const denormalizeModuleIdAliases = (aliases: ModuleIdAlias[] = []): DenormalizedModuleIdAliases => {
+  return aliases
+    .map(moduleIdAliasToDenormalizedModuleAlias)
+    .reduce(
+      (result: DenormalizedModuleIdAliases, current: DenormalizedModuleIdAliases) => {
+        return Object.assign(result, current)
+      },
+      {})
+}
+
+const moduleIdAliasToDenormalizedModuleAlias = (moduleAlias: ModuleIdAlias): DenormalizedModuleIdAliases => {
+  return moduleAlias.aliases.reduce(
+    (result: DenormalizedModuleIdAliases, currentAlias: string) => {
+      result[currentAlias] = moduleAlias.id
+
+      return result
+    },
+    {})
 }

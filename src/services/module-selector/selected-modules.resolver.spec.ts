@@ -9,11 +9,21 @@ import {
 import {Container} from 'typescript-ioc';
 import {LoggerApi} from '../../util/logger';
 import {consoleLoggerFactory, LogLevel} from '../../util/logger/console-logger.impl';
+import {NoopLoggerImpl} from '../../util/logger/noop-logger.impl';
+import {CatalogLoaderApi} from '../catalog-loader';
 
 describe('selected-modules.resolver', () => {
   test('canary verifies test infrastructure', () => {
     expect(true).toBe(true)
   })
+
+  let catalog: Catalog;
+  beforeAll(async () => {
+    Container.bind(LoggerApi).to(NoopLoggerImpl);
+
+    const catalogLoader: CatalogLoaderApi = Container.get(CatalogLoaderApi);
+    catalog = await catalogLoader.loadCatalog(`file:/${process.cwd()}/test/catalog.yaml`)
+  });
 
   describe('given updateAliasForDuplicateModules()', () => {
     describe('when the same module appears twice', () => {
@@ -132,7 +142,7 @@ describe('selected-modules.resolver', () => {
       })
 
       test('then return true', async () => {
-        expect(matchRefs(dep, module)).toBe(true);
+        expect(matchRefs(dep, module, catalog)).toBe(true);
       });
     });
 
@@ -155,7 +165,7 @@ describe('selected-modules.resolver', () => {
       })
 
       test('then return false', async () => {
-        expect(matchRefs(dep, module)).toBe(false);
+        expect(matchRefs(dep, module, catalog)).toBe(false);
       })
     })
   })
