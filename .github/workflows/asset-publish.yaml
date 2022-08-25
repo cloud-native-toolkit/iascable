@@ -10,13 +10,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.release.tag_name }}
 
-      - uses: actions/setup-node@v2-beta
+      - uses: actions/setup-node@v3
         with:
-          node-version: '14'
+          node-version: '16'
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
 
       - name: Build
         run: npm ci && npm run build
@@ -25,11 +28,70 @@ jobs:
         run: npm install -g pkg
 
       - name: Build Asset
-        run: npm run pkg
+        run: pkg -o iascable --options no-warnings .
 
-      - name: Upload assets
-        uses: softprops/action-gh-release@v1
+      - name: Upload Linux x64 cli
+        id: upload-linux-x64-cli
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          files: pkg-bin/*
-          token: ${{ secrets.GITHUB_TOKEN }}
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./iascable-linux-x64
+          asset_name: iascable-linux-x64
+          asset_content_type: application/octet-stream
 
+      - name: Upload Linux arm64 cli
+        id: upload-linux-arm64-cli
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./iascable-linux-arm64
+          asset_name: iascable-linux-arm64
+          asset_content_type: application/octet-stream
+
+      - name: Upload MacOS x64 cli
+        id: upload-macos-x64-cli
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./iascable-macos-x64
+          asset_name: iascable-macos-x64
+          asset_content_type: application/octet-stream
+
+      - name: Upload MacOS arm64 cli
+        id: upload-macos-arm64-cli
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./iascable-macos-arm64
+          asset_name: iascable-macos-arm64
+          asset_content_type: application/octet-stream
+
+      - name: Upload Alpine x64 cli
+        id: upload-alpine-x64-cli
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./iascable-alpine-x64
+          asset_name: iascable-alpine-x64
+          asset_content_type: application/octet-stream
+
+      - name: Upload Alpine arm64 cli
+        id: upload-alpine-arm64-cli
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./iascable-alpine-arm64
+          asset_name: iascable-alpine-arm64
+          asset_content_type: application/octet-stream

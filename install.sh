@@ -30,5 +30,15 @@ else
   exit 1
 fi
 
-echo "Installing version ${RELEASE} of iascable for ${TYPE} into ${DEST_DIR}"
-curl --progress-bar -Lo "${DEST_DIR}/iascable" "https://github.com/cloud-native-toolkit/iascable/releases/download/${RELEASE}/iascable-${TYPE}" && chmod +x "${DEST_DIR}/iascable"
+ARCH=""
+case $(uname -m) in
+    i386)    ARCH="x64" ;;
+    i686)    ARCH="x64" ;;
+    x86_64)  ARCH="x64" ;;
+    aarch64) ARCH="arm64" ;;
+    arm64)   ARCH="arm64" ;;
+    *)       echo "Unable to determine system architecture" >&2; exit 1 ;;
+esac
+
+echo "Installing version ${RELEASE} of iascable for ${TYPE}-${ARCH} into ${DEST_DIR}"
+curl --progress-bar -Lo "${DEST_DIR}/iascable" "https://github.com/cloud-native-toolkit/iascable/releases/download/${RELEASE}/iascable-${TYPE}-${ARCH}" && chmod +x "${DEST_DIR}/iascable"
