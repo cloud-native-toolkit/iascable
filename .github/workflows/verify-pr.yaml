@@ -13,13 +13,26 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.release.tag_name }}
 
       - uses: actions/setup-node@v3
         with:
           node-version: '16'
 
-      - name: Verify
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Build
         run: |
-          npm ci
+          npm install
           npm test
           npm run build
+
+      - name: Install pkg
+        run: npm install -g pkg
+
+      - name: Build Asset
+        run: |
+          pkg -o iascable --options no-warnings .
+          ls iascable*
