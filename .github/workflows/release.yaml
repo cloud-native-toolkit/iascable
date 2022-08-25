@@ -5,8 +5,6 @@ name: Release
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -18,15 +16,13 @@ jobs:
 
       - uses: actions/setup-node@v2
         with:
-          node-version: '14'
+          node-version: '16'
 
       - name: Verify
         run: |
           npm ci
           npm test
           npm run build
-          npm install -g pkg
-          npm run pkg
 
   publish:
     needs: verify
