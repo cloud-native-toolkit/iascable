@@ -36,3 +36,18 @@ jobs:
         run: |
           pkg -o iascable --options no-warnings .
           ls iascable*
+
+          check_file() {
+            local name="$1"
+            if [[ ! -f "${name}" ]]; then
+              echo "File missing: ${name}" >&2
+              exit 1
+            fi
+          }
+
+          check_file iascable-linux-x64 || exit 1
+          check_file iascable-linux-arm64 || exit 1
+          check_file iascable-macos-x64 || exit 1
+          check_file iascable-macos-arm64 || exit 1
+          check_file iascable-alpine-x64 || exit 1
+          check_file iascable-alpine-arm64 || exit 1
