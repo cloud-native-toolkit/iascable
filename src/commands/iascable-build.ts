@@ -1,6 +1,6 @@
 import {Container} from 'typescript-ioc';
 import {Arguments, Argv} from 'yargs';
-import {promises, fchmod, lstatSync, chmodSync} from 'fs';
+import {fchmod, promises} from 'fs';
 import {default as jsYaml} from 'js-yaml';
 import {dirname, join} from 'path';
 
@@ -16,6 +16,7 @@ import {
 } from '../services';
 import {LoggerApi} from '../util/logger';
 import {DotGraphFile} from '../models/graph.model';
+import {chmodRecursive} from '../util/file-util';
 
 export const command = 'build';
 export const desc = 'Configure (and optionally deploy) the iteration zero assets';
@@ -168,16 +169,6 @@ function buildCatalogBuilderOptions(input: IascableInput): IascableOptions {
     },
     tileConfig: isTileConfig(tileConfig) ? tileConfig : undefined,
   };
-}
-
-async function chmodRecursive(root: string, mode: number) {
-  chmodSync(root, mode)
-
-  const childDirs: string[] = (await promises.readdir(root))
-    .map(value => join(root, value))
-    .filter(value => lstatSync(value).isDirectory())
-
-  childDirs.forEach(dir => chmodRecursive(join(root, dir), mode))
 }
 
 async function outputBillOfMaterial(rootPath: string, billOfMaterial: BillOfMaterialModel) {
