@@ -16,7 +16,7 @@ curl -sL https://iascable.cloudnativetoolkit.dev/install.sh | sh
 If you would like to install a different version of the CLI and/or put it in a different directory, use the following:
 
 ```shell
-curl -sL https://iascable.cloudnativetoolkit.dev/install.sh | RELEASE=2.8.1 DEST_DIR=~/bin sh
+curl -sL https://iascable.cloudnativetoolkit.dev/install.sh | RELEASE=2.15.1 DEST_DIR=~/bin sh
 ```
 
 ### Commands
