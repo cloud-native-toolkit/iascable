@@ -65,11 +65,12 @@ if [[ -f "credentials.properties" ]]; then
     CLEAN="$(echo $line | sed 's/export //' )"
 
     #parse key-value pairs
-    TOKENS=(${CLEAN//\"/ })
-    KEY="${TOKENS[0]%?}"
-    VALUE="${TOKENS[1]}"
+    IFS=' =' read -r KEY VALUE <<< ${CLEAN//\"/ }
 
-    ENV_VARS="-e $KEY=$VALUE $ENV_VARS"
+    # don't add an empty key
+    if [[ -n "${KEY}" ]]; then
+      ENV_VARS="-e $KEY=$VALUE $ENV_VARS"
+    fi
   done <<< "$props"
 fi
 
