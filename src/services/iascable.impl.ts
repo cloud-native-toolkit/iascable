@@ -45,7 +45,7 @@ export class CatalogBuilder implements IascableApi {
     return this.buildBom(catalog, input, options);
   }
 
-  async buildBoms(catalogUrl: string, boms: BillOfMaterialModel[], options?: IascableOptions): Promise<IascableResult[]> {
+  async buildBoms(catalogUrl: string | string[], boms: BillOfMaterialModel[], options?: IascableOptions): Promise<IascableResult[]> {
     const catalog: Catalog = await this.loader.loadCatalog(catalogUrl);
 
     if (!boms || boms.length === 0) {

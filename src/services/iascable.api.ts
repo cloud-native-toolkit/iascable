@@ -16,5 +16,5 @@ export interface IascableOptions {
 
 export abstract class IascableApi {
   abstract build(catalogUrl: string, input?: BillOfMaterialModel, options?: IascableOptions): Promise<IascableResult>;
-  abstract buildBoms(catalogUrl: string, input: BillOfMaterialModel[], options?: IascableOptions): Promise<IascableResult[]>;
+  abstract buildBoms(catalogUrl: string | string[], input: BillOfMaterialModel[], options?: IascableOptions): Promise<IascableResult[]>;
 }

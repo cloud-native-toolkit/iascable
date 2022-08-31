@@ -31,7 +31,7 @@ describe('catalog model', () => {
     describe('when called with an old id', () => {
       test('then it should return a module', async () => {
         const id = 'github.com/cloud-native-toolkit/terraform-ibm-resource-group';
-        const expectedId = 'github.com/terraform-ibm-modules/terraform-ibm-resource-group'
+        const expectedId = 'github.com/terraform-ibm-modules/terraform-ibm-toolkit-resource-group'
 
         const actualResult = classUnderTest.lookupModule({id});
         expect(actualResult).toBeDefined();
