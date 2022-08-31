@@ -17,7 +17,7 @@ providers:
           id: clis
           output: bin_dir
 aliases:
-  - id: github.com/terraform-ibm-modules/terraform-ibm-resource-group
+  - id: github.com/terraform-ibm-modules/terraform-ibm-toolkit-resource-group
     aliases:
       - github.com/cloud-native-toolkit/terraform-ibm-resource-group
 categories:
@@ -29883,7 +29883,7 @@ categories:
       - cloudProvider: ibm
         softwareProvider: ""
         type: terraform
-        id: github.com/terraform-ibm-modules/terraform-ibm-resource-group
+        id: github.com/terraform-ibm-modules/terraform-ibm-toolkit-resource-group
         name: ibm-resource-group
         alias: resource_group
         description: Creates a resource groups in the account

@@ -21,9 +21,16 @@ curl -sL https://iascable.cloudnativetoolkit.dev/install.sh | RELEASE=2.15.1 DES
 
 ### Commands
 
+To build a Terraform template from a Bill of Materials, run the following command:
+
 ```shell
-iascable build [-u {CATALOG_URL}] [-i {BOM_INPUT}] [--name {COMPONENT_NAME}]
+iascable build [-c {CATALOG_URL}] [-c {CATALOG_URL}] -i {BOM_INPUT} [-i {BOM_INPUT}] [-o {OUTPUT_DIR}]
 ```
+
+where:
+- `CATALOG_URL` is the url of the module catalog. The default module catalog is  https://modules.cloudnativetoolkit.dev/index.yaml. Multiple module catalogs can be provided. The catalogs are combined, with the last one taking precedence in the case of duplicate modules.
+- `BOM_INPUT` is the input file containing the Bill of Material definition. Multiple bom files can be provided at the same time.
+- `OUTPUT_DIR` is the directory where the output terraform template will be generated.
 
 ## Getting started
 
@@ -162,15 +169,19 @@ metadata:
 
 **Note:** The `labels` and `annotations` sections can contain any number of values. The common values are shown in the example.
 
-| Field                      | Description                                                                            |
-|----------------------------|----------------------------------------------------------------------------------------|
-| **apiVersion**             | the schema version of the BOM (always `cloudnativetoolkit.dev/v1alpha1` at the moment) |
-| **kind**                   | the kind of resource (always `BillOfMaterial` for a BOM)                               |
-| **name**                   | the name of the architecture that will be built                                        |
-| **platform** label         | the cloud platform targeted by the architecture                                        |
-| **code** label             | the code used to index the BOM                                                         |
-| **displayName** annotation | the user-friendly display name for the BOM                                             |
-| **description** annotation | the description of the provisioned architecture                                        |
+| Field                                 | Description                                                                            |
+|---------------------------------------|----------------------------------------------------------------------------------------|
+| **apiVersion**                        | the schema version of the BOM (always `cloudnativetoolkit.dev/v1alpha1` at the moment) |
+| **kind**                              | the kind of resource (always `BillOfMaterial` for a BOM)                               |
+| **name**                              | the name of the architecture that will be built                                        |
+| **platform** label                    | the cloud platform targeted by the architecture                                        |
+| **code** label                        | the code used to index the BOM                                                         |
+| **displayName** annotation            | the user-friendly display name for the BOM                                             |
+| **description** annotation            | the description of the provisioned architecture                                        |
+| **path** annotation                   | the sub-path that should be appended to the output (e.g. {output}/{path}/{name}        |
+| **catalogUrls** annotation            | comma-separated list of urls for the catalogs containing the BOM modules               |
+| **deployment-type/gitops** annotation | flag indicating the BOM describes gitops modules                                       |
+| **vpn/required** annotation           | flag indicating a VPN connection is required before applying the terraform             |
 
 ### BOM spec
 

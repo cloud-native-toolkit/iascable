@@ -3,6 +3,7 @@ import {Arguments, Argv} from 'yargs';
 import {fchmod, promises} from 'fs';
 import {default as jsYaml} from 'js-yaml';
 import {dirname, join} from 'path';
+import _ from 'lodash';
 
 import {IascableInput} from './inputs/iascable.input';
 import {CommandLineInput} from './inputs/command-line.input';
@@ -23,9 +24,10 @@ export const command = 'build';
 export const desc = 'Configure (and optionally deploy) the iteration zero assets';
 export const builder = (yargs: Argv<any>) => {
   return yargs
-    .option('catalogUrl', {
-      alias: 'u',
-      description: 'The url of the module catalog. Can be https:// or file:/ protocol.',
+    .option('catalogUrls', {
+      alias: 'c',
+      type: 'array',
+      description: 'The url of the module catalog. Can be https:// or file:/ protocol. This argument can be passed multiple times to include multiple catalogs.',
       default: 'https://modules.cloudnativetoolkit.dev/index.yaml'
     })
     .option('input', {
@@ -100,10 +102,12 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput &
     argv.ci = true;
   }
 
+  const catalogUrls: string[] = loadCatalogUrls(boms, argv.catalogUrls)
+
   const options: IascableOptions = buildCatalogBuilderOptions(argv);
 
   try {
-    const results: IascableResult[] = await cmd.buildBoms(argv.catalogUrl, boms, options);
+    const results: IascableResult[] = await cmd.buildBoms(catalogUrls, boms, options);
 
     const outputDir = argv.outDir || './output';
 
@@ -132,6 +136,22 @@ const buildRootPath = (outputDir: string, bom: BillOfMaterialModel): string => {
     .filter(v => !!v)
 
   return join(...pathParts)
+}
+
+const loadCatalogUrls = (boms: BillOfMaterialModel[], inputUrls: string[]): string[] => {
+  return boms
+    .map(extractCatalogUrlsFromBom)
+    .reduce((previous: string[], current: string[]) => {
+      const result = previous.concat(current)
+
+      return _.uniq(result)
+    }, inputUrls)
+}
+
+const extractCatalogUrlsFromBom = (bom: BillOfMaterialModel): string[] => {
+  const catalogUrls: string = bom.metadata?.annotations?.catalogUrls || ''
+
+  return catalogUrls.split(',').filter(val => !!val)
 }
 
 async function loadBoms(referenceNames?: string[], inputNames?: string[], names: string[] = []): Promise<Array<BillOfMaterialModel>> {

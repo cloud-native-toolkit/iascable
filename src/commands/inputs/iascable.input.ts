@@ -1,6 +1,6 @@
 
 export interface IascableInput {
-  catalogUrl: string;
+  catalogUrls: string[];
   input?: string[];
   reference?: string[];
   platform?: string;
