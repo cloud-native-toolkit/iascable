@@ -37,12 +37,13 @@ then
   fi
 fi
 
-DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools:v1.2-v2.1.3"
-#IBM DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools-ibmcloud:v1.2-v0.3.3"
-#AWS DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools-aws:v1.2-v0.2.1"
-#AZURE DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools-azure:v1.2-v0.2.1"
 
-SUFFIX=\$(echo \$(basename \${SCRIPT_DIR}) | base64 | sed -E "s/[^a-zA-Z0-9_.-]//g" | sed -E "s/.*(.{5})/\\1/g")
+DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools:v1.2-v2.2.11"
+#IBM DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools-ibmcloud:v1.2-v0.4.15"
+#AWS DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools-aws:v1.2-v0.3.11"
+#AZURE DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools-azure:v1.2-v0.4.11"
+
+SUFFIX=\$(echo \$(basename \${SCRIPT_DIR}) | base64 | sed -E "s/[^a-zA-Z0-9_.-]//g" | sed -E "s/.*(.{5})/\1/g")
 CONTAINER_NAME="cli-tools-\${SUFFIX}"
 
 echo "Cleaning up old container: \${CONTAINER_NAME}"
@@ -77,12 +78,12 @@ fi
 
 echo "Initializing container \${CONTAINER_NAME} from \${DOCKER_IMAGE}"
 \${DOCKER_CMD} run -itd --name \${CONTAINER_NAME} \\
-  --device /dev/net/tun --cap-add=NET_ADMIN \\
-  -u "\${UID}" \\
-  -v "\${SRC_DIR}:/terraform" \\
-  -v "workspace-\${AUTOMATION_BASE}:/workspaces" \\
-  \${ENV_VARS} -w /terraform \\
-  \${DOCKER_IMAGE}
+   --device /dev/net/tun --cap-add=NET_ADMIN \\
+   -v "\${SRC_DIR}:/terraform" \\
+   -v "workspace-\${AUTOMATION_BASE}:/workspaces" \\
+   \${ENV_VARS} \\
+   -w /terraform \\
+   \${DOCKER_IMAGE}
 
 echo "Attaching to running container..."
 \${DOCKER_CMD} attach \${CONTAINER_NAME}
