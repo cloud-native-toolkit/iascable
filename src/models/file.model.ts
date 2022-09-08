@@ -26,9 +26,12 @@ export class UrlFile implements OutputFile {
 
   get contents(): Promise<string | Buffer> {
     return new Promise<string>(async (resolve) => {
-      const req: superagent.Response = await superagent.get(this.url);
-
-      resolve(req.text);
-    });
+      try {
+        const res = await superagent.get(this.url);
+        resolve(res.text)
+      } catch (err) {
+        resolve("README.md could not be read. Private repo?")
+      }
+    })
   }
 }
