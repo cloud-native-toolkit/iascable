@@ -43,7 +43,7 @@ DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools:v1.2-v2.2.11"
 #AWS DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools-aws:v1.2-v0.3.11"
 #AZURE DOCKER_IMAGE="quay.io/cloudnativetoolkit/cli-tools-azure:v1.2-v0.4.11"
 
-SUFFIX=\$(echo \$(basename \${SCRIPT_DIR}) | base64 | sed -E "s/[^a-zA-Z0-9_.-]//g" | sed -E "s/.*(.{5})/\1/g")
+SUFFIX=\$(echo \$(basename \${SCRIPT_DIR}) | base64 | sed -E "s/[^a-zA-Z0-9_.-]//g" | sed -E "s/.*(.{5})/\\1/g")
 CONTAINER_NAME="cli-tools-\${SUFFIX}"
 
 echo "Cleaning up old container: \${CONTAINER_NAME}"
