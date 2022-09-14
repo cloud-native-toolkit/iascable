@@ -1,7 +1,7 @@
 import {Module, ModuleDependency, ModuleOutputRef, SingleModuleVersion} from '../models';
 
 export class ModuleNotFound extends Error {
-  constructor(readonly source: string, readonly module?: string) {
+  constructor(readonly source: string | string[], readonly module?: string) {
     super(`Unable to find module (${module}): ${source}`);
   }
 }

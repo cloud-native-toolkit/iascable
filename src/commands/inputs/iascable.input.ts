@@ -10,3 +10,10 @@ export interface IascableInput {
   tileDescription?: string;
   outDir?: string;
 }
+
+export interface IascableDocsInput {
+  catalogUrls: string[];
+  module: string;
+  outDir: string;
+  flattenOutput: boolean;
+}
