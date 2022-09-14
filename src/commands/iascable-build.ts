@@ -213,19 +213,36 @@ async function outputDependencyGraph(rootPath: string, graph?: DotGraphFile) {
 }
 
 async function outputTerraform(rootPath: string, terraformComponent: TerraformComponent) {
-  return Promise.all(terraformComponent.files.map(async (file: OutputFile) => {
-    const path = join(rootPath, file.name);
-    await promises.mkdir(dirname(path), {recursive: true})
-    await chmodRecursive(rootPath, 0o777)
+  const logger: LoggerApi = Container.get(LoggerApi)
 
-    const fileContents = await file.contents;
+  const promiseList = []
+  for (let i = 0; i < terraformComponent.files.length; i++) {
+    const file = terraformComponent.files[i]
 
-    return promises.writeFile(path, fileContents);
-  }));
+    try {
+      if (!file || !file.name) {
+        continue
+      }
+
+      const path = join(rootPath, file.name);
+      await promises.mkdir(dirname(path), {recursive: true})
+
+      const fileContents = await file.contents;
+
+      const result = promises.writeFile(path, fileContents);
+
+      promiseList.push(result)
+    } catch (err) {
+      logger.warn(`Unable to generate file: ${file.name}`)
+      logger.warn('  Error: ', err)
+    }
+  }
+
+  return Promise.all(promiseList)
 }
 
 async function outputTile(rootPath: string, tile: Tile | undefined) {
-  if (!tile) {
+  if (!tile || !tile.file) {
     return;
   }
 
@@ -239,8 +256,7 @@ async function outputLaunchScript(rootPath: string) {
   const launchScriptPath: string = join(rootPath, 'launch.sh')
 
   await promises.writeFile(launchScriptPath, launchScript)
-    .catch(err => {
-      console.log('  Error writing launch script', err)
+    .catch(() => {
       return {}
     })
 
@@ -258,8 +274,7 @@ async function outputApplyScript(rootPath: string) {
   const applyScriptPath: string = join(rootPath, 'apply.sh')
 
   await promises.writeFile(applyScriptPath, applyScript)
-    .catch(err => {
-      console.log('  Error writing apply script', err)
+    .catch(() => {
       return {}
     })
 
@@ -277,8 +292,7 @@ async function outputDestroyScript(rootPath: string) {
   const destroyScriptPath: string = join(rootPath, 'destroy.sh')
 
   await promises.writeFile(destroyScriptPath, destroyScript)
-    .catch(err => {
-      console.log('  Error writing apply script', err)
+    .catch(() => {
       return {}
     })
 

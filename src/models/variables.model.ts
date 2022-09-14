@@ -2,6 +2,8 @@ import {BillOfMaterialProviderVariable} from './bill-of-material.model';
 import {ModuleVariable} from './module.model';
 import {ArrayUtil, of as arrayOf} from '../util/array-util';
 import {isDefined} from '../util/object-util';
+import {ModuleNotFound} from '../errors';
+import {StageNotFound} from '../errors/stage-not-found.error';
 
 export interface StagePrinter {
   asString(stages: {[name: string]: {name: string}}): string;
@@ -66,7 +68,12 @@ export class ModuleRefVariable implements IModuleVariable, BaseVariable {
         return this.moduleRefString(modules.first().get());
       }
     } else {
-      const module: { name: string } = stages[this.moduleRef.stageName];
+      const stageName = this.moduleRef.stageName
+      const module: { name: string } = stages[stageName] || stages[stageName.replace('-', '_')];
+
+      if (!module) {
+        throw new StageNotFound(stageName, Object.keys(stages))
+      }
 
       const moduleRefString = this.moduleRefString(module);
 
