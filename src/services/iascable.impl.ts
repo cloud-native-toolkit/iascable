@@ -9,7 +9,7 @@ import {
   BillOfMaterialModule, BillOfMaterialModuleById, BillOfMaterialModuleByName,
   isBillOfMaterialModule
 } from '../models/bill-of-material.model';
-import {SingleModuleVersion, TerraformComponent} from '../models/stages.model';
+import {Module, SingleModuleVersion, TerraformComponent} from '../models/stages.model';
 import {Tile} from '../models/tile.model';
 import {LoggerApi} from '../util/logger';
 import {Catalog, CatalogLoaderApi} from './catalog-loader';
@@ -20,6 +20,9 @@ import {ArrayUtil, of as arrayOf} from '../util/array-util'
 import {Optional} from '../util/optional';
 import {DependencyGraphApi} from './dependency-graph';
 import {DotGraph, DotGraphFile} from '../models/graph.model';
+import {ModuleDoc, OutputFile} from '../models';
+import {ModuleDocumentationApi} from './module-documentation';
+import {ModuleNotFound} from '../errors';
 
 export class CatalogBuilder implements IascableApi {
   @Inject
@@ -34,6 +37,8 @@ export class CatalogBuilder implements IascableApi {
   tileBuilder!: TileBuilderApi;
   @Inject
   dependencyGraph!: DependencyGraphApi;
+  @Inject
+  docBuilder!: ModuleDocumentationApi;
 
   async build(catalogUrl: string, input?: BillOfMaterialModel, options?: IascableOptions): Promise<IascableResult> {
     const catalog: Catalog = await this.loader.loadCatalog(catalogUrl);
@@ -88,6 +93,18 @@ export class CatalogBuilder implements IascableApi {
       tile,
       graph: new DotGraphFile(graph)
     };
+  }
+
+  async moduleDocumentation(catalogUrl: string | string[], moduleName: string, options?: IascableOptions): Promise<ModuleDoc> {
+    const catalog: Catalog = await this.loader.loadCatalog(catalogUrl);
+
+    const module: Module | undefined = await catalog.lookupModule({name: moduleName})
+
+    if (!module) {
+      throw new ModuleNotFound(catalogUrl, moduleName)
+    }
+
+    return this.docBuilder.generateDocumentation(module)
   }
 }
 

@@ -7,3 +7,4 @@ export * from './stages.model';
 export * from './tile.model';
 export * from './variables.model';
 export * from './version-matcher';
+export * from './module-doc.model';

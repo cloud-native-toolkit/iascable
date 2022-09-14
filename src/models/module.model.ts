@@ -27,6 +27,7 @@ export interface ModuleTemplate {
   id: string;
   registryId?: string;
   name: string;
+  displayName?: string;
   idAliases?: string[];
   alias?: string;
   default?: boolean;
@@ -83,6 +84,7 @@ export interface ModuleVersion {
   variables: ModuleVariable[];
   outputs: ModuleOutput[];
   providers?: Array<ModuleProvider | CatalogProviderModel>;
+  terraformVersion?: string;
 }
 
 export interface ModuleVariable {
