@@ -43,6 +43,8 @@ export interface ModuleTemplate {
   ibmCatalogId?: string;
   fsReady?: string;
   documentation?: string;
+  examplePath?: string;
+  license?: string;
 }
 
 export interface Module extends ModuleTemplate {

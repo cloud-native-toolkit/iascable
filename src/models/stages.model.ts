@@ -298,11 +298,14 @@ export class StageImpl implements Stage, StagePrinter {
 
   sourceString(indent: string = '  '): string {
     if (this.module.registryId) {
+      const version = this.module.version.version ? `${indent}version = "${this.module.version.version.replace('v', '')}"` : ''
+
       return `${indent}source = "${this.module.registryId}"
-${indent}version = "${this.module.version.version.replace('v', '')}"`
+${version}`
     }
 
-    return `${indent}source = "${this.module.id}?ref=${this.module.version.version}"`
+    const urlRef = this.module.version.version ? `?ref=${this.module.version.version}` : ''
+    return `${indent}source = "${this.module.id}${urlRef}"`
   }
 
   asString(stages: {[name: string]: {name: string}}): string {
