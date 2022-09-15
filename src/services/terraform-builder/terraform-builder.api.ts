@@ -6,5 +6,5 @@ import {
 } from '../../models';
 
 export abstract class TerraformBuilderApi {
-  abstract buildTerraformComponent(modules: SingleModuleVersion[], billOfMaterial?: BillOfMaterialModel, catalogModel?: CatalogModel): Promise<TerraformComponent>;
+  abstract buildTerraformComponent(modules: SingleModuleVersion[], catalogModel: CatalogModel, billOfMaterial?: BillOfMaterialModel): Promise<TerraformComponent>;
 }

@@ -7,11 +7,14 @@ import {
   TerraformVariableImpl
 } from './variables.model';
 import {OutputFile, OutputFileType, UrlFile} from './file.model';
-import {ModuleProvider, SingleModuleVersion} from './module.model';
+import {Module, ModuleProvider, SingleModuleVersion} from './module.model';
 import {BillOfMaterialModel, BillOfMaterialVariable} from './bill-of-material.model';
 import {ArrayUtil, of as arrayOf} from '../util/array-util';
 import {Optional} from '../util/optional';
 import {isDefinedAndNotNull} from '../util/object-util';
+import {ModuleDocumentationApi} from '../services/module-documentation';
+import {Container} from 'typescript-ioc';
+import {CatalogModel} from './catalog.model';
 
 export * from './module.model';
 
@@ -33,6 +36,7 @@ export interface TerraformComponentModel {
   providers?: TerraformProvider[];
   billOfMaterial?: BillOfMaterialModel;
   files: OutputFile[];
+  catalog: CatalogModel;
 }
 
 export class TerraformStageFile implements OutputFile {
@@ -224,6 +228,7 @@ export class TerraformComponent implements TerraformComponentModel {
   modules?: SingleModuleVersion[];
   providers?: TerraformProvider[];
   billOfMaterial?: BillOfMaterialModel;
+  catalog!: CatalogModel;
   readonly files: OutputFile[];
 
   constructor(model: TerraformComponentModel, private name: string | undefined) {
@@ -252,21 +257,30 @@ export class TerraformComponent implements TerraformComponentModel {
       this.providers !== undefined && this.providers.length > 0 ? new TerraformProvidersFile(this.providers) : undefined,
       this.providers !== undefined && this.providers.length > 0 ? new TerraformVersionFile(this.providers) : undefined,
       tfvarsFile,
-      ...buildModuleReadmes(this.modules),
+      ...buildModuleReadmes(this.catalog, this.modules),
     ];
 
     this.files = files.filter(f => f !== undefined) as OutputFile[];
   }
 }
 
-function buildModuleReadmes(modules: SingleModuleVersion[] = []): OutputFile[] {
+function buildModuleReadmes(catalog: CatalogModel, modules: SingleModuleVersion[] = []): OutputFile[] {
+  const docService: ModuleDocumentationApi = Container.get(ModuleDocumentationApi)
+
   return modules.map(module => {
-    const url = getModuleDocumentationUrl(module);
+    const url: string = getModuleDocumentationUrl(module);
+
+    const fullModule: Module = Object.assign({}, module, {versions: [module.version]})
 
     return new UrlFile({
       name: `docs/${module.name}.md`,
       type: OutputFileType.documentation,
-      url
+      url,
+      alternative: async () => {
+        const readme = await docService.generateDocumentation(fullModule, catalog)
+
+        return readme.contents
+      }
     });
   });
 }

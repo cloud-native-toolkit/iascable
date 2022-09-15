@@ -5,7 +5,7 @@ import {
   BillOfMaterialModule,
   BillOfMaterialModuleVariable,
   BillOfMaterialProvider,
-  BillOfMaterialVariable,
+  BillOfMaterialVariable, CatalogModel,
   IBaseVariable,
   IPlaceholderVariable,
   isPlaceholderVariable,
@@ -67,7 +67,7 @@ const buildProviderId = (provider: {name: string, alias?: string}): string => {
 }
 
 export class TerraformBuilderNew implements TerraformBuilderApi {
-  async buildTerraformComponent(modules: SingleModuleVersion[], billOfMaterial?: BillOfMaterialModel): Promise<TerraformComponent> {
+  async buildTerraformComponent(modules: SingleModuleVersion[], catalog: CatalogModel, billOfMaterial?: BillOfMaterialModel): Promise<TerraformComponent> {
 
     const terraform: TerraformResult = modules.reduce(
       (result: TerraformResult, module: SingleModuleVersion) => {
@@ -102,7 +102,8 @@ export class TerraformBuilderNew implements TerraformBuilderApi {
       modules,
       bomVariables: billOfMaterial?.spec.variables,
       billOfMaterial,
-      files: []
+      files: [],
+      catalog
     }, name);
   }
 
