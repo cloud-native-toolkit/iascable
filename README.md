@@ -472,6 +472,34 @@ spec:
 
 ### API Usage
 
+## Development
+
+### Basic flow
+
+The IasCable application is built with JavaScript/Typescript. The development process follows standard JavaScript development activities with perhaps one small deviation.
+To make development updates to IasCable, do the following (all of this assumes you have already cloned the repository):
+
+1. Before starting, make sure you have installed the latest dependencies by running `npm ci`
+2. Create a branch for your work by running `git checkout -b {branch_name}`
+3. Start the tests by running `npm run tdd`
+4. Make updates to the unit tests and the application code. The unit tests should re-run every time the code is changed
+5. When you are done with the code changes, press `Ctrl-C` to stop the tdd process
+6. Build the application code with `npm run build`
+7. To run your local build of IasCable, use the `iascable` script in the repository directory. E.g. `./iascable build -i examples/baseline-ocp2.yaml`
+8. Commit and push your branch to the repo
+9. Create a pull request for the branch. Add a release tag (`major`, `minor`, or `patch`) to the pull request based on the type/complexity of the change. Add a changelog tag (`enhancement`, `bug`, or `chore`) based on the type of change
+10. When the checks pass, the pull request can be squashed and merged to the main branch
+
+### General code structure
+
+All of the source code can be found under the `src/` directory.
+
+- `src/commands` contains the command-line logic based on the Yargs package. This is a thin wrapper to translate command-line arguments into service requests
+- `src/errors` contains the different error types
+- `src/models` contains the data models
+- `src/services` contains the api layer with the business logic for the package. The services are sub-divided into functional areas - `catalog-loader`, `module-selector`, `terraform-builder`, `dependency-graph`, `module-documentation`, etc
+- `src/util` contains common utilities
+
 ### NPM scripts
 
  - `npm t`: Run test suite
@@ -481,9 +509,4 @@ spec:
  - `npm run build`: Generate bundles and typings, create docs
  - `npm run lint`: Lints code
  - `npm run commit`: Commit using conventional commit style ([husky](https://github.com/typicode/husky) will tell you to use it if you haven't :wink:)
-
-### Change Log
-
-- **11/2021** - Updated to use Client-to-site VPN service (beta) instead of a VSI running a VPN server
-- **11/2021** - Updated to support the Edge VPC infrastructure in addition to Management and Workload VPCs.
 
