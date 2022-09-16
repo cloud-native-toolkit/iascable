@@ -104,7 +104,7 @@ export class CatalogBuilder implements IascableApi {
       throw new ModuleNotFound(catalogUrl, moduleName)
     }
 
-    return this.docBuilder.generateDocumentation(module)
+    return this.docBuilder.generateDocumentation(module, catalog)
   }
 }
 
