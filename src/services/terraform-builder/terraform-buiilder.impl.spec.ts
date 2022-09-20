@@ -57,7 +57,7 @@ describe('terraform-builder', () => {
       });
 
       test('then use the module defined by the alias', async () => {
-        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules);
+        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
 
         expect(Object.keys(result.stages).length).toEqual(4);
 
@@ -90,7 +90,7 @@ describe('terraform-builder', () => {
       });
 
       test('then apply the variables to the resulting terraform module', async () => {
-        const result = await classUnderTest.buildTerraformComponent(selectedModules);
+        const result = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
 
         const variableName = result.stages['tools-namespace'].variables.filter(v => v.name === 'name').map(v => (v as GlobalRefVariable).variableName)[0];
         const variables = result.baseVariables.filter(v => v.name === variableName).map(v => v.defaultValue);
@@ -114,7 +114,7 @@ describe('terraform-builder', () => {
       });
 
       test('then return all matching dependent modules', async () => {
-        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules);
+        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
 
         expect(Object.keys(result.stages).length).toEqual(4);
 
@@ -144,7 +144,7 @@ describe('terraform-builder', () => {
       });
 
       test('then associate optional dependent module', async () => {
-        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules);
+        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
 
         expect(Object.keys(result.stages).length).toEqual(4);
 
@@ -172,7 +172,7 @@ describe('terraform-builder', () => {
       });
 
       test('then do not associate optional dependent module', async () => {
-        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules);
+        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
 
         expect(Object.keys(result.stages).length).toEqual(3);
 
@@ -200,7 +200,7 @@ describe('terraform-builder', () => {
       });
 
       test('then the variable should appear in terraform.tfvars', async () => {
-        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules);
+        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
 
         const tfvarsFile: Optional<TerraformTfvarsFile> = arrayOf(result.files).filter(f => f.name === 'terraform.tfvars').first() as any
 
@@ -224,7 +224,7 @@ describe('terraform-builder', () => {
       });
 
       test('then result should include provider modules', async () => {
-        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules);
+        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
 
         expect(result.stages['clis']).toBeDefined()
         expect(result.providers?.length).toEqual(1)

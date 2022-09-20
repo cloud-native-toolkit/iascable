@@ -17,18 +17,19 @@ export class UrlFile implements OutputFile {
   name: string;
   url: string;
   type?: OutputFileType;
+  _alternative: () => Promise<string | Buffer>;
 
-  constructor({name, url, type}: {name: string, url: string, type?: OutputFileType}) {
+  constructor({name, url, type, alternative = () => Promise.resolve('')}: {name: string, url: string, type?: OutputFileType, alternative?: () => Promise<string | Buffer>}) {
     this.name = name;
     this.url = url;
     this.type = type;
+    this._alternative = alternative;
   }
 
   get contents(): Promise<string | Buffer> {
-    return new Promise<string>(async (resolve) => {
-      const req: superagent.Response = await superagent.get(this.url);
-
-      resolve(req.text);
-    });
+    return superagent
+      .get(this.url)
+      .then(res => res.text)
+      .catch(() => this._alternative())
   }
 }

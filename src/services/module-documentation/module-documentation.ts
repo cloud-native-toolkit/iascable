@@ -140,7 +140,7 @@ ${modules}
   async example(module: Module, catalog: Catalog): Promise<string> {
     const modules: SingleModuleVersion[] = new SelectedModuleResolverImpl(catalog).resolve([module])
 
-    const terraform: TerraformComponent = await this.terraformBuilder.buildTerraformComponent(modules, undefined, catalog)
+    const terraform: TerraformComponent = await this.terraformBuilder.buildTerraformComponent(modules, catalog)
 
     const currentStage: Stage[] = Object.values(terraform.stages).filter(stage => stage.source === module.id)
 
