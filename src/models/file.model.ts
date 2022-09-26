@@ -4,7 +4,8 @@ export enum OutputFileType {
   terraform = 'terraform',
   tileConfig = 'tile-config',
   documentation = 'documentation',
-  dotGraph = 'dot-graph'
+  dotGraph = 'dot-graph',
+  executable = 'executable'
 }
 
 export interface OutputFile {
