@@ -41,7 +41,7 @@ echo "variables: []" > ${TMP_VARIABLES_FILE}
 cat "bom.yaml" | ${YQ} e '.spec.variables[] | .name' - | while read name; do
   variable=$(cat "bom.yaml" | NAME="${name}" ${YQ} e '.spec.variables[] | select(.name == env(NAME))' -)
 
-  default_value=$(echo "${variable}" | ${YQ} e '.defaultValue // ""' -)
+  default_value=$(echo "${variable}" | ${YQ} e -o json '.defaultValue // ""' - | jq -c -r '.')
   sensitive=$(echo "${variable}" | ${YQ} e '.sensitive // false' -)
   description=$(echo "${variable}" | ${YQ} e '.description // ""' -)
 
