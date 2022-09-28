@@ -1,4 +1,11 @@
-import {BillOfMaterialModule, Catalog, Module, ModuleDependency} from '../../models';
+import {
+  BillOfMaterialModule,
+  Catalog,
+  catalogApiVersion,
+  catalogKind,
+  Module,
+  ModuleDependency
+} from '../../models';
 import {
   getModuleKey,
   matchInterface,
@@ -283,6 +290,8 @@ describe('selected-modules.resolver', () => {
       }] as any
 
       catalog = new Catalog({
+        apiVersion: catalogApiVersion,
+        kind: catalogKind,
         providers: [{
           name: 'gitops',
           source: 'cloud-native-toolkit/gitops',

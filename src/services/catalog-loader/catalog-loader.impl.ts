@@ -5,13 +5,19 @@ import {JSON_SCHEMA, load} from 'js-yaml';
 import _ from 'lodash';
 
 import {
-  Catalog, CatalogCategoryModel,
-  CatalogLoaderApi, CatalogModel,
-  CatalogProviderModel
+  Catalog,
+  catalogApiVersion,
+  CatalogCategoryModel,
+  catalogKind,
+  CatalogLoaderApi,
+  CatalogModel,
+  CatalogProviderModel,
+  isCatalogKind
 } from './catalog-loader.api';
 import {LoggerApi} from '../../util/logger';
 import first from '../../util/first';
 import {Module} from '../../models';
+import {CustomResourceDefinition} from '../../models/crd.model';
 
 export class CatalogLoader implements CatalogLoaderApi {
 
@@ -46,7 +52,9 @@ export class CatalogLoader implements CatalogLoaderApi {
     ))
 
     return catalogYamls.reduce((result: CatalogModel, current: string) => {
-      const newModel: CatalogModel = this.parseYaml(current) as CatalogModel
+      const inputYaml: CustomResourceDefinition = this.parseYaml(current)
+
+      const newModel: CatalogModel = isCatalogKind(inputYaml) ? inputYaml : catalogFromModule(inputYaml)
 
       return mergeCatalogs(newModel, result)
     }, {} as any)
@@ -86,7 +94,7 @@ const mergeCatalogs = (baseCatalog: CatalogModel, newCatalog: CatalogModel): Cat
         const providers = _.uniqBy((current.providers || []).concat(result.providers || []), 'name')
         const categories = mergeCategories(current.categories || [], result.categories || [])
 
-        return {aliases, providers, categories}
+        return {kind: catalogKind, apiVersion: catalogApiVersion, aliases, providers, categories}
       },
       {} as CatalogModel
     )
@@ -111,4 +119,17 @@ const mergeCategories = (baseCategories: CatalogCategoryModel[], newCategories: 
 
 const mergeCategoryModules = (baseModules: Module[], newModules: Module[]): Module[] => {
   return _.uniqBy(newModules.concat(baseModules), 'name')
+}
+
+const catalogFromModule = (inputYaml: CustomResourceDefinition): CatalogModel => {
+  const categories: CatalogCategoryModel[] = []
+  if (!inputYaml.kind || inputYaml.kind === 'Module') {
+    categories.push({
+      category: 'single',
+      selection: 'multiple',
+      modules: [inputYaml as Module]
+    })
+  }
+
+  return new Catalog({kind: catalogKind, apiVersion: catalogApiVersion, categories})
 }
