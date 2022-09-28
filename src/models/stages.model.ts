@@ -9,7 +9,7 @@ import {
 import {OutputFile, OutputFileType, UrlFile} from './file.model';
 import {Module, ModuleProvider, SingleModuleVersion} from './module.model';
 import {BillOfMaterialModel, BillOfMaterialVariable} from './bill-of-material.model';
-import {ArrayUtil, of as arrayOf} from '../util/array-util';
+import {ArrayUtil, of as arrayOf} from '../util/array-util/array-util';
 import {Optional} from '../util/optional';
 import {isDefinedAndNotNull} from '../util/object-util';
 import {ModuleDocumentationApi} from '../services/module-documentation';

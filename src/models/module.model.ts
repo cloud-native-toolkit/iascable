@@ -1,7 +1,7 @@
 import {VersionMatcher} from './version-matcher';
 import {BillOfMaterialModule} from './bill-of-material.model';
 import {isUndefined} from '../util/object-util';
-import {ArrayUtil, of as arrayOf} from '../util/array-util';
+import {ArrayUtil, of as arrayOf} from '../util/array-util/array-util';
 import {Optional} from '../util/optional';
 import {CatalogProviderModel} from './catalog.model';
 
@@ -101,6 +101,7 @@ export interface ModuleVariable {
   moduleRef?: ModuleOutputRef;
   mapper?: 'equality' | 'collect';
   important?: boolean;
+  sensitive?: boolean;
 }
 
 export interface ModuleOutputRef {
@@ -154,4 +155,11 @@ export function injectDependsOnFunction(module: Module | undefined): ModuleWithD
   }
 
   return Object.assign({versions: [], name: ''}, module, {dependsOn})
+}
+
+export interface ModuleInterfaceModel {
+  id: string
+  name: string
+  variables?: ModuleVariable[]
+  outputs?: ModuleOutput[]
 }

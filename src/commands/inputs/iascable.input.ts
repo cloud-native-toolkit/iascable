@@ -17,3 +17,13 @@ export interface IascableDocsInput {
   outDir: string;
   flattenOutput: boolean;
 }
+
+export interface IascableGenerateInput {
+  module?: string;
+  moduleVersion: string;
+  repoSlug: string;
+  metadataFile: string;
+  publishBranch: string;
+  outDir: string;
+  flattenOutput: boolean;
+}

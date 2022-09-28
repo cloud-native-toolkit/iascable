@@ -12,7 +12,7 @@ import {
   NoMatchingModuleVersions,
   PreferredModuleNotFound
 } from '../../errors';
-import {ArrayUtil, of as arrayOf} from '../../util/array-util';
+import {ArrayUtil, of as arrayOf} from '../../util/array-util/array-util';
 import {Optional} from '../../util/optional';
 import {LoggerApi} from '../../util/logger';
 import {Container} from 'typescript-ioc';

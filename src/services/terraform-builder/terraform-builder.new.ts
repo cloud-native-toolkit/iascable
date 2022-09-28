@@ -25,7 +25,7 @@ import {
   TerraformProviderImpl
 } from '../../models';
 import {ModuleDependencyModuleNotFound, ModuleDependencyNotFound} from '../../errors';
-import {ArrayUtil, of as arrayOf} from '../../util/array-util'
+import {ArrayUtil, of as arrayOf} from '../../util/array-util/array-util'
 import {isDefined, isDefinedAndNotNull, isUndefinedOrNull} from '../../util/object-util';
 import {Optional} from '../../util/optional';
 

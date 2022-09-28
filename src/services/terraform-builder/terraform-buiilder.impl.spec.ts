@@ -16,7 +16,7 @@ import {ModuleSelectorApi} from '../module-selector';
 import {CatalogLoaderApi} from '../catalog-loader';
 import {TerraformBuilderApi} from './terraform-builder.api';
 import {TerraformBuilderNew} from './terraform-builder.new';
-import {of as arrayOf} from '../../util/array-util';
+import {of as arrayOf} from '../../util/array-util/array-util';
 import {Optional} from '../../util/optional';
 
 describe('terraform-builder', () => {

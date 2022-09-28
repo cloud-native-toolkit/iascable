@@ -2,7 +2,7 @@ import {LoggerApi} from '../util/logger';
 import {Container} from 'typescript-ioc';
 import {Module, ModuleDependency, ModuleProvider, ModuleVariable} from './module.model';
 import {BillOfMaterialModule} from './bill-of-material.model';
-import {of as ofArray} from '../util/array-util';
+import {of as ofArray} from '../util/array-util/array-util';
 import {Optional} from '../util/optional';
 import {findMatchingVersions} from '../util/version-resolver';
 import first from '../util/first';

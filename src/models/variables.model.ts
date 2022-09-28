@@ -1,6 +1,6 @@
 import {BillOfMaterialProviderVariable} from './bill-of-material.model';
 import {ModuleVariable} from './module.model';
-import {ArrayUtil, of as arrayOf} from '../util/array-util';
+import {ArrayUtil, of as arrayOf} from '../util/array-util/array-util';
 import {isDefined} from '../util/object-util';
 import {ModuleNotFound} from '../errors';
 import {StageNotFound} from '../errors/stage-not-found.error';

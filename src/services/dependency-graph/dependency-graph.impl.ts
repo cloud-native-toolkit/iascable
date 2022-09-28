@@ -7,7 +7,7 @@ import {
   SingleModuleVersion
 } from '../../models';
 import {DotGraph, DotNode} from '../../models/graph.model';
-import {of as arrayOf} from '../../util/array-util';
+import {of as arrayOf} from '../../util/array-util/array-util';
 import {Optional} from '../../util/optional';
 import {Inject} from 'typescript-ioc';
 import {CatalogLoaderApi} from '../catalog-loader';

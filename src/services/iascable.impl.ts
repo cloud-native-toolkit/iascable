@@ -16,7 +16,7 @@ import {Catalog, CatalogLoaderApi} from './catalog-loader';
 import {ModuleSelectorApi} from './module-selector';
 import {TerraformBuilderApi} from './terraform-builder';
 import {TileBuilderApi} from './tile-builder';
-import {ArrayUtil, of as arrayOf} from '../util/array-util'
+import {ArrayUtil, of as arrayOf} from '../util/array-util/array-util'
 import {Optional} from '../util/optional';
 import {DependencyGraphApi} from './dependency-graph';
 import {DotGraph, DotGraphFile} from '../models/graph.model';
