@@ -150,7 +150,7 @@ const getModuleVersion =  async (repoSlug: string, providedVersion: string): Pro
     return `${major}.${minor}.${parseInt(patch, 10) + 1}`
   }
 
-  return ''
+  return '0.0.1'
 }
 
 const getLatestReleaseUrl = async (url: string): Promise<string> => {
@@ -163,11 +163,11 @@ const getLatestReleaseUrl = async (url: string): Promise<string> => {
       return err.response.headers['location']
     })
 
-  if (location.endsWith('latest')) {
+  if (location && location.endsWith('latest')) {
     return getLatestReleaseUrl(location)
   }
 
-  return location
+  return location || ''
 }
 
 const getRepoSlug = async (moduleUrl: string): Promise<string> => {
