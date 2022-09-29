@@ -112,6 +112,8 @@
   "devDependencies": {
     "@commitlint/cli": "^11.0.0",
     "@commitlint/config-conventional": "^11.0.0",
+    "@types/event-stream": "^4.0.0",
+    "@types/fs-extra": "^9.0.13",
     "@types/inquirer": "^7.3.1",
     "@types/jest": "^26.0.20",
     "@types/js-yaml": "^4.0.0",
@@ -152,15 +154,20 @@
   "dependencies": {
     "ajv-cli": "^5.0.0",
     "compare-versions": "^3.6.0",
+    "event-stream": "^4.0.1",
+    "fs-extra": "^10.1.0",
     "inquirer": "^7.3.3",
     "inquirer-checkbox-plus": "^1.0.2",
     "inquirer-checkbox-plus-prompt": "^1.0.1",
     "inquirer-prompt-suggest": "^0.1.0",
+    "js-optional": "^1.0.4",
     "js-yaml": "^4.0.0",
     "lodash.clonedeep": "^4.5.0",
+    "simple-git": "^3.14.1",
     "superagent": "^6.1.0",
     "typescript-ioc": "^3.2.2",
-    "yargs": "^17.2.1"
+    "yargs": "^17.2.1",
+    "z-schema": "^5.0.4"
   },
   "homepage": "https://github.com/cloud-native-toolkit/iascable.git#readme"
 }

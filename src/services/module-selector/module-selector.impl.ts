@@ -19,7 +19,7 @@ import {QuestionBuilder} from '../../util/question-builder';
 import {QuestionBuilderImpl} from '../../util/question-builder/question-builder.impl';
 import {LoggerApi} from '../../util/logger';
 import {BillOfMaterialModuleConfigError, ModuleMetadataInvalid, ModuleNotFound} from '../../errors';
-import {of as arrayOf} from '../../util/array-util';
+import {of as arrayOf} from '../../util/array-util/array-util';
 import {resolveSelectedModules} from './selected-modules.resolver';
 
 export class ModuleSelector implements ModuleSelectorApi {

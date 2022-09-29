@@ -6,7 +6,7 @@ import {
   parseVersionMatcher
 } from './version-resolver';
 import {VersionComparison, VersionMatcher} from '../../models';
-import {concat} from '../array-util';
+import {concat} from '../array-util/array-util';
 
 describe('version-resolver', () => {
   test('canary verifies test infrastructure', () => {

@@ -1,7 +1,7 @@
 import {default as jsYaml} from 'js-yaml';
 import {isSingleModuleVersion, Module, SingleModuleVersion} from './module.model';
 import {of, Optional} from '../util/optional';
-import {of as arrayOf} from '../util/array-util';
+import {of as arrayOf} from '../util/array-util/array-util';
 import {BillOfMaterialParsingError} from '../errors';
 
 export interface BillOfMaterialModuleDependency {

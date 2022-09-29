@@ -1,5 +1,5 @@
-import {Optional} from './optional';
-import {isUndefined} from './object-util';
+import {Optional} from '../optional';
+import {isUndefined} from '../object-util';
 
 export class ArrayUtil<T = any> {
   public readonly value: T[];
@@ -102,10 +102,6 @@ export class ArrayUtil<T = any> {
   asArray(): T[] {
     return this.value;
   }
-}
-
-export function first<T>(array?: T[]): Optional<T> {
-  return ArrayUtil.of(array).first();
 }
 
 export function of<T>(array?: T[]): ArrayUtil<T> {

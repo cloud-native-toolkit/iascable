@@ -14,7 +14,7 @@ import {
   ModuleNotFound
 } from '../../errors';
 import {isDefinedAndNotNull, isUndefined} from '../../util/object-util';
-import {of as arrayOf} from '../../util/array-util';
+import {of as arrayOf} from '../../util/array-util/array-util';
 
 export function buildBomVariables(bomVariableYaml: string): BillOfMaterialVariable[] {
   if (!bomVariableYaml) {

@@ -16,7 +16,7 @@ import {
 } from '../../models';
 import {ModuleNotFound, ModulesNotFound} from '../../errors';
 import {Optional} from '../../util/optional';
-import {ArrayUtil, of as arrayOf} from '../../util/array-util';
+import {ArrayUtil, of as arrayOf} from '../../util/array-util/array-util';
 import {isDefinedAndNotNull} from '../../util/object-util';
 
 export class SelectedModules {

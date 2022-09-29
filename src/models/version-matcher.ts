@@ -1,4 +1,4 @@
-import {of as arrayOf} from '../util/array-util';
+import {of as arrayOf} from '../util/array-util/array-util';
 import {isUndefined} from '../util/object-util';
 
 export enum VersionComparison {
