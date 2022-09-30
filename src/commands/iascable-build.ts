@@ -124,9 +124,6 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput &
       await outputResult(outputDir, result, argv.flattenOutput);
     }
   } catch (err) {
-    console.log('')
-    console.error(`Error: ${err.message}`)
-
     if (argv.debug) {
       logger.error('Error building config', {err})
     }
