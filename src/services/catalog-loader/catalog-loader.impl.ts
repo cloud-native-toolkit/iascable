@@ -41,7 +41,7 @@ export class CatalogLoader implements CatalogLoaderApi {
   async loadCatalogYaml(catalogUrls: string[]): Promise<CatalogModel> {
 
     const catalogYamls: string[] = await Promise.all(catalogUrls.map(catalogUrl => catalogUrl.startsWith('file:/')
-      ? this.loadCatalogFromFile(catalogUrl.replace('file:/', ''))
+      ? this.loadCatalogFromFile(catalogUrl.replace('file:', ''))
       : this.loadCatalogFromUrl(catalogUrl)
     ))
 
