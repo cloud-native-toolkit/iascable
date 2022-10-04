@@ -4,6 +4,7 @@ import {isUndefined} from '../util/object-util';
 import {ArrayUtil, of as arrayOf} from '../util/array-util/array-util';
 import {Optional} from '../util/optional';
 import {CatalogProviderModel} from './catalog.model';
+import {CustomResourceDefinition} from './crd.model';
 
 export interface ModuleProvider {
   name: string;
@@ -23,7 +24,7 @@ export interface ModuleMatcher {
   version: VersionMatcher[];
 }
 
-export interface ModuleTemplate {
+export interface ModuleTemplate extends CustomResourceDefinition {
   id: string;
   registryId?: string;
   name: string;

@@ -5,7 +5,7 @@ import {BillOfMaterialModule} from './bill-of-material.model';
 import {of as ofArray} from '../util/array-util/array-util';
 import {Optional} from '../util/optional';
 import {findMatchingVersions} from '../util/version-resolver';
-import first from '../util/first';
+import {CustomResourceDefinition} from './crd.model';
 
 export interface CatalogCategoryModel {
   category: string;
@@ -25,7 +25,7 @@ export const isCatalogProviderModel = (value: any): value is CatalogProviderMode
   return !!value && !!(value as CatalogProviderModel).dependencies && !!(value as CatalogProviderModel).variables
 }
 
-export interface CatalogModel {
+export interface CatalogModel extends CustomResourceDefinition {
   categories: CatalogCategoryModel[];
   providers?: CatalogProviderModel[];
   aliases?: ModuleIdAlias[];
@@ -54,9 +54,18 @@ export function isCatalog(model: Catalog | CatalogModel): model is Catalog {
   return !!model && (typeof (model as Catalog).filter === 'function');
 }
 
+export function isCatalogKind(crd: CustomResourceDefinition): crd is Catalog {
+  return !!crd && crd.kind === 'Catalog'
+}
+
+export const catalogApiVersion: string = 'cloudnativetoolkit.dev/v1alpha1';
+export const catalogKind: string = 'Catalog';
+
 export class Catalog implements CatalogModel {
   private logger: LoggerApi;
 
+  public readonly apiVersion: string = catalogApiVersion;
+  public readonly kind: string = catalogKind;
   public readonly categories: CatalogCategoryModel[];
   public readonly providers: CatalogProviderModel[];
   public readonly filterValue?: {platform?: string, provider?: string};
@@ -107,7 +116,7 @@ export class Catalog implements CatalogModel {
       })
       .filter((category: CatalogCategoryModel) => (category.modules.length > 0))
 
-    return new Catalog({categories: filteredCategories}, {platform, provider});
+    return new Catalog({apiVersion: catalogApiVersion, kind: catalogKind, categories: filteredCategories}, {platform, provider});
   }
 
   lookupProvider(provider: ModuleProvider): Optional<CatalogProviderModel> {

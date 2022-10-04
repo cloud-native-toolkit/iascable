@@ -5,7 +5,7 @@ import {
   BillOfMaterialModel,
   BillOfMaterialModule,
   BillOfMaterialModuleDependency,
-  Catalog,
+  Catalog, catalogApiVersion, catalogKind,
   CatalogModel,
   SingleModuleVersion
 } from '../../models';
@@ -268,6 +268,8 @@ describe('module-selector', () => {
 
   describe('given validateBillOfMaterialModuleConfigYaml()', () => {
     const testCatalog: CatalogModel = {
+      apiVersion: catalogApiVersion,
+      kind: catalogKind,
       categories: [{
         category: 'test',
         selection: 'multiple',
