@@ -18,16 +18,19 @@ if ! command -v jq 1> /dev/null 2> /dev/null; then
   exit 1
 fi
 
-if [[ -f "terraform/terraform.tfvars" ]]; then
-  cp "terraform/terraform.tfvars" "terraform/terraform.tfvars.backup"
-  rm "terraform/terraform.tfvars"
+CREDENTIALS_PROPERTIES="credentials.properties"
+TERRAFORM_TFVARS="terraform/terraform.tfvars"
+
+if [[ -f "${TERRAFORM_TFVARS}" ]]; then
+  cp "${TERRAFORM_TFVARS}" "${TERRAFORM_TFVARS}.backup"
+  rm "${TERRAFORM_TFVARS}"
 fi
 
-if [[ -f "credentials.properties" ]]; then
-  cp "credentials.properties" "credentials.properties.backup"
-  rm "credentials.properties"
+if [[ -f "${CREDENTIALS_PROPERTIES}" ]]; then
+  cp "${CREDENTIALS_PROPERTIES}" "${CREDENTIALS_PROPERTIES}.backup"
+  rm "${CREDENTIALS_PROPERTIES}"
 fi
-touch credentials.properties
+touch "${CREDENTIALS_PROPERTIES}"
 
 if [[ ! -f "${VARIABLES_FILE}" ]]; then
   echo "Variables can be provided in a yaml file passed as the first argument"
@@ -38,14 +41,13 @@ TMP_VARIABLES_FILE="${VARIABLES_FILE}.tmp"
 
 echo "variables: []" > ${TMP_VARIABLES_FILE}
 
-cat "bom.yaml" | ${YQ} e '.spec.variables[] | .name' - | while read name; do
-  variable=$(cat "bom.yaml" | NAME="${name}" ${YQ} e '.spec.variables[] | select(.name == env(NAME))' -)
+function process_variable () {
+  local name="$1"
+  local default_value="$2"
+  local sensitive="$3"
+  local description="$4"
 
-  default_value=$(echo "${variable}" | ${YQ} e -o json '.defaultValue // ""' - | jq -c -r '.')
-  sensitive=$(echo "${variable}" | ${YQ} e '.sensitive // false' -)
-  description=$(echo "${variable}" | ${YQ} e '.description // ""' -)
-
-  variable_name="TF_VAR_${name}"
+  local variable_name="TF_VAR_${name}"
 
   environment_variable=$(env | grep "${variable_name}" | sed -E 's/.*=(.*).*/\1/g')
   value="${environment_variable}"
@@ -76,10 +78,33 @@ cat "bom.yaml" | ${YQ} e '.spec.variables[] | .name' - | while read name; do
   output_value=$(echo "${value}" | sed 's/"/\\"/g')
 
   if [[ "${sensitive}" != "true" ]]; then
-    echo "${name} = \"${output_value}\"" >> "terraform/terraform.tfvars"
+    echo "${name} = \"${output_value}\"" >> "${TERRAFORM_TFVARS}"
     NAME="${name}" VALUE="${value}" ${YQ} e -i -P '.variables += [{"name": env(NAME), "value": env(VALUE)}]' "${TMP_VARIABLES_FILE}"
   else
-    echo "export ${name}=\"${output_value}\"" >> "credentials.properties"
+    echo "export ${name}=\"${output_value}\"" >> "${CREDENTIALS_PROPERTIES}"
+  fi
+}
+
+cat "bom.yaml" | ${YQ} e '.spec.variables[] | .name' - | while read name; do
+  variable=$(cat "bom.yaml" | NAME="${name}" ${YQ} e '.spec.variables[] | select(.name == env(NAME))' -)
+
+  default_value=$(echo "${variable}" | ${YQ} e -o json '.defaultValue // ""' - | jq -c -r '.')
+  sensitive=$(echo "${variable}" | ${YQ} e '.sensitive // false' -)
+  description=$(echo "${variable}" | ${YQ} e '.description // ""' -)
+
+  process_variable "${name}" "${default_value}" "${sensitive}" "${description}"
+done
+
+cat "${VARIABLES_FILE}" | ${YQ} e '.variables[]' -o json - | jq -c '.' | while read var; do
+  name=$(echo "${var}" | jq -r '.name')
+
+  value=$(echo "${var}" | jq -r '.value // empty')
+  sensitive=$(echo "${var}" | jq -r '.sensitive')
+
+  bom_var=$(cat bom.yaml | ${YQ} e '.spec.variables[]' -o json - | jq --arg NAME "${name}" -c 'select(.name == $NAME)')
+
+  if [[ -z "${bom_var}" ]]; then
+    process_variable "${name}" "${value}" "${sensitive}" ""
   fi
 done
 
