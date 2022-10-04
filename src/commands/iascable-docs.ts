@@ -8,6 +8,7 @@ import {IascableDocsInput} from './inputs/iascable.input';
 import {ModuleDoc} from '../models';
 import {IascableApi} from '../services';
 import {LoggerApi} from '../util/logger';
+import {DEFAULT_CATALOG_URL, setupCatalogUrls} from './support/middleware';
 
 export const command = 'docs [module]';
 export const desc = 'Produces the documentation for a given module';
@@ -35,6 +36,7 @@ export const builder = (yargs: Argv<any>) => {
       default: false,
       type: 'boolean'
     })
+    .middleware(setupCatalogUrls(DEFAULT_CATALOG_URL))
     .option('debug', {
       type: 'boolean',
       describe: 'Flag to turn on more detailed output message',

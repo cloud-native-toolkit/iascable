@@ -25,6 +25,7 @@ import {
 import {LoggerApi} from '../util/logger';
 import {DotGraphFile} from '../models/graph.model';
 import {chmodRecursive} from '../util/file-util';
+import {DEFAULT_CATALOG_URL, setupCatalogUrls} from './support/middleware';
 
 export const command = 'build';
 export const desc = 'Configure (and optionally deploy) the iteration zero assets';
@@ -34,7 +35,7 @@ export const builder = (yargs: Argv<any>) => {
       alias: 'c',
       type: 'array',
       description: 'The url of the module catalog. Can be https:// or file:/ protocol. This argument can be passed multiple times to include multiple catalogs.',
-      default: 'https://modules.cloudnativetoolkit.dev/index.yaml'
+      default: DEFAULT_CATALOG_URL
     })
     .option('input', {
       alias: 'i',
@@ -87,6 +88,7 @@ export const builder = (yargs: Argv<any>) => {
       type: 'boolean',
       describe: 'Flag to turn on more detailed output message',
     })
+    .middleware(setupCatalogUrls(DEFAULT_CATALOG_URL))
     .check((argv) => {
       if (!(argv.reference && argv.reference.length > 0) && !(argv.input && argv.input.length > 0)) {
         throw new Error('Bill of Materials not provided. Provide the path to the bill of material file with the -i or -r flag.')
