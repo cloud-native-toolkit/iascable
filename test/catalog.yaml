@@ -1,3 +1,5 @@
+apiVersion: cloudnativetoolkit.dev/v1alpha1
+kind: Catalog
 providers:
   - name: ibm
     source: ibm-cloud/ibm
