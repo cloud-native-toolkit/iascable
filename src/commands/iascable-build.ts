@@ -236,7 +236,7 @@ async function outputTerraform(rootPath: string, terraformComponent: TerraformCo
       promiseList.push(result)
     } catch (err) {
       logger.warn(`Unable to generate file: ${file.name}`)
-      logger.warn('  Error: ', err)
+      logger.debug('  Error: ', err)
     }
   }
 
