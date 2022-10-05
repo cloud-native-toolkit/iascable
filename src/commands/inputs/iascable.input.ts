@@ -27,3 +27,10 @@ export interface IascableGenerateInput {
   outDir: string;
   flattenOutput: boolean;
 }
+
+export interface IascableCatalogInput {
+  moduleMetadataUrl?: string
+  catalogInput?: string
+  category: string
+  outDir: string
+}

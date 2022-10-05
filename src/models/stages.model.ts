@@ -2,7 +2,9 @@ import {
   BaseVariable,
   fromBaseVariable,
   IBaseVariable,
-  StagePrinter, TerraformProvider, TerraformTfvars,
+  StagePrinter,
+  TerraformProvider,
+  TerraformTfvars,
   TerraformVariable,
   TerraformVariableImpl
 } from './variables.model';
@@ -14,7 +16,7 @@ import {Optional} from '../util/optional';
 import {isDefinedAndNotNull} from '../util/object-util';
 import {ModuleDocumentationApi} from '../services/module-documentation';
 import {Container} from 'typescript-ioc';
-import {CatalogModel} from './catalog.model';
+import {CatalogV2Model} from './catalog.model';
 
 export * from './module.model';
 
@@ -36,7 +38,7 @@ export interface TerraformComponentModel {
   providers?: TerraformProvider[];
   billOfMaterial?: BillOfMaterialModel;
   files: OutputFile[];
-  catalog: CatalogModel;
+  catalog: CatalogV2Model;
 }
 
 export class TerraformStageFile implements OutputFile {
@@ -228,7 +230,7 @@ export class TerraformComponent implements TerraformComponentModel {
   modules?: SingleModuleVersion[];
   providers?: TerraformProvider[];
   billOfMaterial?: BillOfMaterialModel;
-  catalog!: CatalogModel;
+  catalog!: CatalogV2Model;
   readonly files: OutputFile[];
 
   constructor(model: TerraformComponentModel, private name: string | undefined) {
@@ -264,7 +266,7 @@ export class TerraformComponent implements TerraformComponentModel {
   }
 }
 
-function buildModuleReadmes(catalog: CatalogModel, modules: SingleModuleVersion[] = []): OutputFile[] {
+function buildModuleReadmes(catalog: CatalogV2Model, modules: SingleModuleVersion[] = []): OutputFile[] {
   const docService: ModuleDocumentationApi = Container.get(ModuleDocumentationApi)
 
   return modules.map(module => {

@@ -1,4 +1,0 @@
-moduleIds:
-  - id: github.com/terraform-ibm-modules/terraform-ibm-toolkit-resource-group
-    aliases:
-      - github.com/cloud-native-toolkit/terraform-ibm-resource-group

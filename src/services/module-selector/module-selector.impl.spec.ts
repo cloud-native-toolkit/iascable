@@ -5,8 +5,8 @@ import {
   BillOfMaterialModel,
   BillOfMaterialModule,
   BillOfMaterialModuleDependency,
-  Catalog, catalogApiVersion, catalogKind,
-  CatalogModel,
+  Catalog, catalogApiV1Version, catalogApiV2Version, catalogKind,
+  CatalogV1Model, CatalogV2Model,
   SingleModuleVersion
 } from '../../models';
 import {CatalogLoaderApi} from '../catalog-loader';
@@ -21,14 +21,14 @@ describe('module-selector', () => {
     expect(true).toBe(true);
   });
 
-  let catalog: CatalogModel;
+  let catalog: CatalogV2Model;
 
   let classUnderTest: ModuleSelectorApi;
   beforeEach(async () => {
     Container.bind(LoggerApi).to(NoopLoggerImpl);
 
     const catalogLoader: CatalogLoaderApi = Container.get(CatalogLoaderApi);
-    catalog = await catalogLoader.loadCatalog(`file:/${process.cwd()}/test/catalog.yaml`)
+    catalog = await catalogLoader.loadCatalog(`file:${process.cwd()}/test/catalogv1.yaml`)
 
     classUnderTest = Container.get(ModuleSelector);
   });
@@ -267,36 +267,33 @@ describe('module-selector', () => {
   });
 
   describe('given validateBillOfMaterialModuleConfigYaml()', () => {
-    const testCatalog: CatalogModel = {
-      apiVersion: catalogApiVersion,
+    const testCatalog: CatalogV2Model = {
+      apiVersion: catalogApiV2Version,
       kind: catalogKind,
-      categories: [{
+      boms: [],
+      modules: [{
+        id: 'github.com/validation-test',
+        name: 'validation-test',
+        platforms: [],
         category: 'test',
-        selection: 'multiple',
-        modules: [{
-          id: 'github.com/validation-test',
-          name: 'validation-test',
-          platforms: [],
-          category: 'test',
-          versions: [{
-            version: '1.0.0',
-            variables: [{
-              name: 'variable1',
-              type: 'string',
-            }, {
-              name: 'variable2',
-              type: 'string',
-            }],
-            dependencies: [{
-              id: 'dep1',
-              refs: [],
-            }, {
-              id: 'dep2',
-              refs: [{source: "mydep", version: ">= 1.0.0"}],
-              optional: true,
-            }],
-            outputs: []
-          }]
+        versions: [{
+          version: '1.0.0',
+          variables: [{
+            name: 'variable1',
+            type: 'string',
+          }, {
+            name: 'variable2',
+            type: 'string',
+          }],
+          dependencies: [{
+            id: 'dep1',
+            refs: [],
+          }, {
+            id: 'dep2',
+            refs: [{source: "mydep", version: ">= 1.0.0"}],
+            optional: true,
+          }],
+          outputs: []
         }]
       }]
     };
@@ -339,9 +336,11 @@ describe('module-selector', () => {
       test('then should throw an error', async () => {
         const yaml: string = `dependencies:
   - name: dep1
-       ref: test
+        ref: test
   - name: mydep
     ref: test2`;
+
+        expect(classUnderTest).toBeDefined()
 
         return classUnderTest.validateBillOfMaterialModuleConfigYaml(testCatalog, 'validation-test', yaml)
           .then(val => expect(val).toEqual('Should fail'))

@@ -1,5 +1,6 @@
 import {chmodSync, lstatSync, promises} from 'fs';
 import {join} from 'path';
+import {get} from 'superagent';
 
 export async function chmodRecursive(root: string, mode: number) {
   chmodSync(root, mode)
@@ -10,3 +11,13 @@ export async function chmodRecursive(root: string, mode: number) {
 
   childDirs.forEach(dir => chmodRecursive(dir, mode))
 }
+
+export async function loadFile(path: string): Promise<string> {
+  if (/^http.*/.test(path)) {
+    return get(path).then(resp => resp.text)
+  }
+
+  return promises.readFile(path.replace(/^file:/, ''))
+    .then(buf => buf.toString())
+}
+

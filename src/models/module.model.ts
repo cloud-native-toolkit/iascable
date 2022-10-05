@@ -46,6 +46,10 @@ export interface ModuleTemplate extends CustomResourceDefinition {
   documentation?: string;
   examplePath?: string;
   license?: string;
+  group?: string;
+  cloudProvider?: string;
+  softwareProvider?: string;
+  metadataUrl?: string;
 }
 
 export interface Module extends ModuleTemplate {
@@ -53,11 +57,15 @@ export interface Module extends ModuleTemplate {
   bomModule?: BillOfMaterialModule;
 }
 
-export function isModule(module: Module | ModuleRef): module is Module {
+export interface ModuleSummary extends ModuleTemplate {
+  versions: Array<{version: string}>;
+}
+
+export function isModule(module: Module | ModuleRef | CustomResourceDefinition): module is Module {
   return !!module && !!(module as Module).id;
 }
 
-export function isModuleRef(module: Module | ModuleRef): module is ModuleRef {
+export function isModuleRef(module: Module | ModuleRef | CustomResourceDefinition): module is ModuleRef {
   return !!module && !!(module as ModuleRef).source;
 }
 

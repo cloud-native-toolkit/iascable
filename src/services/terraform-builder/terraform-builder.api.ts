@@ -1,10 +1,10 @@
 import {
   BillOfMaterialModel,
-  CatalogModel,
+  CatalogV2Model,
   SingleModuleVersion,
   TerraformComponent
 } from '../../models';
 
 export abstract class TerraformBuilderApi {
-  abstract buildTerraformComponent(modules: SingleModuleVersion[], catalogModel: CatalogModel, billOfMaterial?: BillOfMaterialModel): Promise<TerraformComponent>;
+  abstract buildTerraformComponent(modules: SingleModuleVersion[], catalogModel: CatalogV2Model, billOfMaterial?: BillOfMaterialModel): Promise<TerraformComponent>;
 }

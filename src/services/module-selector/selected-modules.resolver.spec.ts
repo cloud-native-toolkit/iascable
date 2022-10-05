@@ -1,7 +1,7 @@
 import {
   BillOfMaterialModule,
   Catalog,
-  catalogApiVersion,
+  catalogApiV1Version,
   catalogKind,
   Module,
   ModuleDependency
@@ -29,7 +29,7 @@ describe('selected-modules.resolver', () => {
     Container.bind(LoggerApi).to(NoopLoggerImpl);
 
     const catalogLoader: CatalogLoaderApi = Container.get(CatalogLoaderApi);
-    catalog = await catalogLoader.loadCatalog(`file:/${process.cwd()}/test/catalog.yaml`)
+    catalog = await catalogLoader.loadCatalog(`file:/${process.cwd()}/test/catalogv1.yaml`)
   });
 
   describe('given updateAliasForDuplicateModules()', () => {
@@ -248,6 +248,7 @@ describe('selected-modules.resolver', () => {
         }]
       }, {
         id: 'another-test',
+        category: 'ignore',
         name: 'another-test',
         interfaces: ['interface3'],
         versions: [{
@@ -290,7 +291,7 @@ describe('selected-modules.resolver', () => {
       }] as any
 
       catalog = new Catalog({
-        apiVersion: catalogApiVersion,
+        apiVersion: catalogApiV1Version,
         kind: catalogKind,
         providers: [{
           name: 'gitops',

@@ -2,12 +2,15 @@ import {
   BillOfMaterial,
   BillOfMaterialModel,
   BillOfMaterialModule,
-  CatalogModel,
+  CatalogV2Model,
   GlobalRefVariable,
-  isModuleRefVariable, Module, ModuleRef,
+  isModuleRefVariable,
+  Module,
+  ModuleRef,
   ModuleRefVariable,
   SingleModuleVersion,
-  TerraformComponent, TerraformTfvarsFile
+  TerraformComponent,
+  TerraformTfvarsFile
 } from '../../models';
 import {Container} from 'typescript-ioc';
 import {LoggerApi} from '../../util/logger';
@@ -26,13 +29,13 @@ describe('terraform-builder', () => {
 
   let classUnderTest: TerraformBuilderApi;
 
-  let catalog: CatalogModel;
+  let catalog: CatalogV2Model;
   let moduleSelector: ModuleSelectorApi;
   beforeEach(async () => {
     Container.bind(LoggerApi).to(NoopLoggerImpl);
 
     const catalogLoader: CatalogLoaderApi = Container.get(CatalogLoaderApi);
-    catalog = await catalogLoader.loadCatalog(`file:/${process.cwd()}/test/catalog.yaml`)
+    catalog = await catalogLoader.loadCatalog(`file:/${process.cwd()}/test/catalogv1.yaml`)
 
     moduleSelector = Container.get(ModuleSelectorApi);
 
