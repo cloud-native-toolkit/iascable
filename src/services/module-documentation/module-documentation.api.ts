@@ -1,5 +1,5 @@
-import {CatalogModel, Module, ModuleDoc} from '../../models';
+import {CatalogModel, Module, ModuleDoc, SingleModuleVersion} from '../../models';
 
 export abstract class ModuleDocumentationApi {
-  abstract generateDocumentation(module: Module, catalog: CatalogModel): Promise<ModuleDoc>;
+  abstract generateDocumentation(module: Module, catalog: CatalogModel, moduleList?: SingleModuleVersion[]): Promise<ModuleDoc>;
 }

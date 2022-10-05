@@ -1,4 +1,8 @@
+import {Inject} from 'typescript-ioc';
+
 import {ModuleDocumentationApi} from './module-documentation.api';
+import {TerraformBuilderApi} from '../terraform-builder';
+import {SelectedModuleResolverImpl} from '../module-selector/selected-modules.resolver';
 import {
   Catalog,
   CatalogModel,
@@ -9,18 +13,15 @@ import {
   ModuleVariable,
   ModuleVersion, SingleModuleVersion, Stage, TerraformComponent
 } from '../../models';
-import {ModuleVersionNotFound} from '../../util/version-resolver';
-import {isUndefined} from '../../util/object-util';
-import {Inject} from 'typescript-ioc';
-import {TerraformBuilderApi} from '../terraform-builder';
-import {SelectedModuleResolverImpl} from '../module-selector/selected-modules.resolver';
 import {getIascableVersion} from '../../util/iascable-version';
+import {isUndefined} from '../../util/object-util';
+import {ModuleVersionNotFound} from '../../util/version-resolver';
 
 export class ModuleDocumentation implements ModuleDocumentationApi {
   @Inject
   terraformBuilder!: TerraformBuilderApi;
 
-  async generateDocumentation(module: Module, catalogModel: CatalogModel): Promise<ModuleDoc> {
+  async generateDocumentation(module: Module, catalogModel: CatalogModel, moduleList?: SingleModuleVersion[]): Promise<ModuleDoc> {
 
     const catalog: Catalog = Catalog.fromModel(catalogModel)
 
@@ -54,7 +55,7 @@ ${this.moduleDependencies(currentVersion)}
 [Refer to examples for more details](${this.examplePath(module)})
 
 \`\`\`
-${await this.example(module, catalog)}\`\`\`
+${await this.example(module, catalog, moduleList)}\`\`\`
 
 ## Module details
 
@@ -137,8 +138,8 @@ ${modules}
     return module.examplePath
   }
 
-  async example(module: Module, catalog: Catalog): Promise<string> {
-    const modules: SingleModuleVersion[] = new SelectedModuleResolverImpl(catalog).resolve([module])
+  async example(module: Module, catalog: Catalog, moduleList?: SingleModuleVersion[]): Promise<string> {
+    const modules: SingleModuleVersion[] = moduleList ? moduleList : new SelectedModuleResolverImpl(catalog).resolve([module])
 
     const terraform: TerraformComponent = await this.terraformBuilder.buildTerraformComponent(modules, catalog)
 
