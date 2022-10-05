@@ -14,7 +14,7 @@ describe('catalog model', () => {
     Container.bind(LoggerApi).to(NoopLoggerImpl);
 
     const catalogLoader: CatalogLoaderApi = Container.get(CatalogLoaderApi);
-    classUnderTest = await catalogLoader.loadCatalog(`file:/${process.cwd()}/test/catalog.yaml`)
+    classUnderTest = await catalogLoader.loadCatalog(`file:/${process.cwd()}/test/catalogv1.yaml`)
   });
 
   describe('given lookupModule()', () => {

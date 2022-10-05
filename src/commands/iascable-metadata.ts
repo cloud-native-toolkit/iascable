@@ -10,14 +10,13 @@ import {CommandLineInput} from './inputs/command-line.input';
 import {IascableGenerateInput} from './inputs/iascable.input';
 import {Module} from '../models';
 import {ModuleMetadataApi, ModuleServiceCreateResult} from '../services/module-metadata-service';
-import {LoggerApi} from '../util/logger';
 
 export const command = 'metadata';
 export const desc = 'Generates the metadata for a given module';
 export const builder = (yargs: Argv<any>) => {
   return yargs
     .option('moduleUrl', {
-      description: 'The version number of the metadata release',
+      description: 'The git url of the module',
       demandOption: false,
     })
     .option('moduleVersion', {

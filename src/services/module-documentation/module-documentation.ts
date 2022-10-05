@@ -5,13 +5,19 @@ import {TerraformBuilderApi} from '../terraform-builder';
 import {SelectedModuleResolverImpl} from '../module-selector/selected-modules.resolver';
 import {
   Catalog,
-  CatalogModel,
+  CatalogV2Model,
   Module,
   ModuleDependency,
-  ModuleDoc, ModuleOutput, ModuleOutputRef, ModuleProvider,
+  ModuleDoc,
+  ModuleOutput,
+  ModuleOutputRef,
+  ModuleProvider,
   ModuleRef,
   ModuleVariable,
-  ModuleVersion, SingleModuleVersion, Stage, TerraformComponent
+  ModuleVersion,
+  SingleModuleVersion,
+  Stage,
+  TerraformComponent
 } from '../../models';
 import {getIascableVersion} from '../../util/iascable-version';
 import {isUndefined} from '../../util/object-util';
@@ -21,7 +27,7 @@ export class ModuleDocumentation implements ModuleDocumentationApi {
   @Inject
   terraformBuilder!: TerraformBuilderApi;
 
-  async generateDocumentation(module: Module, catalogModel: CatalogModel, moduleList?: SingleModuleVersion[]): Promise<ModuleDoc> {
+  async generateDocumentation(module: Module, catalogModel: CatalogV2Model, moduleList?: SingleModuleVersion[]): Promise<ModuleDoc> {
 
     const catalog: Catalog = Catalog.fromModel(catalogModel)
 

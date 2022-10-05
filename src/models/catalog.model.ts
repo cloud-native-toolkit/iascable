@@ -1,16 +1,24 @@
 import {LoggerApi} from '../util/logger';
 import {Container} from 'typescript-ioc';
-import {Module, ModuleDependency, ModuleProvider, ModuleVariable} from './module.model';
+import {
+  Module,
+  ModuleDependency,
+  ModuleProvider,
+  ModuleTemplate,
+  ModuleVariable
+} from './module.model';
 import {BillOfMaterialModule} from './bill-of-material.model';
 import {of as ofArray} from '../util/array-util/array-util';
 import {Optional} from '../util/optional';
 import {findMatchingVersions} from '../util/version-resolver';
 import {CustomResourceDefinition} from './crd.model';
+import {flatten} from '../util/array-util';
 
-export interface CatalogCategoryModel {
+export interface CatalogCategoryModel<M = Module> {
   category: string;
+  categoryName?: string;
   selection: 'required' | 'single' | 'indirect' | 'multiple';
-  modules: Module[];
+  modules: M[];
 }
 
 export interface CatalogProviderModel {
@@ -25,7 +33,23 @@ export const isCatalogProviderModel = (value: any): value is CatalogProviderMode
   return !!value && !!(value as CatalogProviderModel).dependencies && !!(value as CatalogProviderModel).variables
 }
 
-export interface CatalogModel extends CustomResourceDefinition {
+export interface CatalogInputModel extends CustomResourceDefinition {
+  categories: CatalogCategoryModel<ModuleTemplate>[];
+  providers?: CatalogProviderModel[];
+  aliases?: ModuleIdAlias[];
+}
+
+export interface BillOfMaterialEntry {
+}
+
+export interface CatalogV2Model extends CustomResourceDefinition {
+  modules: Module[];
+  providers?: CatalogProviderModel[];
+  aliases?: ModuleIdAlias[];
+  boms: BillOfMaterialEntry[];
+}
+
+export interface CatalogV1Model extends CustomResourceDefinition {
   categories: CatalogCategoryModel[];
   providers?: CatalogProviderModel[];
   aliases?: ModuleIdAlias[];
@@ -50,32 +74,60 @@ function determineModuleProvider(module: Module) {
   return '';
 }
 
-export function isCatalog(model: Catalog | CatalogModel): model is Catalog {
+export function isCatalog(model: Catalog | CatalogV1Model | CatalogV2Model): model is Catalog {
   return !!model && (typeof (model as Catalog).filter === 'function');
 }
 
-export function isCatalogKind(crd: CustomResourceDefinition): crd is Catalog {
+export function isCatalogKind(crd: CustomResourceDefinition): crd is CatalogV1Model | CatalogV2Model {
   return !!crd && crd.kind === 'Catalog'
 }
 
-export const catalogApiVersion: string = 'cloudnativetoolkit.dev/v1alpha1';
-export const catalogKind: string = 'Catalog';
+export const isCatalogV1Model = (catalog: CatalogV1Model | CatalogV2Model): catalog is CatalogV1Model => {
+  return !!catalog && catalog.apiVersion === catalogApiV1Version
+}
 
-export class Catalog implements CatalogModel {
+export const isCatalogV2Model = (catalog: CatalogV1Model | CatalogV2Model): catalog is CatalogV2Model => {
+  return !!catalog && catalog.apiVersion === catalogApiV2Version
+}
+
+export type CatalogModel = CatalogV1Model | CatalogV2Model
+
+export const getFlattenedModules = (input: CatalogModel): Module[] => {
+  if (isCatalogV2Model(input)) {
+    return (input.modules || [])
+  }
+
+  return (input.categories || [])
+    .map((category: CatalogCategoryModel) => (category.modules || []).map(moduleWithCategory(category.category)))
+    .reduce(flatten, [])
+}
+
+export const moduleWithCategory = (category: string) => {
+  return <T extends ModuleTemplate>(module: T) => Object.assign({}, module, {category})
+}
+
+export const catalogApiV1Version: string = 'cloudnativetoolkit.dev/v1alpha1';
+export const catalogApiV2Version: string = 'cloudnativetoolkit.dev/v2';
+export const catalogKind: string = 'Catalog';
+export const catalogSummaryKind: string = 'CatalogSummary';
+
+export class Catalog implements CatalogV2Model {
   private logger: LoggerApi;
 
-  public readonly apiVersion: string = catalogApiVersion;
+  public readonly apiVersion: string = catalogApiV2Version;
   public readonly kind: string = catalogKind;
-  public readonly categories: CatalogCategoryModel[];
+  public readonly modules: Module[];
   public readonly providers: CatalogProviderModel[];
   public readonly filterValue?: {platform?: string, provider?: string};
   public readonly flattenedAliases: DenormalizedModuleIdAliases;
   public readonly moduleIdAliases: ModuleIdAlias[];
+  public readonly boms: any[];
 
-  constructor(values: CatalogModel, filterValue?: {platform?: string, provider?: string}) {
-    this.categories = values.categories;
+  constructor(values: CatalogV1Model | CatalogV2Model, filterValue?: {platform?: string, provider?: string}) {
+    this.modules = getFlattenedModules(values)
     this.providers = values.providers || []
     this.filterValue = filterValue;
+    this.boms = isCatalogV2Model(values) ? values.boms : []
 
     this.moduleIdAliases = values.aliases || [];
     this.flattenedAliases = denormalizeModuleIdAliases(values.aliases)
@@ -83,7 +135,7 @@ export class Catalog implements CatalogModel {
     this.logger = Container.get(LoggerApi).child('Catalog');
   }
 
-  static fromModel(model: CatalogModel): Catalog {
+  static fromModel(model: CatalogV1Model | CatalogV2Model): Catalog {
     if (isCatalog(model)) {
       return model;
     }
@@ -91,32 +143,21 @@ export class Catalog implements CatalogModel {
     return new Catalog(model);
   }
 
-  get modules(): Module[] {
-    return this.categories.reduce((result: Module[], current: CatalogCategoryModel) => {
-      if ((current.modules || []).length > 0) {
-        result.push(...current.modules);
-      }
-
-      return result;
-    }, [])
-  }
-
   filter({platform, provider, modules}: CatalogFilter | undefined = {}): Catalog {
     this.logger.debug('Filtering catalog modules to match filter values', {filter: {platform, provider}});
 
-    const filteredCategories: CatalogCategoryModel[] = this.categories
-      .map((category: CatalogCategoryModel) => {
-        const filteredModules = (category.modules || [])
+    const filteredModules: Module[] = this.modules
+      .filter((module: Module) => {
+        const result = [module]
           .filter(matchingPlatforms(platform))
           .filter(matchingProviders(provider))
           .filter(matchingModules(modules))
           .map(matchingModuleVersions(modules));
 
-        return Object.assign({}, category, {modules: filteredModules});
+        return result.length > 0;
       })
-      .filter((category: CatalogCategoryModel) => (category.modules.length > 0))
 
-    return new Catalog({apiVersion: catalogApiVersion, kind: catalogKind, categories: filteredCategories}, {platform, provider});
+    return new Catalog({apiVersion: catalogApiV2Version, kind: catalogKind, modules: filteredModules, boms: this.boms}, {platform, provider});
   }
 
   lookupProvider(provider: ModuleProvider): Optional<CatalogProviderModel> {

@@ -4,7 +4,7 @@ metadata:
   name: baseline-ocp-vpc2
   annotations:
     path: test
-    catalogUrls: file:///Users/seansundus.ibm.com/ws/catalyst/cli/iascable/test/catalog.yaml
+    catalogUrls: file:///Users/seansundus.ibm.com/ws/catalyst/cli/iascable/test/catalogv1.yaml
 spec:
   modules:
     - name: ibm-ocp-vpc

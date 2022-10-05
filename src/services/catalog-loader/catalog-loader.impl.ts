@@ -5,18 +5,19 @@ import {JSON_SCHEMA, load} from 'js-yaml';
 import _ from 'lodash';
 
 import {
+  BillOfMaterialEntry,
   Catalog,
-  catalogApiVersion,
-  CatalogCategoryModel,
+  catalogApiV2Version,
   catalogKind,
   CatalogLoaderApi,
   CatalogModel,
   CatalogProviderModel,
-  isCatalogKind
+  CatalogV2Model,
+  getFlattenedModules,
+  isCatalogKind, isCatalogV2Model
 } from './catalog-loader.api';
 import {LoggerApi} from '../../util/logger';
-import first from '../../util/first';
-import {Module} from '../../models';
+import {isModule, Module} from '../../models';
 import {CustomResourceDefinition} from '../../models/crd.model';
 
 export class CatalogLoader implements CatalogLoaderApi {
@@ -32,7 +33,7 @@ export class CatalogLoader implements CatalogLoaderApi {
 
     this.logger.msg('Loading catalog from url(s): ' + catalogUrls);
 
-    const catalogModel: CatalogModel = await this.loadCatalogYaml(catalogUrls);
+    const catalogModel: CatalogV2Model = await this.loadCatalogYaml(catalogUrls);
 
     const catalog = new Catalog(catalogModel);
 
@@ -44,14 +45,14 @@ export class CatalogLoader implements CatalogLoaderApi {
     return catalog
   }
 
-  async loadCatalogYaml(catalogUrls: string[]): Promise<CatalogModel> {
+  async loadCatalogYaml(catalogUrls: string[]): Promise<CatalogV2Model> {
 
     const catalogYamls: string[] = await Promise.all(catalogUrls.map(catalogUrl => catalogUrl.startsWith('file:/')
       ? this.loadCatalogFromFile(catalogUrl.replace('file:', ''))
       : this.loadCatalogFromUrl(catalogUrl)
     ))
 
-    return catalogYamls.reduce((result: CatalogModel, current: string) => {
+    return catalogYamls.reduce((result: CatalogV2Model, current: string) => {
       const inputYaml: CustomResourceDefinition = this.parseYaml(current)
 
       const newModel: CatalogModel = isCatalogKind(inputYaml) ? inputYaml : catalogFromModule(inputYaml)
@@ -83,53 +84,37 @@ export class CatalogLoader implements CatalogLoaderApi {
   }
 }
 
-const mergeCatalogs = (baseCatalog: CatalogModel, newCatalog: CatalogModel): CatalogModel => {
-  const keys: Array<keyof CatalogModel> = ['aliases','categories','providers']
+const mergeCatalogs = (baseCatalog: CatalogModel, newCatalog: CatalogModel): CatalogV2Model => {
 
   return [baseCatalog, newCatalog]
     .reduce(
-      (result: CatalogModel, current: CatalogModel) => {
+      (result: CatalogV2Model, current: CatalogModel) => {
 
         const aliases = _.uniqBy((current.aliases || []).concat(result.aliases || []), 'id')
         const providers = _.uniqBy((current.providers || []).concat(result.providers || []), 'name')
-        const categories = mergeCategories(current.categories || [], result.categories || [])
+        const modules = _.uniqBy(getFlattenedModules(current).concat(result.modules || []), 'id')
+        const boms = _.uniqBy(getBoms(current).concat(result.boms || []), 'id')
 
-        return {kind: catalogKind, apiVersion: catalogApiVersion, aliases, providers, categories}
+        return {kind: catalogKind, apiVersion: catalogApiV2Version, aliases, providers, modules, boms}
       },
-      {} as CatalogModel
+      {} as CatalogV2Model
     )
 }
 
-const mergeCategories = (baseCategories: CatalogCategoryModel[], newCategories: CatalogCategoryModel[]): CatalogCategoryModel[] => {
-  return baseCategories.reduce((result: CatalogCategoryModel[], current: CatalogCategoryModel) => {
-    const match = first(result.filter(category => category.category === current.category))
-
-    if (match.isPresent()) {
-      const matchCategory = match.get();
-
-      matchCategory.modules = mergeCategoryModules(matchCategory.modules || [], current.modules || [])
-    } else {
-      // this is a new category, add it to the list
-      result.push(current)
-    }
-
-    return result
-  }, newCategories)
-}
-
-const mergeCategoryModules = (baseModules: Module[], newModules: Module[]): Module[] => {
-  return _.uniqBy(newModules.concat(baseModules), 'name')
-}
-
-const catalogFromModule = (inputYaml: CustomResourceDefinition): CatalogModel => {
-  const categories: CatalogCategoryModel[] = []
-  if (!inputYaml.kind || inputYaml.kind === 'Module') {
-    categories.push({
-      category: 'single',
-      selection: 'multiple',
-      modules: [inputYaml as Module]
-    })
+const getBoms = (catalog: CatalogModel): BillOfMaterialEntry[] => {
+  if (!isCatalogV2Model(catalog)) {
+    return []
   }
 
-  return new Catalog({kind: catalogKind, apiVersion: catalogApiVersion, categories})
+  return catalog.boms || []
+}
+
+const catalogFromModule = (inputYaml: CustomResourceDefinition): CatalogV2Model => {
+  const modules: Module[] = []
+
+  if (isModule(inputYaml)) {
+    modules.push(Object.assign({}, inputYaml, {category: 'other'}))
+  }
+
+  return {kind: catalogKind, apiVersion: catalogApiV2Version, modules, boms: []}
 }
