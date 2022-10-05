@@ -277,7 +277,7 @@ function buildModuleReadmes(catalog: CatalogModel, modules: SingleModuleVersion[
       type: OutputFileType.documentation,
       url,
       alternative: async () => {
-        const readme = await docService.generateDocumentation(fullModule, catalog)
+        const readme = await docService.generateDocumentation(fullModule, catalog, modules)
 
         return readme.contents
       }
