@@ -1,5 +1,7 @@
 import {LoggerApi} from '../util/logger';
 import {Container} from 'typescript-ioc';
+import _ from 'lodash';
+
 import {
   Module,
   ModuleDependency,
@@ -7,12 +9,15 @@ import {
   ModuleTemplate,
   ModuleVariable
 } from './module.model';
-import {BillOfMaterialModule} from './bill-of-material.model';
-import {of as ofArray} from '../util/array-util/array-util';
+import {BillOfMaterialModel, BillOfMaterialModule} from './bill-of-material.model';
+import {ArrayUtil, of as ofArray} from '../util/array-util/array-util';
 import {Optional} from '../util/optional';
 import {findMatchingVersions} from '../util/version-resolver';
 import {CustomResourceDefinition} from './crd.model';
 import {flatten} from '../util/array-util';
+import {BillOfMaterialNotFound, BillOfMaterialVersionNotFound} from '../errors';
+import {loadBillOfMaterialFromFile} from '../services';
+import {SolutionModel} from './solution.model';
 
 export interface CatalogCategoryModel<M = Module> {
   category: string;
@@ -39,7 +44,20 @@ export interface CatalogInputModel extends CustomResourceDefinition {
   aliases?: ModuleIdAlias[];
 }
 
+export interface BillOfMaterialVersion {
+  version: string;
+  metadataUrl: string;
+}
+
 export interface BillOfMaterialEntry {
+  name: string;
+  displayName: string;
+  description: string;
+  tags: string[];
+  category: string;
+  type: string;
+  cloudProvider?: string;
+  versions: BillOfMaterialVersion[];
 }
 
 export interface CatalogV2Model extends CustomResourceDefinition {
@@ -121,7 +139,7 @@ export class Catalog implements CatalogV2Model {
   public readonly filterValue?: {platform?: string, provider?: string};
   public readonly flattenedAliases: DenormalizedModuleIdAliases;
   public readonly moduleIdAliases: ModuleIdAlias[];
-  public readonly boms: any[];
+  public readonly boms: BillOfMaterialEntry[];
 
   constructor(values: CatalogV1Model | CatalogV2Model, filterValue?: {platform?: string, provider?: string}) {
     this.modules = getFlattenedModules(values)
@@ -161,14 +179,24 @@ export class Catalog implements CatalogV2Model {
   }
 
   lookupProvider(provider: ModuleProvider): Optional<CatalogProviderModel> {
-
     return ofArray(this.providers)
-      .filter((p: CatalogProviderModel) => {
-        const result = p.name === provider.name && p.source === provider.source
-
-        return result
-      })
+      .filter((p: CatalogProviderModel) => p.name === provider.name && p.source === provider.source)
       .first()
+      .map(p => _.cloneDeep(p))
+  }
+
+  async lookupBOM({name, version}: {name: string, version?: string}): Promise<BillOfMaterialModel | SolutionModel | undefined> {
+    const bomEntry: BillOfMaterialEntry = ArrayUtil.of(this.boms)
+      .filter(bom => bom.name === name)
+      .first()
+      .orElseThrow(new BillOfMaterialNotFound(name, this.boms))
+
+    const bomVersion: BillOfMaterialVersion = ArrayUtil.of(bomEntry.versions)
+      .filter((v: BillOfMaterialVersion) => !version || (version === v.version))
+      .first()
+      .orElseThrow(new BillOfMaterialVersionNotFound(name, version));
+
+    return loadBillOfMaterialFromFile(bomVersion.metadataUrl)
   }
 
   lookupModule(moduleId: {id: string, name?: string} | {name: string, id?: string}): Module | undefined {
@@ -188,7 +216,7 @@ export class Catalog implements CatalogV2Model {
 
     this.logger.debug('  Found matching module: ', {result})
 
-    return result
+    return _.cloneDeep(result)
   }
 
   findModulesWithInterface(interfaceId: string): Module[] {

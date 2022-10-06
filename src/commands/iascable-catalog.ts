@@ -1,6 +1,6 @@
 import {Arguments, Argv} from 'yargs';
 import {Container} from 'typescript-ioc';
-import {createWriteStream, promises, WriteStream} from 'fs';
+import {createWriteStream, WriteStream, promises} from 'fs';
 import {join} from 'path';
 import {dump} from 'js-yaml';
 import {Observable} from 'rxjs';

@@ -1,5 +1,5 @@
-import {mapSync, split} from 'event-stream'
-import {createReadStream} from 'fs'
+import {mapSync, split} from 'event-stream';
+import {createReadStream} from 'fs';
 
 export interface TerraformVariableModel {
   name: string
@@ -115,12 +115,10 @@ export class TerraformFile {
                 multiLineValue = undefined
               }
             } else if (/^ *description *= *"(.*)"/g.test(line)) {
-              const description: string = line.replace(
+              current.description = line.replace(
                 /^ *description *= *"(.*)"/g,
                 '$1'
               )
-
-              current.description = description
             } else if (/^ *default *= *(.*)/g.test(line)) {
               const defaultValue: string = line.replace(
                 /^ *default *= *(.*)/g,

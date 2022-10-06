@@ -20,6 +20,7 @@ import {LoggerApi} from '../../util/logger';
 import {isModule, Module} from '../../models';
 import {CustomResourceDefinition} from '../../models/crd.model';
 import {ArrayUtil} from '../../util/array-util';
+import {loadFile} from '../../util/file-util';
 
 export class CatalogLoader implements CatalogLoaderApi {
 
@@ -48,10 +49,7 @@ export class CatalogLoader implements CatalogLoaderApi {
 
   async loadCatalogYaml(catalogUrls: string[]): Promise<CatalogV2Model> {
 
-    const catalogYamls: string[] = await Promise.all(catalogUrls.map(catalogUrl => catalogUrl.startsWith('file:/')
-      ? this.loadCatalogFromFile(catalogUrl.replace('file:', ''))
-      : this.loadCatalogFromUrl(catalogUrl)
-    ))
+    const catalogYamls: string[] = await Promise.all(catalogUrls.map(catalogUrl => loadFile(catalogUrl)))
 
     return catalogYamls.reduce((result: CatalogV2Model, current: string) => {
       const inputYaml: CustomResourceDefinition = this.parseYaml(current)

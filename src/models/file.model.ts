@@ -1,4 +1,5 @@
-import * as superagent from 'superagent';
+import superagent from 'superagent';
+import {loadFile} from '../util/file-util';
 
 export enum OutputFileType {
   terraform = 'terraform',
@@ -12,6 +13,22 @@ export interface OutputFile {
   name: string;
   type?: OutputFileType;
   readonly contents: Promise<string | Buffer>;
+}
+
+export class SimpleFile implements OutputFile {
+  name: string;
+  type?: OutputFileType;
+  _contents: string | Buffer
+
+  constructor({name, type, contents}: {name: string, type?: OutputFileType, contents: string | Buffer}) {
+    this.name = name
+    this.type = type
+    this._contents = contents
+  }
+
+  get contents(): Promise<string | Buffer> {
+    return Promise.resolve(this._contents)
+  }
 }
 
 export class UrlFile implements OutputFile {
@@ -28,9 +45,6 @@ export class UrlFile implements OutputFile {
   }
 
   get contents(): Promise<string | Buffer> {
-    return superagent
-      .get(this.url)
-      .then(res => res.text)
-      .catch(() => this._alternative())
+    return loadFile(this.url).catch(() => this._alternative())
   }
 }
