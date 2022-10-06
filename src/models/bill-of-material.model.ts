@@ -20,6 +20,13 @@ export interface BillOfMaterialModuleVariable {
   required?: boolean;
 }
 
+export interface BillOfMaterialModuleOutput {
+  name: string;
+  description?: string;
+  alias?: string;
+  scope?: string;
+}
+
 export interface BillOfMaterialModuleProvider {
   name: string;
   ref?: string;
@@ -30,6 +37,7 @@ export interface BaseBillOfMaterialModule {
   version?: string;
   default?: boolean;
   variables?: BillOfMaterialModuleVariable[];
+  outputs?: BillOfMaterialModuleOutput[];
   dependencies?: BillOfMaterialModuleDependency[];
   providers?: BillOfMaterialModuleProvider[];
 }
@@ -66,6 +74,11 @@ export interface BillOfMaterialVariable {
   required?: boolean;
 }
 
+export interface BillOfMaterialOutput {
+  name: string;
+  alias?: string;
+}
+
 export interface BillOfMaterialProvider {
   name: string;
   alias?: string;
@@ -82,6 +95,7 @@ export interface BillOfMaterialProviderVariable {
 export interface BillOfMaterialSpec {
   modules: Array<string | BillOfMaterialModule>;
   variables?: BillOfMaterialVariable[];
+  outputs?: BillOfMaterialOutput[];
   providers?: BillOfMaterialProvider[];
 }
 

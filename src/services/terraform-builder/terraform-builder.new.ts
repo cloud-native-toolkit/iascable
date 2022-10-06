@@ -1,20 +1,23 @@
 import {TerraformBuilderApi} from './terraform-builder.api';
 import {
+  BaseOutput,
   BaseVariable,
   BillOfMaterialModel,
   BillOfMaterialModule,
+  BillOfMaterialModuleOutput,
   BillOfMaterialModuleVariable,
   BillOfMaterialProvider,
   BillOfMaterialVariable,
   CatalogV2Model,
+  IBaseOutput,
   IBaseVariable,
   IPlaceholderVariable,
   isPlaceholderVariable,
   isSingleModuleVersion,
   Module,
-  ModuleDependency,
+  ModuleDependency, ModuleOutput,
   ModuleOutputRef,
-  ModuleProvider,
+  ModuleProvider, ModuleRefOutput,
   ModuleRefVariable,
   ModuleVariable,
   PlaceholderVariable,
@@ -33,6 +36,7 @@ import {Optional} from '../../util/optional';
 interface TerraformResult {
   stages: {[name: string]: Stage}
   baseVariables: IBaseVariable[],
+  baseOutputs: IBaseOutput[],
   providers: TerraformProvider[]
 }
 
@@ -73,6 +77,7 @@ export class TerraformBuilderNew implements TerraformBuilderApi {
     const terraform: TerraformResult = modules.reduce(
       (result: TerraformResult, module: SingleModuleVersion) => {
         const stageVariables: BaseVariable[] = this.moduleVariablesToStageVariables(module)
+        const stageOutputs: BaseOutput[] = this.moduleOutputsToStageOutputs(module)
         const {providers, providerVariables} = extractProvidersFromModule(module, result, billOfMaterial?.spec.providers)
 
         const stage: Stage = new StageImpl({
@@ -84,21 +89,24 @@ export class TerraformBuilderNew implements TerraformBuilderApi {
 
         result.stages[stage.name] = stage
         result.baseVariables.push(...stageVariables)
+        result.baseOutputs.push(...stageOutputs)
 
         result.providers.push(...providers)
         result.baseVariables.push(...providerVariables)
 
         return result
       },
-      {stages: {}, baseVariables: [], providers: []}
+      {stages: {}, baseVariables: [], providers: [], baseOutputs: []}
     )
 
     const baseVariables: IBaseVariable[] = this.processBaseVariables(terraform.baseVariables, billOfMaterial?.spec.variables)
+    const baseOutputs: IBaseOutput[] = terraform.baseOutputs
 
     const name: string | undefined = billOfMaterial?.metadata.name;
     return new TerraformComponent({
       stages: terraform.stages,
       baseVariables,
+      baseOutputs,
       providers: terraform.providers,
       modules,
       bomVariables: billOfMaterial?.spec.variables,
@@ -116,6 +124,16 @@ export class TerraformBuilderNew implements TerraformBuilderApi {
       .filter(isDefinedAndNotNull)
 
     return stageVariables
+  }
+
+  moduleOutputsToStageOutputs(module: SingleModuleVersion): BaseOutput[] {
+
+    const stageOutputs: BaseOutput[] = module.version.outputs
+      .map(mergeBomOutputs(arrayOf(module.bomModule?.outputs)))
+      .map(mapModuleOutput(module))
+      .filter(isDefinedAndNotNull)
+
+    return stageOutputs
   }
 
   processBaseVariables(variables: IBaseVariable[], billOfMaterialVariables: BillOfMaterialVariable[] = []): IBaseVariable[] {
@@ -179,6 +197,26 @@ const mergeBomVariables = (bomVariables: ArrayUtil<BillOfMaterialModuleVariable>
       {
         default: isDefined(bomVariable.value) ? bomVariable.value : variable.default
       });
+  };
+}
+
+const mergeBomOutputs = (bomOutputs: ArrayUtil<BillOfMaterialModuleOutput>) => {
+  return (outputs: ModuleOutput): ModuleOutput => {
+    const optionalBomOutput: Optional<BillOfMaterialModuleOutput> = bomOutputs
+      .filter(v => v.name === outputs.name)
+      .first();
+
+    if (!optionalBomOutput.isPresent()) {
+      return outputs;
+    }
+
+    const bomOutput: BillOfMaterialModuleOutput = optionalBomOutput.get();
+
+    return Object.assign(
+      {},
+      outputs,
+      bomOutput
+    );
   };
 }
 
@@ -335,5 +373,22 @@ const mapModuleVariable = (module: SingleModuleVersion | ModuleProvider) => {
         stageName: componentName(module)
       });
     }
+  }
+}
+
+const mapModuleOutput = (module: SingleModuleVersion | ModuleProvider) => {
+  return (o: ModuleOutput): BaseOutput => {
+    const moduleName = module.alias || module.name
+
+    return new ModuleRefOutput({
+      name: `${moduleName}_${o.name}`,
+      description: o.description,
+      sensitive: o.sensitive,
+      stageName: moduleName,
+      moduleOutputRef: {
+        id: moduleName,
+        output: o.name,
+      }
+    })
   }
 }

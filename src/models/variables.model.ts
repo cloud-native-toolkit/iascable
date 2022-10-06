@@ -1,5 +1,5 @@
 import {BillOfMaterialProviderVariable} from './bill-of-material.model';
-import {ModuleVariable} from './module.model';
+import {ModuleOutputRef, ModuleVariable} from './module.model';
 import {ArrayUtil, of as arrayOf} from '../util/array-util/array-util';
 import {isDefined} from '../util/object-util';
 import {ModuleNotFound} from '../errors';
@@ -22,6 +22,13 @@ export interface IBaseVariable {
   important?: boolean;
 }
 
+export interface IBaseOutput {
+  name: string;
+  description?: string;
+  value: string;
+  sensitive?: boolean;
+}
+
 export interface BaseVariable extends IBaseVariable, StagePrinter {
 }
 
@@ -29,6 +36,11 @@ export interface IModuleVariable extends IBaseVariable {
   moduleRef: {stageName: string} | {stageName: string}[];
   moduleOutputName: string;
   mapper?: 'equality' | 'collect';
+}
+
+export interface IModuleOutput extends BaseOutput {
+  moduleRef: {stageName: string} | {stageName: string}[];
+  moduleOutputName: string;
 }
 
 export class ModuleRefVariable implements IModuleVariable, BaseVariable {
@@ -267,6 +279,48 @@ ${this.variableString('  ')}
   }
 }
 
+export interface TerraformOutput extends IBaseOutput {
+  asString(): string;
+}
+
+export class TerraformOutputImpl implements TerraformOutput {
+  name: string = '';
+  private _description: string = '';
+  value: string = '';
+  sensitive: boolean = false
+
+  constructor(values: {name: string, description?: string, value: string, sensitive?: boolean}) {
+    this.name = values.name
+    this.description = values.description || ''
+    this.value = values.value
+    this.sensitive = values.sensitive || false
+  }
+
+  get description() {
+    return this._description || `the value of ${this.name}`;
+  }
+  set description(description: string) {
+    this._description = description;
+  }
+
+  sensitiveValue() {
+    if (!this.sensitive) {
+      return ''
+    }
+
+    return `
+  sensitive = true`
+  }
+
+  asString(): string {
+    return `output "${this.name}" {
+  description = "${this.description}"
+  value = ${this.value}${this.sensitiveValue()}
+}
+`;
+  }
+}
+
 export interface TerraformVariable extends IBaseVariable {
   asString(): string;
 }
@@ -457,4 +511,28 @@ const typeFormatters: {[type: string]: Formatter} = {
     return {type: 'string', value: value == '' ? '"[]"' : `"${JSON.stringify(value).replace(/"/g, '\\"')}"`}
   }),
   'string': buildTypeFormatter('string', defaultFormatter),
+}
+
+export interface BaseOutput extends IBaseOutput {
+}
+
+export class ModuleRefOutput implements BaseOutput {
+  name: string
+  description?: string
+  sensitive?: boolean
+
+  stageName: string
+  moduleOutputRef: ModuleOutputRef
+
+  constructor({name, description, sensitive, stageName, moduleOutputRef}: {name: string, description?: string, sensitive?: boolean, stageName: string, moduleOutputRef: ModuleOutputRef}) {
+    this.name = name
+    this.description = description
+    this.sensitive = sensitive
+    this.stageName = stageName
+    this.moduleOutputRef = moduleOutputRef
+  }
+
+  get value(): string {
+    return `module.${this.stageName}.${this.moduleOutputRef.output}`
+  }
 }
