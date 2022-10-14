@@ -2,26 +2,21 @@ import {Arguments, Argv} from 'yargs';
 import {Container} from 'typescript-ioc';
 import {createWriteStream, promises, WriteStream} from 'fs';
 import {join} from 'path';
-import {RemoteWithRefs, simpleGit} from 'simple-git';
 import {dump} from 'js-yaml';
-import {get} from 'superagent';
+import {Observable} from 'rxjs';
 
 import {CommandLineInput} from './inputs/command-line.input';
-import {IascableCatalogInput, IascableGenerateInput} from './inputs/iascable.input';
+import {IascableCatalogInput} from './inputs/iascable.input';
 import {
   BillOfMaterialEntry,
-  catalogKind, catalogSummaryKind,
+  catalogKind,
+  catalogSummaryKind,
   Module,
   ModuleIdAlias,
   ModuleProvider,
   ModuleSummary
 } from '../models';
-import {ModuleMetadataApi, ModuleServiceCreateResult} from '../services/module-metadata-service';
-import {LoggerApi} from '../util/logger';
 import {CatalogBuilderApi, CatalogBuilderResult} from '../services/catalog-builder';
-import {mkdirp} from 'fs-extra';
-import {isArray} from 'util';
-import {Observable} from 'rxjs';
 
 export const command = 'catalog';
 export const desc = 'Generates the metadata catalog for an individual module or a collection of modules';
@@ -83,7 +78,7 @@ export const handler = async (argv: Arguments<IascableCatalogInput & CommandLine
 
 const outputResult = async (outDir: string, result: CatalogBuilderResult): Promise<void> => {
 
-  await mkdirp(outDir)
+  await promises.mkdir(outDir, {recursive: true})
 
   const catalogStream: WriteStream = createWriteStream(join(outDir, 'index.yaml'))
   const summaryStream: WriteStream = createWriteStream(join(outDir, 'summary.yaml'))

@@ -37,7 +37,7 @@ export class ModuleMetadataService implements ModuleMetadataApi {
     repoSlug,
     strict,
     metadataFile = 'module.yaml',
-    publishBranch = 'gh-pages'
+    metadataUrl
   }: ModuleServiceCreateParams): Promise<ModuleServiceCreateResult> {
     const metadata: Module = await this.buildModuleMetadata({
       version,
@@ -47,9 +47,8 @@ export class ModuleMetadataService implements ModuleMetadataApi {
     })
 
     const mergedMetadata: Module = await this.mergeModuleMetadata({
-      metadata,
-      publishBranch,
-      repoSlug
+      metadataUrl,
+      metadata
     })
 
     return {
@@ -58,7 +57,7 @@ export class ModuleMetadataService implements ModuleMetadataApi {
   }
 
   async buildModuleMetadata({
-    version = '0.0.0',
+    version = '0.0.1',
     repoSlug,
     strict,
     metadataFile = 'module.yaml'
@@ -70,7 +69,7 @@ export class ModuleMetadataService implements ModuleMetadataApi {
 
     this.logger.debug(`Loaded metadata: ${JSON.stringify(metadata)}`)
 
-    metadata.id = `github.com/${repoSlug}`
+    metadata.id = repoSlug
 
     if (/v?0[.]0[.]0/.test(version)) {
       this.logger.info('Found version 0.0.0. Creating empty metadata.')
@@ -200,16 +199,13 @@ export class ModuleMetadataService implements ModuleMetadataApi {
 
   async mergeModuleMetadata({
     metadata,
-    publishBranch,
-    repoSlug
+    metadataUrl
   }: {
-    metadata: Module
-    publishBranch: string
-    repoSlug: string
+    metadata: Module,
+    metadataUrl?: string
   }): Promise<Module> {
     this.logger.debug(`Merging module metadata...`)
-    const existingMetadata: Module | undefined =
-      await this.loadMetadata({publishBranch, repoSlug})
+    const existingMetadata: Module | undefined = await this.loadMetadata({metadataUrl})
 
     if (!existingMetadata) {
       return metadata
@@ -224,20 +220,21 @@ export class ModuleMetadataService implements ModuleMetadataApi {
   }
 
   async loadMetadata({
-    publishBranch,
-    repoSlug
+    metadataUrl
   }: {
-    publishBranch: string
-    repoSlug: string
+    metadataUrl?: string
   }): Promise<Module | undefined> {
-    const url = `https://raw.githubusercontent.com/${repoSlug}/${publishBranch}/index.yaml`
+    if (!metadataUrl) {
+      return
+    }
+
     try {
-      const response: Response = await get(url)
+      const response: Response = await get(metadataUrl)
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return YAML.load(response.text) as any
     } catch (err) {
-      this.logger.debug(`No existing catalog found: ${url}`)
+      this.logger.debug(`No existing catalog found: ${metadataUrl}`)
     }
 
     return

@@ -8,15 +8,14 @@ import {
   BillOfMaterialModel,
   BillOfMaterialModule,
   Catalog,
-  CatalogCategoryModel, CatalogFilter,
-  CatalogV1Model,
-  Module, ModuleVersion,
-  SingleModuleVersion,
+  CatalogFilter,
+  CatalogV2Model,
   injectDependsOnFunction,
-  ModuleWithDependsOn, CatalogV2Model
+  Module,
+  ModuleVersion,
+  ModuleWithDependsOn,
+  SingleModuleVersion
 } from '../../models';
-import {QuestionBuilder} from '../../util/question-builder';
-import {QuestionBuilderImpl} from '../../util/question-builder/question-builder.impl';
 import {LoggerApi} from '../../util/logger';
 import {BillOfMaterialModuleConfigError, ModuleMetadataInvalid, ModuleNotFound} from '../../errors';
 import {of as arrayOf} from '../../util/array-util/array-util';
