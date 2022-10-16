@@ -57,7 +57,7 @@ export class CatalogLoader implements CatalogLoaderApi {
 
       const newModel: CatalogModel = isCatalogKind(inputYaml) ? inputYaml : catalogFromModule(inputYaml)
 
-      return mergeCatalogs(newModel, result)
+      return mergeCatalogs(result, newModel)
     }, {} as any)
   }
 
@@ -92,8 +92,8 @@ const mergeCatalogs = (baseCatalog: CatalogModel, newCatalog: CatalogModel): Cat
 
         const aliases = _.uniqBy((current.aliases || []).concat(result.aliases || []), 'id')
         const providers = _.uniqBy((current.providers || []).concat(result.providers || []), 'name')
-        const modules = _.uniqBy(getFlattenedModules(current).concat(result.modules || []), 'id')
-        const boms = _.uniqBy(getBoms(current).concat(result.boms || []), 'id')
+        const modules = _.uniqBy(getFlattenedModules(current).concat(result.modules || []), 'name')
+        const boms = _.uniqBy(getBoms(current).concat(result.boms || []), 'name')
 
         return {kind: catalogKind, apiVersion: catalogApiV2Version, aliases, providers, modules, boms}
       },

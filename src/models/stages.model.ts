@@ -348,7 +348,7 @@ export class StageImpl implements Stage, StagePrinter {
 ${version}`
     }
 
-    const urlRef = this.module.version.version ? `?ref=${this.module.version.version}` : ''
+    const urlRef = this.module.version.version && !this.module.id.startsWith('file:') ? `?ref=${this.module.version.version}` : ''
     return `${indent}source = "${this.module.id}${urlRef}"`
   }
 
