@@ -16,13 +16,12 @@ describe('file-util', () => {
       test('then should be called multiple times', async () => {
         await chmodRecursive(__dirname, 0x777);
 
-        expect(chmodSync).toHaveBeenCalledTimes(7);
+        expect(chmodSync).toHaveBeenCalledTimes(6);
         expect(chmodSync.mock.calls.map(x => x[0]))
           .toEqual([
             __dirname,
             join(__dirname, 'array-util'),
             join(__dirname, 'logger'),
-            join(__dirname, 'question-builder'),
             join(__dirname, 'terraform'),
             join(__dirname, 'version-resolver'),
             join(__dirname, 'yaml-file'),
