@@ -10,6 +10,7 @@ import {CommandLineInput} from './inputs/command-line.input';
 import {IascableGenerateInput} from './inputs/iascable.input';
 import {Module} from '../models';
 import {ModuleMetadataApi, ModuleServiceCreateResult} from '../services/module-metadata-service';
+import {LoggerApi} from '../util/logger';
 
 export const command = 'metadata';
 export const desc = 'Generates the metadata for a given module';
@@ -19,13 +20,23 @@ export const builder = (yargs: Argv<any>) => {
       description: 'The git url of the module',
       demandOption: false,
     })
+    .option('metadataUrl', {
+      description: 'The git url of the module',
+      demandOption: false,
+    })
     .option('moduleVersion', {
       description: 'The version number of the metadata release',
       demandOption: false,
     })
     .option('repoSlug', {
       alias: 'r',
-      description: 'The repo slug of the module in the form {git org}/{repo name}',
+      description: 'The repo slug of the module in the form {git host}/{git org}/{repo name}',
+      demandOption: false,
+    })
+    .option('local', {
+      alias: 'l',
+      type: 'boolean',
+      description: 'Generate a local "repo slug"',
       demandOption: false,
     })
     .option('metadataFile', {
@@ -58,11 +69,17 @@ export const builder = (yargs: Argv<any>) => {
       describe: 'Flag to turn on more detailed output message',
     })
     .middleware(async argv => {
-      const repoSlug: string = await getRepoSlug(argv.moduleUrl)
+      const {repoSlug, metadataUrl} = await getRepoSlug({
+        moduleUrl: argv.moduleUrl,
+        local: argv.local,
+        publishBranch: argv.publishBranch,
+        metadataUrl: argv.metadataUrl
+      })
       const moduleVersion: string = await getModuleVersion(repoSlug, argv.moduleVersion)
 
       return {
         repoSlug,
+        metadataUrl,
         moduleVersion
       }
     })
@@ -101,11 +118,11 @@ export const handler = async (argv: Arguments<IascableGenerateInput & CommandLin
   const version: string = argv.moduleVersion
   const repoSlug: string = argv.repoSlug
   const metadataFile: string = argv.metadataFile
-  const publishBranch: string = argv.publishBranch
+  const metadataUrl: string | undefined = argv.metadataUrl
 
   console.log(`Generating metadata for module: ${repoSlug}#${version}`)
   try {
-    const result: ModuleServiceCreateResult = await cmd.create({version, repoSlug, metadataFile, publishBranch})
+    const result: ModuleServiceCreateResult = await cmd.create({version, repoSlug, metadataFile, metadataUrl})
 
     await outputResult(argv.outDir, result.metadata, argv)
   } catch (err) {
@@ -137,7 +154,7 @@ const getModuleVersion =  async (repoSlug: string, providedVersion: string): Pro
     return ''
   }
 
-  const location = await getLatestReleaseUrl(`https://github.com/${repoSlug}/releases/latest`)
+  const location = await getLatestReleaseUrl(`${repoSlug}/releases/latest`)
 
   const versionRegExp = new RegExp('https?://.*/v?([0-9]+)[.]([0-9]+)[.]([0-9]+)')
   const match = versionRegExp.exec(location)
@@ -153,6 +170,14 @@ const getModuleVersion =  async (repoSlug: string, providedVersion: string): Pro
 }
 
 const getLatestReleaseUrl = async (url: string): Promise<string> => {
+  const logger: LoggerApi = Container.get(LoggerApi)
+
+  if (url.startsWith('file:')) {
+    return ''
+  }
+
+  logger.info(`Getting latest release from url: ${url}`)
+
   const location: string = await get(url)
     .redirects(0)
     .then(resp => {
@@ -169,40 +194,49 @@ const getLatestReleaseUrl = async (url: string): Promise<string> => {
   return location || ''
 }
 
-const getRepoSlug = async (moduleUrl: string): Promise<string> => {
-  const gitHttpPattern = new RegExp('https?://(.*).github.io/(.*)/?')
-  const gitSshPattern = new RegExp('git@[^:]+:(.*)/(.*)')
+const getRepoSlug = async ({moduleUrl = '', local = false, publishBranch, metadataUrl}: {moduleUrl?: string, local?: boolean, publishBranch: string, metadataUrl?: string}): Promise<{repoSlug: string, metadataUrl?: string}> => {
+  const githubPagesPattern = new RegExp('https?://(.*).github.io/(.*)/?')
+  const gitHttpPattern = new RegExp('https?://([^/]+)/(.*)/(.*)')
+  const gitSshPattern = new RegExp('git@([^:]+):(.*)/(.*)')
 
-  if (gitHttpPattern.test(moduleUrl)) {
-    const match = gitHttpPattern.exec(moduleUrl)
+  if (githubPagesPattern.test(moduleUrl)) {
+    const match = githubPagesPattern.exec(moduleUrl)
     if (match) {
       const gitOrg = match[1]
       const repoName = match[2]
 
-      return `${gitOrg}/${repoName}`
+      return {
+        repoSlug: `github.com/${gitOrg}/${repoName}`,
+        metadataUrl: metadataUrl || `https://raw.githubusercontent.com/${gitOrg}/${repoName}/${publishBranch}/index.yaml`
+      }
     }
   } else {
     // get information from current directory
-    const baseDir = moduleUrl || '.'
-
-    const remotes: RemoteWithRefs[] = await simpleGit({baseDir})
+    const remotes: RemoteWithRefs[] = await simpleGit({baseDir: '.'})
       .getRemotes(true)
       .catch(() => [])
 
-    if (!remotes || remotes.length === 0) {
-      return ''
-    }
-
-    const gitUrl = remotes[0].refs.fetch
+    const gitUrl = (remotes && remotes.length > 0) ? remotes[0].refs.fetch : ''
     const pattern = gitHttpPattern.test(gitUrl) ? gitHttpPattern : gitSshPattern
     const match = pattern.exec(gitUrl)
-    if (match) {
-      const gitOrg = match[1]
-      const repoName = match[2].replace(new RegExp('[.]git$', ''), '')
+    if (match && !local) {
+      const gitHost = match[1]
+      const gitOrg  = match[2]
+      const repoName = match[3].replace(new RegExp('[.]git$', ''), '')
 
-      return `${gitOrg}/${repoName}`
+      return {
+        repoSlug: `${gitHost}/${gitOrg}/${repoName}`,
+        metadataUrl,
+      }
+    } else {
+      return {
+        repoSlug: `file:${process.cwd()}`,
+        metadataUrl,
+      }
     }
   }
 
-  return ''
+  return {
+    repoSlug: ''
+  }
 }

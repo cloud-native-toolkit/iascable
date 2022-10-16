@@ -23,6 +23,7 @@ export interface IascableGenerateInput {
   moduleVersion: string;
   repoSlug: string;
   metadataFile: string;
+  metadataUrl?: string;
   publishBranch: string;
   outDir: string;
   flattenOutput: boolean;

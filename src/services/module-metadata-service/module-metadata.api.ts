@@ -5,7 +5,7 @@ export interface ModuleServiceCreateParams {
   version: string
   metadataFile?: string
   strict?: boolean
-  publishBranch?: string
+  metadataUrl?: string
 }
 
 export interface ModuleServiceVerifyParams {

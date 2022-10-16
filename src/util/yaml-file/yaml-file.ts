@@ -1,4 +1,4 @@
-import fs from 'fs-extra'
+import {promises} from 'fs'
 import YAML from 'js-yaml'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -13,7 +13,14 @@ export class YamlFile<T = any> {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static async load<S = any>(file: string): Promise<YamlFile<S>> {
-    const contents: Buffer = await fs.readFile(file)
+    const contents: Buffer = await promises.readFile(file)
+      .catch(err => {
+        const newError = /no such file or directory/.test(err.message)
+          ? new Error(`File not found: ${file}`)
+          : err
+
+        throw newError
+      })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result: S = YAML.load(contents.toString()) as any
@@ -42,7 +49,7 @@ export class YamlFile<T = any> {
   }
 
   async write(): Promise<YamlFile<T>> {
-    await fs.writeFile(this.filename, YAML.dump(this.contents))
+    await promises.writeFile(this.filename, YAML.dump(this.contents))
 
     return this
   }
