@@ -14,11 +14,12 @@ import {
   CatalogProviderModel,
   CatalogV2Model,
   getFlattenedModules,
-  isCatalogKind, isCatalogV2Model
+  isCatalogKind, isCatalogV2Model, ModuleIdAlias
 } from './catalog-loader.api';
 import {LoggerApi} from '../../util/logger';
 import {isModule, Module} from '../../models';
 import {CustomResourceDefinition} from '../../models/crd.model';
+import {ArrayUtil} from '../../util/array-util';
 
 export class CatalogLoader implements CatalogLoaderApi {
 
@@ -90,9 +91,9 @@ const mergeCatalogs = (baseCatalog: CatalogModel, newCatalog: CatalogModel): Cat
     .reduce(
       (result: CatalogV2Model, current: CatalogModel) => {
 
-        const aliases = _.uniqBy((current.aliases || []).concat(result.aliases || []), 'id')
+        const mergedAlises = _.uniqBy((current.aliases || []).concat(result.aliases || []), 'id')
         const providers = _.uniqBy((current.providers || []).concat(result.providers || []), 'name')
-        const modules = _.uniqBy(getFlattenedModules(current).concat(result.modules || []), 'name')
+        const {modules, aliases} = mergeModules(getFlattenedModules(current), result.modules || [], mergedAlises)
         const boms = _.uniqBy(getBoms(current).concat(result.boms || []), 'name')
 
         return {kind: catalogKind, apiVersion: catalogApiV2Version, aliases, providers, modules, boms}
@@ -117,4 +118,32 @@ const catalogFromModule = (inputYaml: CustomResourceDefinition): CatalogV2Model 
   }
 
   return {kind: catalogKind, apiVersion: catalogApiV2Version, modules, boms: []}
+}
+
+const mergeModules = (newModules: Module[], baseModules: Module[], aliases: ModuleIdAlias[] = []): {modules: Module[], aliases: ModuleIdAlias[]} => {
+
+  const modules = _.uniqWith(newModules.concat(baseModules), (a: Module, b: Module) => {
+    const match = a.name === b.name
+
+    if (match) {
+      ArrayUtil.of(aliases)
+        .filter(alias => alias.id === a.id)
+        .first()
+        .map<ModuleIdAlias>(alias => Object.assign(alias, {id: b.id, aliases: alias.aliases.concat([a.id])}))
+        .orElseGet(() => {
+          const newAlias = {
+            id: b.id,
+            aliases: [a.id]
+          }
+
+          aliases.push(newAlias)
+
+          return newAlias
+        })
+    }
+
+    return match
+  })
+
+  return {modules, aliases: aliases}
 }
