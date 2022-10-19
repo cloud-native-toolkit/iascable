@@ -1,6 +1,6 @@
 import {LoggerApi} from '../util/logger';
 import {Container} from 'typescript-ioc';
-import _ from 'lodash';
+import cloneDeep from 'lodash.clonedeep';
 
 import {
   Module,
@@ -182,7 +182,7 @@ export class Catalog implements CatalogV2Model {
     return ofArray(this.providers)
       .filter((p: CatalogProviderModel) => p.name === provider.name && p.source === provider.source)
       .first()
-      .map(p => _.cloneDeep(p))
+      .map(p => cloneDeep(p))
   }
 
   async lookupBOM({name, version}: {name: string, version?: string}): Promise<BillOfMaterialModel | SolutionModel | undefined> {
@@ -216,7 +216,7 @@ export class Catalog implements CatalogV2Model {
 
     this.logger.debug('  Found matching module: ', {result})
 
-    return _.cloneDeep(result)
+    return cloneDeep(result)
   }
 
   findModulesWithInterface(interfaceId: string): Module[] {

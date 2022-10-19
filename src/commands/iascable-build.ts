@@ -3,7 +3,7 @@ import {Arguments, Argv} from 'yargs';
 import {fchmod, promises} from 'fs';
 import {default as jsYaml} from 'js-yaml';
 import {dirname, join} from 'path';
-import _ from 'lodash';
+import uniq from 'lodash.uniq';
 
 import {IascableInput} from './inputs/iascable.input';
 import {CommandLineInput} from './inputs/command-line.input';
@@ -164,7 +164,7 @@ const loadCatalogUrls = (boms: CustomResourceDefinition[], inputUrls: string[]):
     .reduce((previous: string[], current: string[]) => {
       const result = previous.concat(current)
 
-      return _.uniq(result)
+      return uniq(result)
     }, inputUrls)
 }
 
