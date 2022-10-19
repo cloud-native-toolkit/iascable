@@ -172,15 +172,15 @@ export class CatalogBuilder implements IascableApi {
       tile,
       graph: new DotGraphFile(graph),
       supportingFiles: [
-        new UrlFile({name: 'apply.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/iascable/main/scripts/apply.sh', type: OutputFileType.executable}),
-        new UrlFile({name: 'destroy.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/iascable/main/scripts/destroy.sh', type: OutputFileType.executable}),
+        new UrlFile({name: 'apply.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/apply-terragrunt-variables.sh', type: OutputFileType.executable}),
+        new UrlFile({name: 'destroy.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/destroy-terragrunt.sh', type: OutputFileType.executable}),
       ]
     });
 
     return new IascableBundleImpl({
       results: [result],
       supportingFiles: [
-        new UrlFile({name: 'launch.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/iascable/main/scripts/launch.sh', type: OutputFileType.executable})
+        new UrlFile({name: 'launch.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/launch.sh', type: OutputFileType.executable})
       ]
     })
   }
@@ -468,7 +468,7 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
   }
 
   addSupportFiles(): void {
-    this.supportingFiles.push(new UrlFile({name: 'apply.sh', type: OutputFileType.executable, url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/apply-all-terragrunt.sh'}))
+    this.supportingFiles.push(new UrlFile({name: 'apply.sh', type: OutputFileType.executable, url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/apply-all-terragrunt-variables.sh'}))
     this.supportingFiles.push(new UrlFile({name: 'destroy.sh', type: OutputFileType.executable, url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/destroy-all-terragrunt.sh'}))
   }
 
