@@ -1,3 +1,4 @@
+// @ts-ignore
 import {Observable, Subject} from 'rxjs';
 import {Container} from 'typescript-ioc';
 import {load} from 'js-yaml';

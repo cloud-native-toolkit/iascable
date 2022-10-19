@@ -3,6 +3,7 @@ import {Container} from 'typescript-ioc';
 import {createWriteStream, WriteStream, promises} from 'fs';
 import {join} from 'path';
 import {dump} from 'js-yaml';
+// @ts-ignore
 import {Observable} from 'rxjs';
 
 import {CommandLineInput} from './inputs/command-line.input';
