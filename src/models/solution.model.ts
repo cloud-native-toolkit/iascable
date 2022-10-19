@@ -1,5 +1,6 @@
 import {dump} from 'js-yaml';
-import _ from 'lodash';
+import cloneDeep from 'lodash.clonedeep';
+import unionBy from 'lodash.unionby';
 
 import {KubernetesResource, ResourceMetadata} from './crd.model';
 import {catalogApiV2Version} from './catalog.model';
@@ -61,8 +62,8 @@ export class Solution implements SolutionModel {
   readonly marker: string = 'solution'
 
   constructor(model: SolutionModel, name: string = 'solution') {
-    this.metadata = _.cloneDeep(model.metadata || {name})
-    this.spec = _.cloneDeep(model.spec)
+    this.metadata = cloneDeep(model.metadata || {name})
+    this.spec = cloneDeep(model.spec)
 
     this.original = model
   }
@@ -85,7 +86,7 @@ export class Solution implements SolutionModel {
     this.spec.variables = this._terraform
       .map(getTerraformVariables)
       .reduce(
-        (result: BillOfMaterialVariable[], current: BillOfMaterialVariable[]) => _.unionBy(current, result, 'name'),
+        (result: BillOfMaterialVariable[], current: BillOfMaterialVariable[]) => unionBy(current, result, 'name'),
         this.spec.variables || []
       )
       .sort((a, b): number => {

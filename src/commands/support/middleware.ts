@@ -1,4 +1,4 @@
-import _ from 'lodash'
+import uniq from 'lodash.uniq';
 
 export const DEFAULT_CATALOG_URLS = [
   'https://modules.cloudnativetoolkit.dev/index.yaml',
@@ -14,7 +14,7 @@ export const setupCatalogUrls = (defaultCatalogUrls: string[] = DEFAULT_CATALOG_
     if (catalogUrls) {
       const newCatalogUrls: string[] = defaultCatalogUrls.concat(catalogUrls)
 
-      result.catalogUrls = _.uniq(newCatalogUrls)
+      result.catalogUrls = uniq(newCatalogUrls)
     }
 
     return result

@@ -1,6 +1,7 @@
 import {Container, Inject} from 'typescript-ioc';
 import {join} from 'path';
-import _ from 'lodash'
+import uniq from 'lodash.uniq';
+import uniqBy from 'lodash.uniqby';
 
 import {
   IascableApi,
@@ -239,13 +240,13 @@ const applyVersionsToBomModules = (billOfMaterial: BillOfMaterialModel, modules:
 
 const applyAnnotationsToBom = (billOfMaterial: BillOfMaterialModel, modules: SingleModuleVersion[]): BillOfMaterialModel => {
 
-  const provides: string[] = _.uniq(modules
+  const provides: string[] = uniq(modules
     .map(extractProvidedCapabilities)
     .reduce(
       flatten,
       extractProvidedCapabilitiesFromBom(billOfMaterial)
     ))
-  const needs: string[] = _.uniq(modules
+  const needs: string[] = uniq(modules
     .map(extractNeededCapabilities(provides))
     .reduce(
       flatten,
@@ -339,11 +340,11 @@ const mergeBillOfMaterialModule = (module: string | BillOfMaterialModule, module
 
 const mergeIascableBundles = (bundle: IascableBundle, current: IascableBundle): IascableBundle => {
 
-  const results: Array<IascableBomResult | IascableSolutionResult> = _.uniqBy(
+  const results: Array<IascableBomResult | IascableSolutionResult> = uniqBy(
     current.results.concat(...bundle.results),
     (result: IascableBomResult | IascableSolutionResult) => getBomPath(result.billOfMaterial))
 
-  const supportingFiles: OutputFile[] = _.uniqBy(
+  const supportingFiles: OutputFile[] = uniqBy(
     current.supportingFiles.concat(...bundle.supportingFiles),
     (file: OutputFile) => file.name
   )
@@ -557,14 +558,14 @@ const fileType = (type: string): OutputFileType | undefined => {
 }
 
 const hasUnmetClusterNeed = (bundle: IascableBundle): boolean => {
-  const needs: string[] = _.uniq(
+  const needs: string[] = uniq(
     bundle.results
       .map(result => result.billOfMaterial)
       .map(bom => extractNeededCapabilitiesFromBom(bom))
       .reduce(flatten, [])
   )
 
-  const provides: string[] = _.uniq(
+  const provides: string[] = uniq(
     bundle.results
       .map(result => result.billOfMaterial)
       .map(bom => extractProvidedCapabilitiesFromBom(bom))
