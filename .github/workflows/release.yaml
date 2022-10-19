@@ -63,6 +63,7 @@ jobs:
           config-name: release-drafter.yaml
           publish: false
           prerelease: false
+          filter-by-commitish: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -89,5 +90,6 @@ jobs:
           config-name: release-drafter.yaml
           publish: true
           prerelease: false
+          filter-by-commitish: true
         env:
           GITHUB_TOKEN: ${{ secrets.TOKEN }}
