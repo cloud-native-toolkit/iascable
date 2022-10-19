@@ -2,7 +2,8 @@ import {Container} from 'typescript-ioc';
 import {promises} from 'fs';
 import {default as superagent, Response} from 'superagent';
 import {JSON_SCHEMA, load} from 'js-yaml';
-import _ from 'lodash';
+import uniqBy from 'lodash.uniqby';
+import uniqWith from 'lodash.uniqwith';
 
 import {
   BillOfMaterialEntry,
@@ -89,10 +90,10 @@ const mergeCatalogs = (baseCatalog: CatalogModel, newCatalog: CatalogModel): Cat
     .reduce(
       (result: CatalogV2Model, current: CatalogModel) => {
 
-        const mergedAlises = _.uniqBy((current.aliases || []).concat(result.aliases || []), 'id')
-        const providers = _.uniqBy((current.providers || []).concat(result.providers || []), 'name')
+        const mergedAlises = uniqBy((current.aliases || []).concat(result.aliases || []), 'id')
+        const providers = uniqBy((current.providers || []).concat(result.providers || []), 'name')
         const {modules, aliases} = mergeModules(getFlattenedModules(current), result.modules || [], mergedAlises)
-        const boms = _.uniqBy(getBoms(current).concat(result.boms || []), 'name')
+        const boms = uniqBy(getBoms(current).concat(result.boms || []), 'name')
 
         return {kind: catalogKind, apiVersion: catalogApiV2Version, aliases, providers, modules, boms}
       },
@@ -120,7 +121,7 @@ const catalogFromModule = (inputYaml: CustomResourceDefinition): CatalogV2Model 
 
 const mergeModules = (newModules: Module[], baseModules: Module[], aliases: ModuleIdAlias[] = []): {modules: Module[], aliases: ModuleIdAlias[]} => {
 
-  const modules = _.uniqWith(newModules.concat(baseModules), (a: Module, b: Module) => {
+  const modules = uniqWith(newModules.concat(baseModules), (a: Module, b: Module) => {
     const match = a.name === b.name
 
     if (match) {
