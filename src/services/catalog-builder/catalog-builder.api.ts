@@ -1,3 +1,4 @@
+// @ts-ignore
 import {Observable} from 'rxjs'
 import {BillOfMaterialEntry, Module, ModuleIdAlias, ModuleProvider} from '../../models';
 
