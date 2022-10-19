@@ -19,7 +19,7 @@ If you would like to install a different version of the CLI and/or put it in a d
 curl -sL https://iascable.cloudnativetoolkit.dev/install.sh | RELEASE=2.15.1 DEST_DIR=~/bin sh
 ```
 
-**Note**:
+#### Install beta version
 
 If you would like to install the latest beta release of the cli, use the following:
 
