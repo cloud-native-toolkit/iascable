@@ -51,7 +51,7 @@ The Iascable cli can be added to any npm application using the normal `npm insta
 npm install --save iascable
 ```
 
-**Note:**
+### Install beta
 
 If you want to install the `beta` release of the cli, include the dist-tag with the package name. E.g.:
 
