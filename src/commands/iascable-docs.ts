@@ -8,7 +8,7 @@ import {IascableDocsInput} from './inputs/iascable.input';
 import {ModuleDoc} from '../models';
 import {IascableApi} from '../services';
 import {LoggerApi} from '../util/logger';
-import {DEFAULT_CATALOG_URL, setupCatalogUrls} from './support/middleware';
+import {DEFAULT_CATALOG_URLS, setupCatalogUrls} from './support/middleware';
 
 export const command = 'docs [module]';
 export const desc = 'Produces the documentation for a given module';
@@ -21,7 +21,7 @@ export const builder = (yargs: Argv<any>) => {
       alias: 'c',
       type: 'array',
       description: 'The url of the module catalog. Can be https:// or file:/ protocol. This argument can be passed multiple times to include multiple catalogs.',
-      default: 'https://modules.cloudnativetoolkit.dev/index.yaml'
+      default: DEFAULT_CATALOG_URLS
     })
     .option('outDir', {
       alias: 'o',
@@ -36,7 +36,7 @@ export const builder = (yargs: Argv<any>) => {
       default: false,
       type: 'boolean'
     })
-    .middleware(setupCatalogUrls(DEFAULT_CATALOG_URL))
+    .middleware(setupCatalogUrls(DEFAULT_CATALOG_URLS))
     .option('debug', {
       type: 'boolean',
       describe: 'Flag to turn on more detailed output message',

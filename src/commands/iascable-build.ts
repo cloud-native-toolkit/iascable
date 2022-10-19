@@ -9,7 +9,8 @@ import {IascableInput} from './inputs/iascable.input';
 import {CommandLineInput} from './inputs/command-line.input';
 import {
   BillOfMaterialModel,
-  isTileConfig, OutputFile,
+  isTileConfig,
+  OutputFile,
   OutputFileType,
   TerraformComponent,
   Tile,
@@ -17,15 +18,19 @@ import {
 } from '../models';
 import {
   IascableApi,
+  IascableBundle,
   IascableOptions,
-  IascableResult,
+  IascableBomResult,
   loadBillOfMaterialFromFile,
   loadReferenceBom
 } from '../services';
 import {LoggerApi} from '../util/logger';
 import {DotGraphFile} from '../models/graph.model';
 import {chmodRecursive} from '../util/file-util';
-import {DEFAULT_CATALOG_URL, setupCatalogUrls} from './support/middleware';
+import {DEFAULT_CATALOG_URLS, setupCatalogUrls} from './support/middleware';
+import {SolutionModel} from '../models/solution.model';
+import {CustomResourceDefinition} from '../models/crd.model';
+import {BundleWriter, BundleWriterType, getBundleWriter} from '../util/bundle-writer';
 
 export const command = 'build';
 export const desc = 'Configure (and optionally deploy) the iteration zero assets';
@@ -35,7 +40,7 @@ export const builder = (yargs: Argv<any>) => {
       alias: 'c',
       type: 'array',
       description: 'The url of the module catalog. Can be https:// or file:/ protocol. This argument can be passed multiple times to include multiple catalogs.',
-      default: DEFAULT_CATALOG_URL
+      default: DEFAULT_CATALOG_URLS
     })
     .option('input', {
       alias: 'i',
@@ -56,6 +61,11 @@ export const builder = (yargs: Argv<any>) => {
       description: 'The base directory where the command output will be written',
       demandOption: false,
       default: './output'
+    })
+    .option('zipFile', {
+      alias: 'z',
+      description: 'The name of the zip file for the output. If not provided the files will be written to the filesystem',
+      demandOption: false,
     })
     .option('platform', {
       description: 'Filter for the platform (kubernetes or ocp4)',
@@ -88,7 +98,7 @@ export const builder = (yargs: Argv<any>) => {
       type: 'boolean',
       describe: 'Flag to turn on more detailed output message',
     })
-    .middleware(setupCatalogUrls(DEFAULT_CATALOG_URL))
+    .middleware(setupCatalogUrls(DEFAULT_CATALOG_URLS))
     .check((argv) => {
       if (!(argv.reference && argv.reference.length > 0) && !(argv.input && argv.input.length > 0)) {
         throw new Error('Bill of Materials not provided. Provide the path to the bill of material file with the -i or -r flag.')
@@ -98,13 +108,13 @@ export const builder = (yargs: Argv<any>) => {
     });
 };
 
-export const handler = async (argv: Arguments<IascableInput & CommandLineInput & {flattenOutput: boolean}>) => {
+export const handler = async (argv: Arguments<IascableInput & CommandLineInput & {flattenOutput: boolean, zipFile: string}>) => {
   process.env.LOG_LEVEL = argv.debug ? 'debug' : 'info';
 
   const cmd: IascableApi = Container.get(IascableApi);
   const logger: LoggerApi = Container.get(LoggerApi).child('build');
 
-  const boms: Array<BillOfMaterialModel> = await loadBoms(argv.reference, argv.input, argv.name);
+  const boms: Array<BillOfMaterialModel | SolutionModel> = await loadBoms(argv.reference, argv.input, argv.name);
 
   if ((argv.input || argv.reference) && !argv.prompt) {
     argv.ci = true;
@@ -115,24 +125,30 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput &
   const options: IascableOptions = buildCatalogBuilderOptions(argv);
 
   try {
-    const results: IascableResult[] = await cmd.buildBoms(catalogUrls, boms, options);
+    const result: IascableBundle = await cmd.buildBoms(catalogUrls, boms, options);
 
     const outputDir = argv.outDir || './output';
 
-    console.log(`Writing output to: ${outputDir}`)
-    for (let i = 0; i < results.length; i++) {
-      const result = results[i];
+    const writerType = argv.zipFile ? BundleWriterType.zip : BundleWriterType.filesystem
+    const output = argv.zipFile ? join(outputDir, argv.zipFile) : outputDir
 
-      await outputResult(outputDir, result, argv.flattenOutput);
-    }
+    console.log(`Writing output to: ${output}`)
+    const bundleWriter: BundleWriter = result.writeBundle(
+      getBundleWriter(writerType),
+      {flatten: argv.flattenOutput}
+    )
+
+    await bundleWriter.generate(output)
   } catch (err) {
     if (argv.debug) {
       logger.error('Error building config', {err})
+    } else {
+      console.error(`Error: ${err.message}`)
     }
   }
 };
 
-const getBomPath = (outputDir: string, bom: BillOfMaterialModel): string => {
+const getBomPath = (outputDir1: string, bom: BillOfMaterialModel): string => {
   const pathParts: string[] = [
     bom.metadata?.annotations?.path || '',
     bom.metadata?.name || 'component'
@@ -142,7 +158,7 @@ const getBomPath = (outputDir: string, bom: BillOfMaterialModel): string => {
   return join(...pathParts)
 }
 
-const loadCatalogUrls = (boms: BillOfMaterialModel[], inputUrls: string[]): string[] => {
+const loadCatalogUrls = (boms: CustomResourceDefinition[], inputUrls: string[]): string[] => {
   return boms
     .map(extractCatalogUrlsFromBom)
     .reduce((previous: string[], current: string[]) => {
@@ -152,14 +168,28 @@ const loadCatalogUrls = (boms: BillOfMaterialModel[], inputUrls: string[]): stri
     }, inputUrls)
 }
 
-const extractCatalogUrlsFromBom = (bom: BillOfMaterialModel): string[] => {
-  const catalogUrls: string = bom.metadata?.annotations?.catalogUrls || ''
+const extractCatalogUrlsFromBom = (bom: CustomResourceDefinition): string[] => {
+  const annotations: any = bom.metadata?.annotations || {}
 
-  return catalogUrls.split(',').filter(val => !!val)
+  const catalogUrls: string[] = Object.keys(annotations)
+    .filter(key => /^catalog[Uu]rl.*/.test(key))
+    .reduce((result: string[], key: string) => {
+      if (/^catalog[Uu]rl$/.test(key)) {
+        const urls = annotations[key].split(',').filter((val: string) => !!val)
+
+        result.push(...urls)
+      } else if (annotations[key]) {
+        result.push(annotations[key])
+      }
+
+      return result
+    }, [])
+
+  return catalogUrls
 }
 
-async function loadBoms(referenceNames?: string[], inputNames?: string[], names: string[] = []): Promise<Array<BillOfMaterialModel>> {
-  const boms: Array<BillOfMaterialModel> = [];
+async function loadBoms(referenceNames?: string[], inputNames?: string[], names: string[] = []): Promise<Array<BillOfMaterialModel | SolutionModel>> {
+  const boms: Array<BillOfMaterialModel | SolutionModel> = [];
 
   const bomNames: string[] = referenceNames && referenceNames.length > 0 ? referenceNames : inputNames as string[];
   const bomFunction = referenceNames && referenceNames.length > 0 ? loadReferenceBom : loadBillOfMaterialFromFile;
@@ -167,7 +197,7 @@ async function loadBoms(referenceNames?: string[], inputNames?: string[], names:
   for (let i = 0; i < bomNames.length; i++) {
     const name = names.length > i ? names[i] : ''
 
-    const bom: BillOfMaterialModel | undefined = await bomFunction(bomNames[i], name)
+    const bom: BillOfMaterialModel | SolutionModel | undefined = await bomFunction(bomNames[i], name)
 
     if (!bom) {
       throw new Error(`Unable to load BOM: ${bomNames[i]}`)
@@ -256,12 +286,12 @@ async function outputTile(rootPath: string, tile: Tile | undefined) {
   return promises.writeFile(join(rootPath, tile.file.name), await tile.file.contents);
 }
 
-async function outputResult(outputDir: string, result: IascableResult, flatten: boolean = false): Promise<void> {
+async function outputResult(outputDir: string, result: IascableBomResult, flatten: boolean = false): Promise<void> {
   const bomPath: string = getBomPath(outputDir, result.billOfMaterial)
   const rootPath: string = join(outputDir, bomPath)
 
-  await outputBillOfMaterial(rootPath, result.billOfMaterial);
   await outputTerraform(flatten ? rootPath : join(rootPath, 'terraform'), result.terraformComponent);
+  await outputBillOfMaterial(rootPath, result.billOfMaterial);
   await outputTile(rootPath, result.tile);
   await outputDependencyGraph(rootPath, result.graph)
   await outputScripts(outputDir, [

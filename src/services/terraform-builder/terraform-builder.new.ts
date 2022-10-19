@@ -102,7 +102,7 @@ export class TerraformBuilderNew implements TerraformBuilderApi {
     const baseVariables: IBaseVariable[] = this.processBaseVariables(terraform.baseVariables, billOfMaterial?.spec.variables)
     const baseOutputs: IBaseOutput[] = terraform.baseOutputs
 
-    const name: string | undefined = billOfMaterial?.metadata.name;
+    const name: string | undefined = billOfMaterial?.metadata?.name;
     return new TerraformComponent({
       stages: terraform.stages,
       baseVariables,

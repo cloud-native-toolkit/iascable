@@ -18,8 +18,10 @@ if ! command -v jq 1> /dev/null 2> /dev/null; then
   exit 1
 fi
 
-CREDENTIALS_PROPERTIES="credentials.properties"
-TERRAFORM_TFVARS="terraform/terraform.tfvars"
+CREDENTIALS_PROPERTIES="../credentials.properties"
+
+TERRAFORM_DIR=$(find . -name "main.tf" | grep -v ".terraform/modules" | sed -E 's~^./~~g' | sed -E 's~/main.tf$~~g')
+TERRAFORM_TFVARS="${TERRAFORM_DIR}/terraform.tfvars"
 
 if [[ -f "${TERRAFORM_TFVARS}" ]]; then
   cp "${TERRAFORM_TFVARS}" "${TERRAFORM_TFVARS}.backup"
@@ -111,8 +113,9 @@ done
 cp "${TMP_VARIABLES_FILE}" "${VARIABLES_FILE}"
 rm "${TMP_VARIABLES_FILE}"
 
-source credentials.properties
+# shellcheck source=../credentials.properties
+source "${CREDENTIALS_PROPERTIES}"
 
-cd terraform
+cd "${TERRAFORM_DIR}" || exit 1
 terraform init
 terraform apply

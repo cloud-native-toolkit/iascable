@@ -4,7 +4,7 @@ import {promises} from 'fs';
 import {join} from 'path';
 import {RemoteWithRefs, simpleGit} from 'simple-git';
 import {dump} from 'js-yaml';
-import {get} from 'superagent';
+import superagent from 'superagent';
 
 import {CommandLineInput} from './inputs/command-line.input';
 import {IascableGenerateInput} from './inputs/iascable.input';
@@ -178,7 +178,7 @@ const getLatestReleaseUrl = async (url: string): Promise<string> => {
 
   logger.info(`Getting latest release from url: ${url}`)
 
-  const location: string = await get(url)
+  const location: string = await superagent.get(url)
     .redirects(0)
     .then(resp => {
       return resp.headers['location']
