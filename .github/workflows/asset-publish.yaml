@@ -41,6 +41,17 @@ jobs:
           asset_name: iascable-linux-x64
           asset_content_type: application/octet-stream
 
+      - name: Upload Linux amd64 cli
+        id: upload-linux-amd64-cli
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./iascable-linux-x64
+          asset_name: iascable-linux-amd64
+          asset_content_type: application/octet-stream
+
       - name: Upload Linux cli
         id: upload-linux-cli
         uses: actions/upload-release-asset@v1
@@ -74,6 +85,17 @@ jobs:
           asset_name: iascable-macos-x64
           asset_content_type: application/octet-stream
 
+      - name: Upload MacOS amd64 cli
+        id: upload-macos-amd64-cli
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./iascable-macos-x64
+          asset_name: iascable-macos-amd64
+          asset_content_type: application/octet-stream
+
       - name: Upload MacOS cli
         id: upload-macos-cli
         uses: actions/upload-release-asset@v1
@@ -105,6 +127,17 @@ jobs:
           upload_url: ${{ github.event.release.upload_url }}
           asset_path: ./iascable-alpine-x64
           asset_name: iascable-alpine-x64
+          asset_content_type: application/octet-stream
+
+      - name: Upload Alpine amd64 cli
+        id: upload-alpine-amd64-cli
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: ./iascable-alpine-x64
+          asset_name: iascable-alpine-amd64
           asset_content_type: application/octet-stream
 
       - name: Upload Alpine cli

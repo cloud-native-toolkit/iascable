@@ -12,7 +12,19 @@ if ! command -v curl 1> /dev/null 2> /dev/null; then
   exit 1
 fi
 
-if [ -z "${RELEASE}" ]; then
+if [ "${RELEASE}" = "beta" ]; then
+  if ! command -v jq 1> /dev/null 2> /dev/null; then
+    echo "jq cli not found. It is required to get the latest beta release" >&2
+    exit 1
+  fi
+
+  RELEASE=$(curl -sL "https://api.github.com/repos/cloud-native-toolkit/iascable/releases" | jq -r 'map(select(.prerelease)) | first | .tag_name // empty')
+
+  if [ -z "${RELEASE}" ]; then
+    echo "Unable to find beta release" >&2
+    exit 1
+  fi
+elif [ -z "${RELEASE}" ]; then
   RELEASE=$(curl -sL "https://api.github.com/repos/cloud-native-toolkit/iascable/releases/latest" | grep tag_name | sed 's/"tag_name"//g' | sed 's/ //g' | sed 's/://g' | sed 's/,//g' | sed 's/"//g')
 fi
 
