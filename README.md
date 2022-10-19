@@ -19,6 +19,17 @@ If you would like to install a different version of the CLI and/or put it in a d
 curl -sL https://iascable.cloudnativetoolkit.dev/install.sh | RELEASE=2.15.1 DEST_DIR=~/bin sh
 ```
 
+**Note**:
+
+If you would like to install the latest beta release of the cli, use the following:
+
+```shell
+curl -sL https://iascable.cloudnativetoolkit.dev/install.sh | RELEASE=beta sh
+```
+
+If you would like to put the beta version of the cli in another directory you can provide a value for the DEST_DIR
+argument.
+
 ### Commands
 
 To build a Terraform template from a Bill of Materials, run the following command:
@@ -31,6 +42,22 @@ where:
 - `CATALOG_URL` is the url of the module catalog. The default module catalog is  https://modules.cloudnativetoolkit.dev/index.yaml. Multiple module catalogs can be provided. The catalogs are combined, with the last one taking precedence in the case of duplicate modules.
 - `BOM_INPUT` is the input file containing the Bill of Material definition. Multiple bom files can be provided at the same time.
 - `OUTPUT_DIR` is the directory where the output terraform template will be generated.
+
+## Library usage
+
+The Iascable cli can be added to any npm application using the normal `npm install` process:
+
+```shell
+npm install --save iascable
+```
+
+**Note:**
+
+If you want to install the `beta` release of the cli, include the dist-tag with the package name. E.g.:
+
+```shell
+npm install --save iascable@beta
+```
 
 ## Getting started
 
@@ -509,4 +536,36 @@ All of the source code can be found under the `src/` directory.
  - `npm run build`: Generate bundles and typings, create docs
  - `npm run lint`: Lints code
  - `npm run commit`: Commit using conventional commit style ([husky](https://github.com/typicode/husky) will tell you to use it if you haven't :wink:)
+
+## Creating a beta release
+
+Currently, the process of tagging a beta release is somewhat manual because the release-drafter action doesn't 
+handle calculating the version numbers across different branches with different naming schemes. In order to create a beta release,
+do the following:
+
+1. Check out the beta branch and pull the latest, if a beta branch does not exist (because we have merged the results) create a new beta branch off of main
+2. Create a branch for your changes
+3. Create a PR for your branch and set it to merge to `beta`
+4. In your branch changes, update the `version` value in package.json. Increment the base version 
+   number as appropriate (e.g. `2.5.2` to `2.6.0` or `3.0.0`) and add `-beta.x` to the end. The idea is
+   for the `x` in `-beta.x` to increment as updates to your beta changes are made.
+5. When your branch is ready, merge the PR into `beta`. (**Note**: this will not trigger an automatic release so you have an opportunity to make updates before the next step)
+6. Change to the beta branch and create an annotated tag on the beta branch that matches the version number in package.json.
+
+    ```shell
+    git tag -a v{version} -m {message}
+    ```
+
+    where:
+      - `{version}` is the version number in package.json
+      - `{message}` is a message about the release (e.g. the first line of the commit message)
+
+7. Push the tag to the remote
+
+    ```shell
+    git push --tags
+    ```
+
+8. In the browser, create a new release. Be sure to pick the tag you just created for the release tag and check the "pre-release" box. Provide the tag name as the release title and press the "Generate changelog"
+9. Once the release is created, it will trigger a workflow to push the new version to the npm registry and to attach the assets to the release.
 
