@@ -1,5 +1,9 @@
 import {default as jsYaml} from 'js-yaml';
+
+import {KubernetesResource, ResourceMetadata} from './crd.model';
+import {OutputFile} from './file.model';
 import {isSingleModuleVersion, Module, SingleModuleVersion} from './module.model';
+import {isSolutionModel, Solution, SolutionModel} from './solution.model';
 import {of, Optional} from '../util/optional';
 import {of as arrayOf} from '../util/array-util/array-util';
 import {BillOfMaterialParsingError} from '../errors';
@@ -54,7 +58,7 @@ export interface BillOfMaterialModuleByName extends BaseBillOfMaterialModule {
 
 export type BillOfMaterialModule = BillOfMaterialModuleById | BillOfMaterialModuleByName;
 
-export function isBillOfMaterialModule(module: string | BillOfMaterialModule): module is BillOfMaterialModule {
+export function isBillOfMaterialModule(module: any): module is BillOfMaterialModule {
   return !!module && (!!(module as BillOfMaterialModule).id || !!(module as BillOfMaterialModule).name);
 }
 
@@ -68,6 +72,7 @@ export function isBillOfMaterialModuleByName(module: string | BillOfMaterialModu
 
 export interface BillOfMaterialVariable {
   name: string;
+  description?: string;
   ref?: string;
   value?: string;
   alias?: string;
@@ -97,19 +102,6 @@ export interface BillOfMaterialSpec {
   variables?: BillOfMaterialVariable[];
   outputs?: BillOfMaterialOutput[];
   providers?: BillOfMaterialProvider[];
-}
-
-export interface ResourceMetadata {
-  name: string;
-  labels?: any;
-  annotations?: any;
-}
-
-export interface KubernetesResource<T = any> {
-  apiVersion: string;
-  kind: string;
-  metadata: ResourceMetadata;
-  spec: T;
 }
 
 export interface BillOfMaterialModel extends KubernetesResource<BillOfMaterialSpec> {
@@ -148,10 +140,8 @@ export class BillOfMaterial implements BillOfMaterialModel {
       .map(s => s.modules)
       .orElse([]);
 
-    const modules: BillOfMaterialModule[] = modulesOrIds
+    return modulesOrIds
       .map(m => isBillOfMaterialModule(m) ? m : {id: m});
-
-    return modules;
   }
 
   constructor(nameOrValue: string | Partial<BillOfMaterialModel> = {}, name?: string) {
@@ -201,15 +191,26 @@ export class BillOfMaterial implements BillOfMaterialModel {
   }
 }
 
-export function billOfMaterialFromYaml(bomYaml: string | Buffer, name?: string): BillOfMaterialModel {
+export function billOfMaterialFromYaml(bomYaml: string | Buffer, name?: string): BillOfMaterialModel | SolutionModel {
   try {
     const content: any = jsYaml.load(bomYaml.toString());
-    if (!isBillOfMaterialModel(content)) {
-      throw new Error('Yaml is not a BOM model');
+    if (isBillOfMaterialModel(content)) {
+      return new BillOfMaterial(content, name);
+    } else if (isSolutionModel(content)) {
+      return new Solution(content, name);
     }
-
-    return new BillOfMaterial(content, name);
   } catch (err) {
     throw new BillOfMaterialParsingError(bomYaml.toString());
+  }
+
+  throw new Error('Yaml is not a BOM or SolutionBOM model');
+}
+
+export class BillOfMaterialFile implements OutputFile {
+  constructor(private model: BillOfMaterialModel, public readonly name: string = 'bom.yaml') {
+  }
+
+  get contents(): Promise<string | Buffer> {
+    return Promise.resolve(jsYaml.dump(this.model))
   }
 }
