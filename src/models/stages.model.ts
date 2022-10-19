@@ -13,10 +13,11 @@ import {Module, ModuleProvider, SingleModuleVersion} from './module.model';
 import {BillOfMaterialModel, BillOfMaterialVariable} from './bill-of-material.model';
 import {ArrayUtil, of as arrayOf} from '../util/array-util/array-util';
 import {Optional} from '../util/optional';
-import {isDefinedAndNotNull} from '../util/object-util';
+import {isDefined, isDefinedAndNotNull} from '../util/object-util';
 import {ModuleDocumentationApi} from '../services/module-documentation';
 import {Container} from 'typescript-ioc';
 import {CatalogV2Model} from './catalog.model';
+import {TerragruntLayer} from './terragrunt.model';
 
 export * from './module.model';
 
@@ -38,6 +39,7 @@ export interface TerraformComponentModel {
   modules?: SingleModuleVersion[];
   providers?: TerraformProvider[];
   billOfMaterial?: BillOfMaterialModel;
+  terragrunt?: TerragruntLayer;
   files: OutputFile[];
   catalog: CatalogV2Model;
 }
@@ -257,40 +259,48 @@ export class TerraformComponent implements TerraformComponentModel {
   modules?: SingleModuleVersion[];
   providers?: TerraformProvider[];
   billOfMaterial?: BillOfMaterialModel;
+  terragrunt?: TerragruntLayer;
+  tfvarsFile: TerraformTfvarsFile;
   catalog!: CatalogV2Model;
-  readonly files: OutputFile[];
 
   constructor(model: TerraformComponentModel, private name: string | undefined) {
     Object.assign(this as TerraformComponentModel, model);
 
-    const tfvarsFile = new TerraformTfvarsFile(this.baseVariables, this.bomVariables, this.name);
+    this.tfvarsFile = new TerraformTfvarsFile(this.baseVariables, this.bomVariables, this.name);
 
     if (this.billOfMaterial) {
-      const bomVariables: BillOfMaterialVariable[] = tfvarsFile.variables.map(v => Object.assign(
+      const bomVariables: BillOfMaterialVariable[] = this.tfvarsFile.variables.map(v => Object.assign(
         {
           name: v.name,
         },
         isDefinedAndNotNull(v.type) ? {type: v.type} : {},
         isDefinedAndNotNull(v.description) ? {description: v.description} : {},
-        isDefinedAndNotNull(v.defaultValue) ? {defaultValue: v.defaultValue} : {},
+        isDefinedAndNotNull(v.defaultValue) ? {value: v.defaultValue} : {},
         isDefinedAndNotNull((v as any).sensitive || (v as any).variable?.sensitive) ? {sensitive: (v as any).sensitive || (v as any).variable?.sensitive} : {}
       ))
-      const bomSpec = Object.assign({}, this.billOfMaterial.spec, {variables: bomVariables})
+      const bomSpec = Object.assign(this.billOfMaterial.spec, {variables: bomVariables})
 
-      this.billOfMaterial = Object.assign({}, this.billOfMaterial, {spec: bomSpec})
+      this.billOfMaterial = Object.assign(this.billOfMaterial, {spec: bomSpec})
     }
+  }
 
-    const files: Array<OutputFile | undefined> = [
+  get files(): OutputFile[] {
+    return [
       new TerraformStageFile(this.stages),
       new TerraformVariablesFile(this.baseVariables, this.bomVariables),
       new TerraformOutputFile(this.baseOutputs),
       this.providers !== undefined && this.providers.length > 0 ? new TerraformProvidersFile(this.providers) : undefined,
       this.providers !== undefined && this.providers.length > 0 ? new TerraformVersionFile(this.providers) : undefined,
-      tfvarsFile,
+      this.terragrunt,
+      this.tfvarsFile,
       ...buildModuleReadmes(this.catalog, this.modules),
-    ];
+    ]
+      .filter(isDefined)
+      .map(v => v as OutputFile)
+  }
 
-    this.files = files.filter(f => f !== undefined) as OutputFile[];
+  set files(files: OutputFile[]) {
+    // nothing to do
   }
 }
 
@@ -391,7 +401,7 @@ ${indent}}
   }
 
   variablesAsString(stages: {[name: string]: {name: string}}, indent: string = '  '): string {
-    const variableString: string = this.variables
+    return this.variables
       .filter(v => !!v)
       .sort((a: BaseVariable, b: BaseVariable) => a.name.localeCompare(b.name))
       .map(v => fromBaseVariable(v))
@@ -406,7 +416,5 @@ ${indent}}
       })
       .map(variable => indent + variable.asString(stages))
       .join('\n');
-
-    return variableString;
   }
 }

@@ -15,6 +15,8 @@ import {
 } from '../../errors';
 import {isDefinedAndNotNull, isUndefined} from '../../util/object-util';
 import {of as arrayOf} from '../../util/array-util/array-util';
+import {SolutionModel} from '../../models/solution.model';
+import {loadFile} from '../../util/file-util';
 
 export function buildBomVariables(bomVariableYaml: string): BillOfMaterialVariable[] {
   if (!bomVariableYaml) {
@@ -72,7 +74,7 @@ export async function loadReferenceBom(name: string, newName?: string): Promise<
   const nameMatcher = new RegExp(name + '.*', 'ig');
 
   return arrayOf(boms)
-    .filter(bom => nameMatcher.test(bom.metadata?.name))
+    .filter(bom => nameMatcher.test(bom.metadata?.name || ''))
     .first()
     .map(bom => {
       return Object.assign(
@@ -82,7 +84,7 @@ export async function loadReferenceBom(name: string, newName?: string): Promise<
           metadata: Object.assign(
             {},
             bom.metadata,
-            {name: newName || bom.metadata.name}
+            {name: newName || bom.metadata?.name}
           )
         }
       );
@@ -106,13 +108,8 @@ export async function loadReferenceBoms(): Promise<BillOfMaterialModel[]> {
   );
 }
 
-export async function loadBillOfMaterialFromFile(input?: string, name?: string): Promise<BillOfMaterialModel | undefined> {
-
-  async function loadInput(input: string, name?: string): Promise<BillOfMaterialModel> {
-    const buffer: Buffer = await promises.readFile(input);
-
-    return billOfMaterialFromYaml(buffer, name);
-  }
-
-  return input ? loadInput(input, name) : new BillOfMaterial(name);
+export async function loadBillOfMaterialFromFile(input?: string, name?: string): Promise<BillOfMaterialModel | SolutionModel | undefined> {
+  return input
+    ? loadFile(input).then(text => billOfMaterialFromYaml(text, name))
+    : new BillOfMaterial(name);
 }
