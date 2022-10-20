@@ -13,7 +13,7 @@ import {BillOfMaterialModel, BillOfMaterialModule} from './bill-of-material.mode
 import {ArrayUtil, of as ofArray} from '../util/array-util/array-util';
 import {Optional} from '../util/optional';
 import {findMatchingVersions} from '../util/version-resolver';
-import {CustomResourceDefinition} from './crd.model';
+import {CustomResourceDefinition, ResourceMetadata} from './crd.model';
 import {flatten} from '../util/array-util';
 import {BillOfMaterialNotFound, BillOfMaterialVersionNotFound} from '../errors';
 import {loadBillOfMaterialFromFile} from '../services';
@@ -55,6 +55,8 @@ export interface BillOfMaterialEntry {
   description: string;
   tags: string[];
   category: string;
+  subCategory: string;
+  iconUrl: string;
   type: string;
   cloudProvider?: string;
   versions: BillOfMaterialVersion[];
@@ -65,6 +67,7 @@ export interface CatalogV2Model extends CustomResourceDefinition {
   providers?: CatalogProviderModel[];
   aliases?: ModuleIdAlias[];
   boms: BillOfMaterialEntry[];
+  metadata?: CatalogV2Metadata;
 }
 
 export interface CatalogV1Model extends CustomResourceDefinition {
@@ -77,6 +80,28 @@ export interface CatalogFilter {
   platform?: string;
   provider?: string;
   modules?: BillOfMaterialModule[];
+}
+
+export interface CatalogV2MetadataItem {
+  name: string;
+  displayName: string;
+  description: string;
+  iconUrl: string;
+}
+
+export interface UseCaseMetadata extends CatalogV2MetadataItem {
+  flavor: string;
+}
+export interface CloudProviderMetadata extends CatalogV2MetadataItem {}
+export interface FlavorMetadata extends CatalogV2MetadataItem {}
+export interface UseCaseMetadata extends CatalogV2MetadataItem {
+  flavor: string;
+}
+
+export interface CatalogV2Metadata extends ResourceMetadata {
+  cloudProviders?: CloudProviderMetadata[]
+  useCases?: UseCaseMetadata[]
+  flavors?: FlavorMetadata[]
 }
 
 function determineModuleProvider(module: Module) {
@@ -134,6 +159,7 @@ export class Catalog implements CatalogV2Model {
 
   public readonly apiVersion: string = catalogApiV2Version;
   public readonly kind: string = catalogKind;
+  public readonly metadata?: CatalogV2Metadata;
   public readonly modules: Module[];
   public readonly providers: CatalogProviderModel[];
   public readonly filterValue?: {platform?: string, provider?: string};
@@ -148,7 +174,8 @@ export class Catalog implements CatalogV2Model {
     this.boms = isCatalogV2Model(values) ? values.boms : []
 
     this.moduleIdAliases = values.aliases || [];
-    this.flattenedAliases = denormalizeModuleIdAliases(values.aliases)
+    this.flattenedAliases = denormalizeModuleIdAliases(values.aliases);
+    this.metadata = values.metadata;
 
     this.logger = Container.get(LoggerApi).child('Catalog');
   }
