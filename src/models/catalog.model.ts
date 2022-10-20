@@ -55,8 +55,8 @@ export interface BillOfMaterialEntry {
   description: string;
   tags: string[];
   category: string;
-  subCategory: string;
-  iconUrl: string;
+  subCategory?: string;
+  iconUrl?: string;
   type: string;
   cloudProvider?: string;
   versions: BillOfMaterialVersion[];
