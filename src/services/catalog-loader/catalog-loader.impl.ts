@@ -13,6 +13,7 @@ import {
   CatalogLoaderApi,
   CatalogModel,
   CatalogProviderModel,
+  CatalogV2Metadata,
   CatalogV2Model,
   getFlattenedModules,
   isCatalogKind, isCatalogV2Model, ModuleIdAlias
@@ -94,8 +95,15 @@ const mergeCatalogs = (baseCatalog: CatalogModel, newCatalog: CatalogModel): Cat
         const providers = uniqBy((current.providers || []).concat(result.providers || []), 'name')
         const {modules, aliases} = mergeModules(getFlattenedModules(current), result.modules || [], mergedAlises)
         const boms = uniqBy(getBoms(current).concat(result.boms || []), 'name')
-
-        return {kind: catalogKind, apiVersion: catalogApiV2Version, aliases, providers, modules, boms}
+        const metadata:CatalogV2Metadata = {
+          name: 'Merged Catalog',
+          ...result.metadata,
+          ...current.metadata,
+          cloudProviders: uniqBy((isCatalogV2Model(current)? current.metadata?.cloudProviders ?? [] : []).concat(result.metadata?.cloudProviders ?? []), 'name'),
+          flavors: uniqBy((isCatalogV2Model(current)? current.metadata?.flavors ?? [] : []).concat(result.metadata?.flavors ?? []), 'name'),
+          useCases: uniqBy((isCatalogV2Model(current)? current.metadata?.useCases ?? [] : []).concat(result.metadata?.useCases ?? []), 'name'),
+        };
+        return {kind: catalogKind, apiVersion: catalogApiV2Version, aliases, providers, modules, boms, metadata}
       },
       {} as CatalogV2Model
     )
