@@ -69,5 +69,5 @@ const outputResult = async (outputDir: string, moduleName: string, doc: ModuleDo
 
   console.log(`Writing readme for ${moduleName}: ${filename}`)
 
-  await promises.writeFile(filename, await doc.contents)
+  await promises.writeFile(filename, await doc.contents())
 }

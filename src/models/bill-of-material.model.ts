@@ -211,7 +211,7 @@ export class BillOfMaterialFile implements OutputFile {
   constructor(private model: BillOfMaterialModel, public readonly name: string = 'bom.yaml') {
   }
 
-  get contents(): Promise<string | Buffer> {
+  contents(): Promise<string | Buffer> {
     return Promise.resolve(jsYaml.dump(this.model))
   }
 }

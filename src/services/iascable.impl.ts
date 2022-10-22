@@ -20,7 +20,7 @@ import {
   BillOfMaterialModel,
   BillOfMaterialModule,
   BillOfMaterialModuleById,
-  BillOfMaterialModuleByName, CredentialsPropertiesFile,
+  BillOfMaterialModuleByName, BillOfMaterialVariable, CredentialsPropertiesFile,
   isBillOfMaterialModel,
   isBillOfMaterialModule,
   Module,
@@ -370,7 +370,7 @@ class IascableBundleImpl implements IascableBundle {
       result.writeBundle(baseWriter, options)
     })
 
-    writeFiles(baseWriter, this.supportingFiles)
+    writeFiles(baseWriter, this.supportingFiles, options)
 
     return baseWriter
   }
@@ -382,6 +382,7 @@ class IascableBomResultImpl implements IascableBomResult {
   supportingFiles: OutputFile[];
   graph?: DotGraphFile;
   tile?: Tile;
+  inSolution?: boolean;
 
   constructor(params: IascableBomResultBase) {
     this.billOfMaterial = params.billOfMaterial
@@ -396,7 +397,8 @@ class IascableBomResultImpl implements IascableBomResult {
 
     writeFiles(
       options.flatten ? writer : writer.folder('terraform'),
-      this.terraformComponent.files
+      this.terraformComponent.files,
+      options,
     )
 
     writeFiles(
@@ -405,10 +407,21 @@ class IascableBomResultImpl implements IascableBomResult {
         new BillOfMaterialFile(this.billOfMaterial),
         this.graph,
         this.tile?.file,
-      ]
+      ],
+      options,
     )
 
-    writeFiles(writer, this.supportingFiles)
+    writeFiles(writer, this.supportingFiles, options)
+
+    if (!this.inSolution) {
+      writeFiles(
+        writer, [
+          new CredentialsPropertiesFile({name: 'credentials.template', variables: this.terraformComponent.billOfMaterial?.spec.variables || [], template: true}),
+          new VariablesYamlFile({name: 'variables.template.yaml', variables: this.terraformComponent.billOfMaterial?.spec.variables || []})
+        ],
+        options
+      )
+    }
 
     return writer
   }
@@ -474,17 +487,13 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
   }
 
   addTerraformTfvars(): void {
-    const terraformVariables = this.billOfMaterial.spec.variables
+    const terraformVariables: BillOfMaterialVariable[] = this.billOfMaterial.spec.variables
       .filter(v => !v.sensitive)
-      .map(v => new TerraformVariableImpl(Object.assign({defaultValue: v.value}, v)))
-    const sensitiveVariables = this.billOfMaterial.spec.variables
+    const sensitiveVariables: BillOfMaterialVariable[] = this.billOfMaterial.spec.variables
       .filter(v => v.sensitive)
-      .map(v => new TerraformVariableImpl(Object.assign({defaultValue: v.value}, v)))
-
-    const originalVariables = this._solution.original.spec.variables
 
     this.supportingFiles.push(...[
-      new CredentialsPropertiesFile({variables: sensitiveVariables, name: 'credentials.template', template: true}),
+      new CredentialsPropertiesFile({name: 'credentials.template', variables: sensitiveVariables, template: true}),
       new VariablesYamlFile({name: 'variables.template.yaml', variables: terraformVariables})
     ])
   }
@@ -514,21 +523,21 @@ const getBomPath = (bom: CustomResourceDefinition, defaultName: string = 'compon
   return join(...pathParts)
 }
 
-const writeFiles = (writer: BundleWriter, files: Array<OutputFile | undefined> = []) => {
+const writeFiles = (writer: BundleWriter, files: Array<OutputFile | undefined> = [], options?: {flatten?: boolean}) => {
   files
     .filter(f => isDefinedAndNotNull(f))
     .map(f => f as OutputFile)
-    .forEach(writeFilesWithWriter(writer))
+    .forEach(writeFilesWithWriter(writer, options))
 }
 
-const writeFilesWithWriter = (writer: BundleWriter) => {
+const writeFilesWithWriter = (writer: BundleWriter, options?: {flatten?: boolean}) => {
   return (file: OutputFile) => {
-    writeFile(writer, file)
+    writeFile(writer, file, options)
   }
 }
 
-const writeFile = (writer: BundleWriter, file: OutputFile) => {
-  writer.file(file.name, file.contents, {executable: file.type === OutputFileType.executable})
+const writeFile = (writer: BundleWriter, file: OutputFile, options?: {flatten?: boolean}) => {
+  writer.file(file.name, file.contents(options), {executable: file.type === OutputFileType.executable})
 }
 
 const handleBomLookupResult = (result: Array<BillOfMaterialModel | SolutionModel | SolutionLayerNotFound>): Array<BillOfMaterialModel> => {
@@ -582,10 +591,16 @@ const hasUnmetClusterNeed = (bundle: IascableBundle): boolean => {
 }
 
 const bomBundleToSolutionBundle = (solution: Solution, bundle: IascableBundle): IascableBundle => {
-  const results: IascableBomResult[] = bundle.results.filter(isIascableBomResult)
-  const solutionResults: IascableSolutionResult[] = bundle.results.filter(isIascableSolutionResult)
+  const results: IascableBomResult[] = bundle.results
+    .filter(isIascableBomResult)
+    .map(r => Object.assign(r, {inSolution: true}))
+  const solutionResults: IascableSolutionResult[] = bundle.results
+    .filter(isIascableSolutionResult)
 
   solutionResults.push(new IascableSolutionResultImpl({billOfMaterial: solution, results}))
 
-  return new IascableBundleImpl({results: solutionResults, supportingFiles: bundle.supportingFiles})
+  return new IascableBundleImpl({
+    results: solutionResults,
+    supportingFiles: bundle.supportingFiles
+  })
 }

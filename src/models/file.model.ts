@@ -12,7 +12,7 @@ export enum OutputFileType {
 export interface OutputFile {
   name: string;
   type?: OutputFileType;
-  readonly contents: Promise<string | Buffer>;
+  contents(options?: {flatten?: boolean}): Promise<string | Buffer>;
 }
 
 export class SimpleFile implements OutputFile {
@@ -26,7 +26,7 @@ export class SimpleFile implements OutputFile {
     this._contents = contents
   }
 
-  get contents(): Promise<string | Buffer> {
+  contents(): Promise<string | Buffer> {
     return Promise.resolve(this._contents)
   }
 }
@@ -44,7 +44,7 @@ export class UrlFile implements OutputFile {
     this._alternative = alternative;
   }
 
-  get contents(): Promise<string | Buffer> {
+  contents(): Promise<string | Buffer> {
     return loadFile(this.url).catch(() => this._alternative())
   }
 }
