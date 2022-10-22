@@ -24,12 +24,13 @@ import {
   isBillOfMaterialModel,
   isBillOfMaterialModule,
   Module,
-  ModuleDoc,
   OutputFile,
   OutputFileType,
   SimpleFile,
   SingleModuleVersion,
-  TerraformComponent, TerraformTfvarsFile, TerraformVariableImpl,
+  TerraformComponent,
+  TerraformTfvarsFile,
+  TerraformVariableImpl,
   Tile,
   UrlFile, VariablesYamlFile
 } from '../models';
@@ -59,8 +60,14 @@ import {
 import {BundleWriter} from '../util/bundle-writer';
 import {isDefined, isDefinedAndNotNull} from '../util/object-util';
 import {flatten} from '../util/array-util';
-import {CustomResourceDefinition, getAnnotation, ResourceMetadata} from '../models/crd.model';
+import {
+  CustomResourceDefinition,
+  getAnnotation,
+  getLabel,
+  ResourceMetadata
+} from '../models/crd.model';
 import {TerragruntBase, TerragruntLayer} from '../models/terragrunt.model';
+import {BomReadmeFile, SolutionBomReadmeFile} from './bom-documentation/bom-documentation.impl';
 
 export class CatalogBuilder implements IascableApi {
   @Inject
@@ -175,6 +182,7 @@ export class CatalogBuilder implements IascableApi {
       supportingFiles: [
         new UrlFile({name: 'apply.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/apply-terragrunt-variables.sh', type: OutputFileType.executable}),
         new UrlFile({name: 'destroy.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/destroy-terragrunt.sh', type: OutputFileType.executable}),
+        new BomReadmeFile(billOfMaterial, terraformComponent.modules),
       ]
     });
 
@@ -186,7 +194,7 @@ export class CatalogBuilder implements IascableApi {
     })
   }
 
-  async moduleDocumentation(catalogUrl: string | string[], moduleName: string, options?: IascableOptions): Promise<ModuleDoc> {
+  async moduleDocumentation(catalogUrl: string | string[], moduleName: string, options?: IascableOptions): Promise<OutputFile> {
     const catalog: Catalog = await this.loader.loadCatalog(catalogUrl);
 
     const module: Module | undefined = await catalog.lookupModule({name: moduleName})
@@ -314,30 +322,6 @@ const extractNeededCapabilities = (provides: string[]) => {
   }
 }
 
-const findModule = (m: string | BillOfMaterialModule, modules: SingleModuleVersion[]): SingleModuleVersion => {
-  const module: BillOfMaterialModule = isBillOfMaterialModule(m) ? m : {id: m};
-
-  return arrayOf(modules)
-    .filter(moduleVersion => {
-      return module.alias === moduleVersion.alias || module.name === moduleVersion.name || module.id === moduleVersion.id;
-    })
-    .first()
-    .orElseThrow(new Error('Unable to find module: ' + module.name));
-}
-
-const mergeBillOfMaterialModule = (module: string | BillOfMaterialModule, moduleVersion: SingleModuleVersion): BillOfMaterialModule => {
-  if (isBillOfMaterialModule(module)) {
-    return Object.assign({}, module, {version: moduleVersion.version.version});
-  }
-
-  const newModule: BillOfMaterialModule = {
-    id: module,
-    version: moduleVersion.version.version,
-  };
-
-  return newModule;
-}
-
 const mergeIascableBundles = (bundle: IascableBundle, current: IascableBundle): IascableBundle => {
 
   const results: Array<IascableBomResult | IascableSolutionResult> = uniqBy(
@@ -435,9 +419,9 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
   _solution: Solution;
   _boms: BillOfMaterialModel[];
 
-    constructor(params: IascableSolutionResultBase) {
-    this.billOfMaterial = params.billOfMaterial
+  constructor(params: IascableSolutionResultBase) {
     this.results = params.results
+    this.billOfMaterial = applyLayerVersions(params.billOfMaterial, this.results)
     this.supportingFiles = params.supportingFiles || []
 
     this._solution = Solution.fromModel(params.billOfMaterial)
@@ -484,6 +468,7 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
   addSupportFiles(): void {
     this.supportingFiles.push(new UrlFile({name: 'apply.sh', type: OutputFileType.executable, url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/apply-all-terragrunt-variables.sh'}))
     this.supportingFiles.push(new UrlFile({name: 'destroy.sh', type: OutputFileType.executable, url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/destroy-all-terragrunt.sh'}))
+    this.supportingFiles.push(new SolutionBomReadmeFile(this.billOfMaterial))
   }
 
   addTerraformTfvars(): void {
@@ -510,6 +495,39 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
     writeFiles(solutionWriter, this.supportingFiles)
 
     return solutionWriter
+  }
+}
+
+const applyLayerVersions = (bom: SolutionModel, bomResults: IascableBomResult[]): SolutionModel => {
+  const bomArray: ArrayUtil<IascableBomResult> = ArrayUtil.of(bomResults)
+
+  const layers: SolutionLayerModel[] = bom.spec.stack
+    .map(layer => {
+      const bomResult: Optional<IascableBomResult> = bomArray
+        .filter(matchIascableBomResult(layer.name))
+        .first()
+
+      if (!bomResult.isPresent()) {
+        return layer
+      }
+
+      const layerBom: BillOfMaterialModel = bomResult.map(result => result.billOfMaterial).get()
+
+      return Object.assign(layer, {
+        layer: getLabel(layerBom, 'type') || layer.layer,
+        description: getAnnotation(layerBom, 'description') || layer.description,
+        version: layerBom.spec.version
+      })
+    })
+
+  bom.spec.stack = layers
+
+  return bom
+}
+
+const matchIascableBomResult = (layerName: string) => {
+  return (result: IascableBomResult): boolean => {
+    return result.billOfMaterial.metadata?.name === layerName
   }
 }
 

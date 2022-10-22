@@ -66,5 +66,5 @@ export interface IascableOptions {
 export abstract class IascableApi {
   abstract build(catalogUrl: string, input?: BillOfMaterialModel, options?: IascableOptions): Promise<IascableBundle>;
   abstract buildBoms(catalogUrl: string | string[], input: Array<BillOfMaterialModel | SolutionModel>, options?: IascableOptions): Promise<IascableBundle>;
-  abstract moduleDocumentation(catalogUrl: string | string[], moduleName: string, options?: IascableOptions): Promise<ModuleDoc>;
+  abstract moduleDocumentation(catalogUrl: string | string[], moduleName: string, options?: IascableOptions): Promise<OutputFile>;
 }

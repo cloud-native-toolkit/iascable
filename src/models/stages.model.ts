@@ -1,5 +1,6 @@
-import {Container} from 'typescript-ioc';
 import {dump} from 'js-yaml';
+import {join} from 'path';
+import {Container} from 'typescript-ioc';
 
 import {
   BaseVariable,
@@ -14,7 +15,7 @@ import {
   TerraformVariable,
   TerraformVariableImpl
 } from './variables.model';
-import {OutputFile, OutputFileType, UrlFile} from './file.model';
+import {OutputFile, OutputFileType} from './file.model';
 import {Module, ModuleProvider, SingleModuleVersion} from './module.model';
 import {BillOfMaterialModel, BillOfMaterialVariable} from './bill-of-material.model';
 import {ArrayUtil, of as arrayOf} from '../util/array-util/array-util';
@@ -359,25 +360,32 @@ export class TerraformComponent implements TerraformComponentModel {
   }
 }
 
+class ModuleReadme implements OutputFile {
+  name: string;
+  type: OutputFileType = OutputFileType.documentation;
+
+  _docService: ModuleDocumentationApi = Container.get(ModuleDocumentationApi)
+  _module: SingleModuleVersion;
+  _catalog: CatalogV2Model;
+  _modules: SingleModuleVersion[];
+
+  constructor(module: SingleModuleVersion, catalog: CatalogV2Model, modules: SingleModuleVersion[] = [], name: string = 'README.md') {
+    this.name = name
+    this._module = module;
+    this._catalog = catalog;
+    this._modules = modules;
+  }
+
+  contents(): Promise<string | Buffer> {
+    const fullModule: Module = Object.assign({}, this._module, {versions: [this._module.version]})
+
+    return Promise.resolve(this._docService.generateDocumentation(fullModule, this._catalog, this._modules))
+      .then(readme => readme.contents())
+  }
+}
+
 function buildModuleReadmes(catalog: CatalogV2Model, modules: SingleModuleVersion[] = []): OutputFile[] {
-  const docService: ModuleDocumentationApi = Container.get(ModuleDocumentationApi)
-
-  return modules.map(module => {
-    const url: string = getModuleDocumentationUrl(module);
-
-    const fullModule: Module = Object.assign({}, module, {versions: [module.version]})
-
-    return new UrlFile({
-      name: `docs/${module.name}.md`,
-      type: OutputFileType.documentation,
-      url,
-      alternative: async () => {
-        const readme = await docService.generateDocumentation(fullModule, catalog, modules)
-
-        return readme.contents()
-      }
-    });
-  });
+  return modules.map(module => new ModuleReadme(module, catalog, modules, join('docs', `${module.name}.md`)))
 }
 
 function getModuleDocumentationUrl(module: SingleModuleVersion): string {

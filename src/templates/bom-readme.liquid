@@ -1,0 +1,47 @@
+{%- comment %} model: BomTemplateModel {% endcomment -%}
+# {{ name }}
+
+{{ description }}
+
+{%- if documentation %}
+{{ documentation }}
+{% endif %}
+
+{%- if diagram %}
+![Diagram]({{ diagram }})
+{% endif %}
+
+## Running the automation
+
+{%- if vpn %}
+### VPN information
+
+
+{%- endif %}
+
+## Contents
+
+### Modules
+{% for module in modules %}
+  {%- if forloop.first -%}
+| Name | Description | Version |
+|------|-------------|---------|
+  {%- endif %}
+| {% if module.url %}[{{ module.name }}]({{ module.url }}){% else %}{{ module.name }}{% endif %} | {{ module.description }} | {{ module.version }} |
+{%- else %}
+No variables
+{%- endfor %}
+
+### Variables
+{% for variable in variables %}
+  {%- if forloop.first -%}
+| Name | Description | Sensitive | Default value |
+|------|-------------|-----------|---------------|
+  {%- endif %}
+| {{ variable.name }} | {{ variable.description }} | {{ variable.sensitive }} | {{ variable.value }} |
+{%- else %}
+  No variables
+{%- endfor %}
+
+## Troubleshooting
+

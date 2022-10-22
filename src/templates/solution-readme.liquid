@@ -1,0 +1,51 @@
+{%- comment %} model: SolutionTemplateModel {% endcomment -%}
+# {{ name }}
+
+{{ description }}
+
+{%- if documentation %}
+
+{ documentation }}
+{%- endif %}
+
+{%- if diagram %}
+
+![Diagram]({{ diagram }})
+{%- endif %}
+
+## Running the automation
+
+{%- if vpn %}
+### VPN information
+
+
+{%- endif %}
+
+## Contents
+
+### Layers
+
+{% for layer in stack %}
+  {%- if forloop.first -%}
+| Name | Layer | Description | Version |
+|------|-------|-------------|---------|
+  {%- endif %}
+| [{{ layer.name }}](./{{ layer.name }}) | {{ layer.layer }} | {{ layer.description }} | {{ layer.version }} |
+{%- else %}
+No layers
+{%- endfor %}
+
+### Variables
+
+{% for variable in variables %}
+  {%- if forloop.first -%}
+| Name | Description | Sensitive | Default value |
+|------|-------------|-----------|---------------|
+  {%- endif %}
+| {{ variable.name }} | {{ variable.description }} | {{ variable.sensitive }} | {{ variable.value }} |
+{%- else %}
+No variables
+{%- endfor %}
+
+## Troubleshooting
+

@@ -78,6 +78,7 @@ export interface BillOfMaterialVariable {
   value?: string;
   alias?: string;
   required?: boolean;
+  sensitive?: boolean;
 }
 
 export interface BillOfMaterialOutput {
@@ -99,6 +100,7 @@ export interface BillOfMaterialProviderVariable {
 }
 
 export interface BillOfMaterialSpec {
+  version?: string;
   modules: Array<string | BillOfMaterialModule>;
   variables?: BillOfMaterialVariable[];
   outputs?: BillOfMaterialOutput[];
