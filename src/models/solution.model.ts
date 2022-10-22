@@ -24,6 +24,7 @@ export interface SolutionVariableModel {
   value?: string;
   alias?: string;
   required?: boolean;
+  sensitive?: boolean;
 }
 
 export interface SolutionLayerModel {

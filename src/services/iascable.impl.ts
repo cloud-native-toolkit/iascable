@@ -20,7 +20,7 @@ import {
   BillOfMaterialModel,
   BillOfMaterialModule,
   BillOfMaterialModuleById,
-  BillOfMaterialModuleByName,
+  BillOfMaterialModuleByName, CredentialsPropertiesFile,
   isBillOfMaterialModel,
   isBillOfMaterialModule,
   Module,
@@ -31,7 +31,7 @@ import {
   SingleModuleVersion,
   TerraformComponent, TerraformTfvarsFile, TerraformVariableImpl,
   Tile,
-  UrlFile
+  UrlFile, VariablesYamlFile
 } from '../models';
 import {DotGraph, DotGraphFile} from '../models/graph.model';
 import {Catalog, CatalogLoaderApi} from './catalog-loader';
@@ -422,7 +422,7 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
   _solution: Solution;
   _boms: BillOfMaterialModel[];
 
-  constructor(params: IascableSolutionResultBase) {
+    constructor(params: IascableSolutionResultBase) {
     this.billOfMaterial = params.billOfMaterial
     this.results = params.results
     this.supportingFiles = params.supportingFiles || []
@@ -475,12 +475,18 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
 
   addTerraformTfvars(): void {
     const terraformVariables = this.billOfMaterial.spec.variables
+      .filter(v => !v.sensitive)
       .map(v => new TerraformVariableImpl(Object.assign({defaultValue: v.value}, v)))
+    const sensitiveVariables = this.billOfMaterial.spec.variables
+      .filter(v => v.sensitive)
+      .map(v => new TerraformVariableImpl(Object.assign({defaultValue: v.value}, v)))
+
     const originalVariables = this._solution.original.spec.variables
 
-    this.supportingFiles.push(
-      new TerraformTfvarsFile(terraformVariables, originalVariables)
-    )
+    this.supportingFiles.push(...[
+      new CredentialsPropertiesFile({variables: sensitiveVariables, name: 'credentials.template', template: true}),
+      new VariablesYamlFile({name: 'variables.template.yaml', variables: terraformVariables})
+    ])
   }
 
   writeBundle(bundleWriter: BundleWriter, options?: { flatten: boolean }): BundleWriter {

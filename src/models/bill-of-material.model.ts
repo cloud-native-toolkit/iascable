@@ -22,6 +22,7 @@ export interface BillOfMaterialModuleVariable {
   alias?: string;
   scope?: string;
   required?: boolean;
+  sensitive?: boolean;
 }
 
 export interface BillOfMaterialModuleOutput {

@@ -1,8 +1,14 @@
+import {Container} from 'typescript-ioc';
+import {dump} from 'js-yaml';
+
 import {
   BaseVariable,
-  fromBaseVariable, IBaseOutput,
+  fromBaseVariable,
+  IBaseOutput,
   IBaseVariable,
-  StagePrinter, TerraformOutput, TerraformOutputImpl,
+  StagePrinter,
+  TerraformOutput,
+  TerraformOutputImpl,
   TerraformProvider,
   TerraformTfvars,
   TerraformVariable,
@@ -15,7 +21,6 @@ import {ArrayUtil, of as arrayOf} from '../util/array-util/array-util';
 import {Optional} from '../util/optional';
 import {isDefined, isDefinedAndNotNull} from '../util/object-util';
 import {ModuleDocumentationApi} from '../services/module-documentation';
-import {Container} from 'typescript-ioc';
 import {CatalogV2Model} from './catalog.model';
 import {TerragruntLayer} from './terragrunt.model';
 
@@ -206,6 +211,44 @@ export class TerraformOutputFile implements OutputFile {
       }, Buffer.from(''));
 
     return Promise.resolve(buffer);
+  }
+}
+
+export class CredentialsPropertiesFile implements OutputFile {
+  name: string;
+  type: OutputFileType = OutputFileType.terraform;
+
+  private variables: TerraformVariable[]
+  private readonly template: boolean;
+
+  constructor({variables, name = 'credentials.properties', template = false}: {variables: TerraformVariable[], name?: string, template?: boolean}) {
+    this.name = name;
+    this.variables = variables || [];
+    this.template = template;
+  }
+
+  get contents(): Promise<string | Buffer> {
+    return Promise.resolve(this.variables.map(this.variableToProperty).join('\n'))
+  }
+
+  variableToProperty(variable: TerraformVariable): string {
+    return `${this.template ? '#' : ''}export TF_VAR_${variable.name} = "${variable.defaultValue || ''}"`
+  }
+}
+
+export class VariablesYamlFile implements OutputFile {
+  name: string;
+  type: OutputFileType = OutputFileType.documentation;
+
+  variables: TerraformVariable[];
+
+  constructor({name = 'variables.yaml', variables}: {name?: string, variables: TerraformVariable[]}) {
+    this.name = name;
+    this.variables = variables;
+  }
+
+  get contents(): Promise<string | Buffer> {
+    return Promise.resolve(dump({variables: this.variables}))
   }
 }
 
