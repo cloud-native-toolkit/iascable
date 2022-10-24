@@ -48,3 +48,19 @@ export class UrlFile implements OutputFile {
     return loadFile(this.url).catch(() => this._alternative())
   }
 }
+
+export class GitIgnoreFile implements OutputFile {
+  name: string = '.gitignore';
+  type: OutputFileType = OutputFileType.documentation;
+
+  contents(options?: { flatten?: boolean }): Promise<string | Buffer> {
+    return Promise.resolve(`terraform.tfstate
+terraform.tfstate.backup
+credentials.yaml
+credentials.auto.tfvars
+.tmp/
+.terraform/
+`);
+  }
+
+}

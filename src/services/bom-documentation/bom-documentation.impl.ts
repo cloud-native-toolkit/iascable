@@ -6,7 +6,7 @@ import {
   BillOfMaterialModule,
   OutputFile,
   OutputFileType,
-  SingleModuleVersion
+  SingleModuleVersion, TerraformComponent
 } from '../../models';
 import {isSolutionModel, SolutionModel} from '../../models/solution.model';
 import {getAnnotation} from '../../models/crd.model';
@@ -19,21 +19,30 @@ import {
 import {isUndefined} from '../../util/object-util';
 import {ArrayUtil} from '../../util/array-util';
 import {Optional} from '../../util/optional';
+import {TerragruntLayer} from '../../models/terragrunt.model';
 
 export class BomDocumentationImpl implements BomDocumentationApi {
   generateDocumentation(bom: BillOfMaterialModel | SolutionModel, name?: string): OutputFile {
     if (isSolutionModel(bom)) {
       return new SolutionBomReadmeFile(bom, name)
     } else {
-      return new BomReadmeFile(bom, [], name)
+      return new BomReadmeFile(bom, [], undefined, name)
     }
   }
 }
 
 export class BomReadmeFile extends TemplatedFile {
 
-  constructor(private bom: BillOfMaterialModel, private modules?: SingleModuleVersion[], name: string = 'README.md') {
+  constructor(private bom: BillOfMaterialModel, private modules?: SingleModuleVersion[], private terraformComponent?: TerraformComponent, name: string = 'README.md') {
     super(name, OutputFileType.documentation, join(__dirname, '../../templates/bom-readme.liquid'))
+  }
+
+  templateFile({inSolution = false}: {inSolution?: boolean} = {}): string {
+    if (inSolution) {
+      return join(__dirname, '../../templates/layer-readme.liquid')
+    } else {
+      return join(__dirname, '../../templates/bom-readme.liquid')
+    }
   }
 
   get model(): Promise<BomTemplateModel> {
@@ -44,7 +53,8 @@ export class BomReadmeFile extends TemplatedFile {
       diagram: getAnnotation(this.bom, 'files.cloudnativetoolkit.dev/diagram'),
       vpn: false,
       variables: this.bom.spec.variables || [],
-      modules: (this.bom.spec.modules as BillOfMaterialModule[] || []).map(bomModuleToPrintable(this.modules))
+      modules: (this.bom.spec.modules as BillOfMaterialModule[] || []).map(bomModuleToPrintable(this.modules)),
+      dependencies: this.terraformComponent?.terragrunt?.dependencies || [],
     })
   }
 }

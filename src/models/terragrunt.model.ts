@@ -204,6 +204,9 @@ terraform {
     required_var_files = [
       "\${get_parent_terragrunt_dir()}/terraform.tfvars"
     ]
+    optional_var_files = [
+      "\${get_parent_terragrunt_dir()}/credentials.auto.tfvars"
+    ]
   }
 }
 `)

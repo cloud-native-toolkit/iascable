@@ -38,12 +38,17 @@ export interface PrintableBillOfMaterialModule extends BillOfMaterialModuleByNam
   url?: string;
 }
 
+export interface LayerDependency {
+  name: string
+}
+
 export interface BomTemplateModel {
   name: string
   description: string
   documentation?: string
   diagram?: string
   vpn?: boolean
+  dependencies: LayerDependency[]
   variables: BillOfMaterialVariable[]
   modules: PrintableBillOfMaterialModule[]
 }
@@ -60,21 +65,27 @@ export interface SolutionTemplateModel {
 
 export abstract class TemplatedFile implements OutputFile {
   _engine: Liquid;
+  _templateFile: string;
 
-  protected constructor(public name: string, public type: OutputFileType, private templateFile: string) {
+  protected constructor(public name: string, public type: OutputFileType, templateFile: string) {
     this._engine = new Liquid()
+    this._templateFile = templateFile
   }
 
   abstract get model(): Promise<object>;
 
-  template(): Promise<string> {
-    return promises.readFile(this.templateFile).then(buf => buf.toString())
+  templateFile(options?: any): string {
+    return this._templateFile
   }
 
-  get contents(): Promise<string | Buffer> {
+  template(options?: any): Promise<string> {
+    return promises.readFile(this.templateFile(options)).then(buf => buf.toString())
+  }
+
+  contents(options?: any): Promise<string | Buffer> {
     return new Promise(async (resolve, reject) => {
       try {
-        const result = await this._engine.parseAndRender(await this.template(), await this.model)
+        const result = await this._engine.parseAndRender(await this.template(options), await this.model)
 
         resolve(result)
       } catch (err) {

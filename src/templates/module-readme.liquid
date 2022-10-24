@@ -16,6 +16,7 @@ The module depends on the following software components:
 - {{ terraformVersion }}
 
 ### Terraform providers
+
 {% for provider in providers %}
 - {{ provider.name }} ({{ provider.source }})
 {%- else %}
@@ -23,6 +24,7 @@ None
 {%- endfor %}
 
 ### Module dependencies
+
 {% for dep in dependencies %}
   {%- if dep.interface %}
 - {{ dep.id }} - interface {{ dep.interface }}

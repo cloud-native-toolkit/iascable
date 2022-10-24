@@ -20,7 +20,8 @@ import {
   BillOfMaterialModel,
   BillOfMaterialModule,
   BillOfMaterialModuleById,
-  BillOfMaterialModuleByName, BillOfMaterialVariable, CredentialsPropertiesFile,
+  BillOfMaterialModuleByName,
+  BillOfMaterialVariable, GitIgnoreFile,
   isBillOfMaterialModel,
   isBillOfMaterialModule,
   Module,
@@ -30,9 +31,9 @@ import {
   SingleModuleVersion,
   TerraformComponent,
   TerraformTfvarsFile,
-  TerraformVariableImpl,
   Tile,
-  UrlFile, VariablesYamlFile
+  UrlFile,
+  VariablesYamlFile
 } from '../models';
 import {DotGraph, DotGraphFile} from '../models/graph.model';
 import {Catalog, CatalogLoaderApi} from './catalog-loader';
@@ -182,14 +183,15 @@ export class CatalogBuilder implements IascableApi {
       supportingFiles: [
         new UrlFile({name: 'apply.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/apply-terragrunt-variables.sh', type: OutputFileType.executable}),
         new UrlFile({name: 'destroy.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/destroy-terragrunt.sh', type: OutputFileType.executable}),
-        new BomReadmeFile(billOfMaterial, terraformComponent.modules),
+        new BomReadmeFile(billOfMaterial, terraformComponent.modules, terraformComponent),
       ]
     });
 
     return new IascableBundleImpl({
       results: [result],
       supportingFiles: [
-        new UrlFile({name: 'launch.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/launch.sh', type: OutputFileType.executable})
+        new UrlFile({name: 'launch.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/launch.sh', type: OutputFileType.executable}),
+        new GitIgnoreFile(),
       ]
     })
   }
@@ -376,8 +378,10 @@ class IascableBomResultImpl implements IascableBomResult {
     this.tile = params.tile
   }
 
-  writeBundle(baseWriter: BundleWriter, options: { flatten: boolean } = {flatten: false}): BundleWriter {
+  writeBundle(baseWriter: BundleWriter, inOptions: { flatten?: boolean } = {flatten: false}): BundleWriter {
     const writer: BundleWriter = baseWriter.folder(getBomPath(this.billOfMaterial))
+
+    const options = Object.assign({}, inOptions, {inSolution: this.inSolution})
 
     writeFiles(
       options.flatten ? writer : writer.folder('terraform'),
@@ -398,9 +402,15 @@ class IascableBomResultImpl implements IascableBomResult {
     writeFiles(writer, this.supportingFiles, options)
 
     if (!this.inSolution) {
+      const terraformVariables: BillOfMaterialVariable[] = (this.billOfMaterial.spec.variables || [])
+        .filter(v => !v.sensitive)
+      const sensitiveVariables: BillOfMaterialVariable[] = (this.billOfMaterial.spec.variables || [])
+        .filter(v => v.sensitive)
+
       writeFiles(
         writer, [
-          new CredentialsPropertiesFile({name: 'credentials.template', variables: this.terraformComponent.billOfMaterial?.spec.variables || [], template: true}),
+          new TerraformTfvarsFile(terraformVariables, this.billOfMaterial.spec.variables, 'terraform.template.tfvars'),
+          new TerraformTfvarsFile(sensitiveVariables, this.billOfMaterial.spec.variables, 'credentials.auto.template.tfvars'),
           new VariablesYamlFile({name: 'variables.template.yaml', variables: this.terraformComponent.billOfMaterial?.spec.variables || []})
         ],
         options
@@ -478,7 +488,8 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
       .filter(v => v.sensitive)
 
     this.supportingFiles.push(...[
-      new CredentialsPropertiesFile({name: 'credentials.template', variables: sensitiveVariables, template: true}),
+      new TerraformTfvarsFile(terraformVariables, this.billOfMaterial.spec.variables, 'terraform.template.tfvars'),
+      new TerraformTfvarsFile(sensitiveVariables, this.billOfMaterial.spec.variables, 'credentials.auto.template.tfvars'),
       new VariablesYamlFile({name: 'variables.template.yaml', variables: terraformVariables})
     ])
   }

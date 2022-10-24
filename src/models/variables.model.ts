@@ -20,6 +20,7 @@ export interface IBaseVariable {
   required?: boolean;
   stageName?: string;
   important?: boolean;
+  sensitive?: boolean;
 }
 
 export interface IBaseOutput {
