@@ -116,7 +116,7 @@ export class TerragruntLayer implements TerragruntLayerModel, OutputFile {
       .first()
   }
 
-  get contents(): Promise<string | Buffer> {
+  contents(options?: {flatten?: boolean}): Promise<string | Buffer> {
     return Promise.resolve(`
 include "root" {
   path = find_in_parent_folders()
@@ -124,7 +124,7 @@ include "root" {
 
 ${this.terraformBlock()}
 
-${this.dependencyBlocks()}
+${this.dependencyBlocks(options)}
 
 ${this.inputBlock()}
 `)
@@ -144,15 +144,17 @@ ${this.inputBlock()}
     return ''
   }
 
-  dependencyBlocks(): string {
+  dependencyBlocks({flatten = false}: {flatten?: boolean} = {}): string {
     const mockOutputs = (outputs: string[], indent = '    '): string => {
       return outputs.map(output => `${indent}${output} = ""`).join('\n')
     }
 
     return this.dependencies
       .map(dep => {
+        const path = flatten ? dep.path : `${dep.path}/terraform`
+
         return `dependency "${dep.name}" {
-  config_path = "\${get_parent_terragrunt_dir()}/${dep.path}"
+  config_path = "\${get_parent_terragrunt_dir()}/${path}"
   skip_outputs = false
 
   mock_outputs_allowed_terraform_commands = ["validate", "init", "plan", "destroy", "output"]
@@ -187,7 +189,7 @@ export class TerragruntBase implements TerragruntBaseModel, OutputFile {
   name: string = 'terragrunt.hcl';
   type: OutputFileType = OutputFileType.terraform;
 
-  get contents(): Promise<string | Buffer> {
+  contents(): Promise<string | Buffer> {
     return Promise.resolve(`skip = true
 
 terraform {
@@ -201,6 +203,9 @@ terraform {
 
     required_var_files = [
       "\${get_parent_terragrunt_dir()}/terraform.tfvars"
+    ]
+    optional_var_files = [
+      "\${get_parent_terragrunt_dir()}/credentials.auto.tfvars"
     ]
   }
 }

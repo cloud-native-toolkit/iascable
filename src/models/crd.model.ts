@@ -15,6 +15,12 @@ export interface KubernetesResource<T = any> extends CustomResourceDefinition {
   spec: T;
 }
 
+export const getLabel = (obj: CustomResourceDefinition, labelKey: string): string | undefined => {
+  const labels = obj.metadata?.labels || {}
+
+  return labels[labelKey]
+}
+
 export const getAnnotation = (obj: CustomResourceDefinition, annotationKey: string): string | undefined => {
   const annotations = obj.metadata?.annotations || {}
 

@@ -22,6 +22,7 @@ export interface BillOfMaterialModuleVariable {
   alias?: string;
   scope?: string;
   required?: boolean;
+  sensitive?: boolean;
 }
 
 export interface BillOfMaterialModuleOutput {
@@ -77,6 +78,7 @@ export interface BillOfMaterialVariable {
   value?: string;
   alias?: string;
   required?: boolean;
+  sensitive?: boolean;
 }
 
 export interface BillOfMaterialOutput {
@@ -98,6 +100,7 @@ export interface BillOfMaterialProviderVariable {
 }
 
 export interface BillOfMaterialSpec {
+  version?: string;
   modules: Array<string | BillOfMaterialModule>;
   variables?: BillOfMaterialVariable[];
   outputs?: BillOfMaterialOutput[];
@@ -210,7 +213,7 @@ export class BillOfMaterialFile implements OutputFile {
   constructor(private model: BillOfMaterialModel, public readonly name: string = 'bom.yaml') {
   }
 
-  get contents(): Promise<string | Buffer> {
+  contents(): Promise<string | Buffer> {
     return Promise.resolve(jsYaml.dump(this.model))
   }
 }
