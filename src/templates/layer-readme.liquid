@@ -35,7 +35,7 @@ can be applied, several steps must first be taken:
 The following layers are dependencies of this terraform template and must be applied before this one.
 
   {%- endif %}
-- [{{ dep.name }}](../{{ dep.name }})
+- [{{ dep.name }}](../{{ dep.path }})
 {%- else %}
 No dependencies
 {%- endfor %}

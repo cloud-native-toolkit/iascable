@@ -40,6 +40,7 @@ export interface PrintableBillOfMaterialModule extends BillOfMaterialModuleByNam
 
 export interface LayerDependency {
   name: string
+  path: string
 }
 
 export interface BomTemplateModel {
