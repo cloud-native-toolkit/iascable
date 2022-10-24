@@ -21,17 +21,19 @@ import {
   BillOfMaterialModule,
   BillOfMaterialModuleById,
   BillOfMaterialModuleByName,
+  BillOfMaterialVariable, GitIgnoreFile,
   isBillOfMaterialModel,
   isBillOfMaterialModule,
   Module,
-  ModuleDoc,
   OutputFile,
   OutputFileType,
   SimpleFile,
   SingleModuleVersion,
-  TerraformComponent, TerraformTfvarsFile, TerraformVariableImpl,
+  TerraformComponent,
+  TerraformTfvarsFile,
   Tile,
-  UrlFile
+  UrlFile,
+  VariablesYamlFile
 } from '../models';
 import {DotGraph, DotGraphFile} from '../models/graph.model';
 import {Catalog, CatalogLoaderApi} from './catalog-loader';
@@ -59,8 +61,14 @@ import {
 import {BundleWriter} from '../util/bundle-writer';
 import {isDefined, isDefinedAndNotNull} from '../util/object-util';
 import {flatten} from '../util/array-util';
-import {CustomResourceDefinition, getAnnotation, ResourceMetadata} from '../models/crd.model';
+import {
+  CustomResourceDefinition,
+  getAnnotation,
+  getLabel,
+  ResourceMetadata
+} from '../models/crd.model';
 import {TerragruntBase, TerragruntLayer} from '../models/terragrunt.model';
+import {BomReadmeFile, SolutionBomReadmeFile} from './bom-documentation/bom-documentation.impl';
 
 export class CatalogBuilder implements IascableApi {
   @Inject
@@ -175,18 +183,20 @@ export class CatalogBuilder implements IascableApi {
       supportingFiles: [
         new UrlFile({name: 'apply.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/apply-terragrunt-variables.sh', type: OutputFileType.executable}),
         new UrlFile({name: 'destroy.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/destroy-terragrunt.sh', type: OutputFileType.executable}),
+        new BomReadmeFile(billOfMaterial, terraformComponent.modules, terraformComponent),
       ]
     });
 
     return new IascableBundleImpl({
       results: [result],
       supportingFiles: [
-        new UrlFile({name: 'launch.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/launch.sh', type: OutputFileType.executable})
+        new UrlFile({name: 'launch.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/launch.sh', type: OutputFileType.executable}),
+        new GitIgnoreFile(),
       ]
     })
   }
 
-  async moduleDocumentation(catalogUrl: string | string[], moduleName: string, options?: IascableOptions): Promise<ModuleDoc> {
+  async moduleDocumentation(catalogUrl: string | string[], moduleName: string, options?: IascableOptions): Promise<OutputFile> {
     const catalog: Catalog = await this.loader.loadCatalog(catalogUrl);
 
     const module: Module | undefined = await catalog.lookupModule({name: moduleName})
@@ -314,30 +324,6 @@ const extractNeededCapabilities = (provides: string[]) => {
   }
 }
 
-const findModule = (m: string | BillOfMaterialModule, modules: SingleModuleVersion[]): SingleModuleVersion => {
-  const module: BillOfMaterialModule = isBillOfMaterialModule(m) ? m : {id: m};
-
-  return arrayOf(modules)
-    .filter(moduleVersion => {
-      return module.alias === moduleVersion.alias || module.name === moduleVersion.name || module.id === moduleVersion.id;
-    })
-    .first()
-    .orElseThrow(new Error('Unable to find module: ' + module.name));
-}
-
-const mergeBillOfMaterialModule = (module: string | BillOfMaterialModule, moduleVersion: SingleModuleVersion): BillOfMaterialModule => {
-  if (isBillOfMaterialModule(module)) {
-    return Object.assign({}, module, {version: moduleVersion.version.version});
-  }
-
-  const newModule: BillOfMaterialModule = {
-    id: module,
-    version: moduleVersion.version.version,
-  };
-
-  return newModule;
-}
-
 const mergeIascableBundles = (bundle: IascableBundle, current: IascableBundle): IascableBundle => {
 
   const results: Array<IascableBomResult | IascableSolutionResult> = uniqBy(
@@ -370,7 +356,7 @@ class IascableBundleImpl implements IascableBundle {
       result.writeBundle(baseWriter, options)
     })
 
-    writeFiles(baseWriter, this.supportingFiles)
+    writeFiles(baseWriter, this.supportingFiles, options)
 
     return baseWriter
   }
@@ -382,6 +368,7 @@ class IascableBomResultImpl implements IascableBomResult {
   supportingFiles: OutputFile[];
   graph?: DotGraphFile;
   tile?: Tile;
+  inSolution?: boolean;
 
   constructor(params: IascableBomResultBase) {
     this.billOfMaterial = params.billOfMaterial
@@ -391,12 +378,15 @@ class IascableBomResultImpl implements IascableBomResult {
     this.tile = params.tile
   }
 
-  writeBundle(baseWriter: BundleWriter, options: { flatten: boolean } = {flatten: false}): BundleWriter {
+  writeBundle(baseWriter: BundleWriter, inOptions: { flatten?: boolean } = {flatten: false}): BundleWriter {
     const writer: BundleWriter = baseWriter.folder(getBomPath(this.billOfMaterial))
+
+    const options = Object.assign({}, inOptions, {inSolution: this.inSolution})
 
     writeFiles(
       options.flatten ? writer : writer.folder('terraform'),
-      this.terraformComponent.files
+      this.terraformComponent.files,
+      options,
     )
 
     writeFiles(
@@ -405,10 +395,27 @@ class IascableBomResultImpl implements IascableBomResult {
         new BillOfMaterialFile(this.billOfMaterial),
         this.graph,
         this.tile?.file,
-      ]
+      ],
+      options,
     )
 
-    writeFiles(writer, this.supportingFiles)
+    writeFiles(writer, this.supportingFiles, options)
+
+    if (!this.inSolution) {
+      const terraformVariables: BillOfMaterialVariable[] = (this.billOfMaterial.spec.variables || [])
+        .filter(v => !v.sensitive)
+      const sensitiveVariables: BillOfMaterialVariable[] = (this.billOfMaterial.spec.variables || [])
+        .filter(v => v.sensitive)
+
+      writeFiles(
+        writer, [
+          new TerraformTfvarsFile(terraformVariables, this.billOfMaterial.spec.variables, 'terraform.template.tfvars'),
+          new TerraformTfvarsFile(sensitiveVariables, this.billOfMaterial.spec.variables, 'credentials.auto.template.tfvars'),
+          new VariablesYamlFile({name: 'variables.template.yaml', variables: this.terraformComponent.billOfMaterial?.spec.variables || []})
+        ],
+        options
+      )
+    }
 
     return writer
   }
@@ -423,8 +430,8 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
   _boms: BillOfMaterialModel[];
 
   constructor(params: IascableSolutionResultBase) {
-    this.billOfMaterial = params.billOfMaterial
     this.results = params.results
+    this.billOfMaterial = applyLayerVersions(params.billOfMaterial, this.results)
     this.supportingFiles = params.supportingFiles || []
 
     this._solution = Solution.fromModel(params.billOfMaterial)
@@ -471,16 +478,20 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
   addSupportFiles(): void {
     this.supportingFiles.push(new UrlFile({name: 'apply.sh', type: OutputFileType.executable, url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/apply-all-terragrunt-variables.sh'}))
     this.supportingFiles.push(new UrlFile({name: 'destroy.sh', type: OutputFileType.executable, url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/destroy-all-terragrunt.sh'}))
+    this.supportingFiles.push(new SolutionBomReadmeFile(this.billOfMaterial))
   }
 
   addTerraformTfvars(): void {
-    const terraformVariables = this.billOfMaterial.spec.variables
-      .map(v => new TerraformVariableImpl(Object.assign({defaultValue: v.value}, v)))
-    const originalVariables = this._solution.original.spec.variables
+    const terraformVariables: BillOfMaterialVariable[] = this.billOfMaterial.spec.variables
+      .filter(v => !v.sensitive)
+    const sensitiveVariables: BillOfMaterialVariable[] = this.billOfMaterial.spec.variables
+      .filter(v => v.sensitive)
 
-    this.supportingFiles.push(
-      new TerraformTfvarsFile(terraformVariables, originalVariables)
-    )
+    this.supportingFiles.push(...[
+      new TerraformTfvarsFile(terraformVariables, this.billOfMaterial.spec.variables, 'terraform.template.tfvars'),
+      new TerraformTfvarsFile(sensitiveVariables, this.billOfMaterial.spec.variables, 'credentials.auto.template.tfvars'),
+      new VariablesYamlFile({name: 'variables.template.yaml', variables: terraformVariables})
+    ])
   }
 
   writeBundle(bundleWriter: BundleWriter, options?: { flatten: boolean }): BundleWriter {
@@ -498,6 +509,39 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
   }
 }
 
+const applyLayerVersions = (bom: SolutionModel, bomResults: IascableBomResult[]): SolutionModel => {
+  const bomArray: ArrayUtil<IascableBomResult> = ArrayUtil.of(bomResults)
+
+  const layers: SolutionLayerModel[] = bom.spec.stack
+    .map(layer => {
+      const bomResult: Optional<IascableBomResult> = bomArray
+        .filter(matchIascableBomResult(layer.name))
+        .first()
+
+      if (!bomResult.isPresent()) {
+        return layer
+      }
+
+      const layerBom: BillOfMaterialModel = bomResult.map(result => result.billOfMaterial).get()
+
+      return Object.assign(layer, {
+        layer: getLabel(layerBom, 'type') || layer.layer,
+        description: getAnnotation(layerBom, 'description') || layer.description,
+        version: layerBom.spec.version
+      })
+    })
+
+  bom.spec.stack = layers
+
+  return bom
+}
+
+const matchIascableBomResult = (layerName: string) => {
+  return (result: IascableBomResult): boolean => {
+    return result.billOfMaterial.metadata?.name === layerName
+  }
+}
+
 const getBomPath = (bom: CustomResourceDefinition, defaultName: string = 'component'): string => {
   const pathParts: string[] = [
     getAnnotation(bom, 'path') || '',
@@ -508,21 +552,21 @@ const getBomPath = (bom: CustomResourceDefinition, defaultName: string = 'compon
   return join(...pathParts)
 }
 
-const writeFiles = (writer: BundleWriter, files: Array<OutputFile | undefined> = []) => {
+const writeFiles = (writer: BundleWriter, files: Array<OutputFile | undefined> = [], options?: {flatten?: boolean}) => {
   files
     .filter(f => isDefinedAndNotNull(f))
     .map(f => f as OutputFile)
-    .forEach(writeFilesWithWriter(writer))
+    .forEach(writeFilesWithWriter(writer, options))
 }
 
-const writeFilesWithWriter = (writer: BundleWriter) => {
+const writeFilesWithWriter = (writer: BundleWriter, options?: {flatten?: boolean}) => {
   return (file: OutputFile) => {
-    writeFile(writer, file)
+    writeFile(writer, file, options)
   }
 }
 
-const writeFile = (writer: BundleWriter, file: OutputFile) => {
-  writer.file(file.name, file.contents, {executable: file.type === OutputFileType.executable})
+const writeFile = (writer: BundleWriter, file: OutputFile, options?: {flatten?: boolean}) => {
+  writer.file(file.name, file.contents(options), {executable: file.type === OutputFileType.executable})
 }
 
 const handleBomLookupResult = (result: Array<BillOfMaterialModel | SolutionModel | SolutionLayerNotFound>): Array<BillOfMaterialModel> => {
@@ -576,10 +620,16 @@ const hasUnmetClusterNeed = (bundle: IascableBundle): boolean => {
 }
 
 const bomBundleToSolutionBundle = (solution: Solution, bundle: IascableBundle): IascableBundle => {
-  const results: IascableBomResult[] = bundle.results.filter(isIascableBomResult)
-  const solutionResults: IascableSolutionResult[] = bundle.results.filter(isIascableSolutionResult)
+  const results: IascableBomResult[] = bundle.results
+    .filter(isIascableBomResult)
+    .map(r => Object.assign(r, {inSolution: true}))
+  const solutionResults: IascableSolutionResult[] = bundle.results
+    .filter(isIascableSolutionResult)
 
   solutionResults.push(new IascableSolutionResultImpl({billOfMaterial: solution, results}))
 
-  return new IascableBundleImpl({results: solutionResults, supportingFiles: bundle.supportingFiles})
+  return new IascableBundleImpl({
+    results: solutionResults,
+    supportingFiles: bundle.supportingFiles
+  })
 }

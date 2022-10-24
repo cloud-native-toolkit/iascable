@@ -5,7 +5,7 @@ import {join} from 'path';
 
 import {CommandLineInput} from './inputs/command-line.input';
 import {IascableDocsInput} from './inputs/iascable.input';
-import {ModuleDoc} from '../models';
+import {ModuleDoc, OutputFile} from '../models';
 import {IascableApi} from '../services';
 import {LoggerApi} from '../util/logger';
 import {DEFAULT_CATALOG_URLS, setupCatalogUrls} from './support/middleware';
@@ -50,7 +50,7 @@ export const handler = async (argv: Arguments<IascableDocsInput & CommandLineInp
   const logger: LoggerApi = Container.get(LoggerApi).child('build');
 
   try {
-    const doc: ModuleDoc = await cmd.moduleDocumentation(argv.catalogUrls, argv.module)
+    const doc: OutputFile = await cmd.moduleDocumentation(argv.catalogUrls, argv.module)
 
     await outputResult(argv.outDir, argv.module, doc, argv)
   } catch (err) {
@@ -59,7 +59,7 @@ export const handler = async (argv: Arguments<IascableDocsInput & CommandLineInp
   }
 };
 
-const outputResult = async (outputDir: string, moduleName: string, doc: ModuleDoc, options: {flattenOutput: boolean}) => {
+const outputResult = async (outputDir: string, moduleName: string, doc: OutputFile, options: {flattenOutput: boolean}) => {
 
   const basePath = options.flattenOutput ? outputDir : join(outputDir, moduleName)
 
@@ -69,5 +69,5 @@ const outputResult = async (outputDir: string, moduleName: string, doc: ModuleDo
 
   console.log(`Writing readme for ${moduleName}: ${filename}`)
 
-  await promises.writeFile(filename, await doc.contents)
+  await promises.writeFile(filename, await doc.contents())
 }

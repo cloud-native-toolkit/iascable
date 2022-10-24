@@ -243,7 +243,7 @@ async function outputDependencyGraph(rootPath: string, graph?: DotGraphFile) {
 
   await chmodRecursive(rootPath, 0o777)
 
-  return promises.writeFile(join(rootPath, graph.name), await graph.contents);
+  return promises.writeFile(join(rootPath, graph.name), await graph.contents());
 }
 
 async function outputTerraform(rootPath: string, terraformComponent: TerraformComponent) {
@@ -261,7 +261,7 @@ async function outputTerraform(rootPath: string, terraformComponent: TerraformCo
       const path = join(rootPath, file.name);
       await promises.mkdir(dirname(path), {recursive: true})
 
-      const fileContents = await file.contents;
+      const fileContents: string | Buffer = await file.contents();
 
       const result = promises.writeFile(path, fileContents);
 
@@ -283,7 +283,7 @@ async function outputTile(rootPath: string, tile: Tile | undefined) {
   await promises.mkdir(rootPath, {recursive: true})
   await chmodRecursive(rootPath, 0o777)
 
-  return promises.writeFile(join(rootPath, tile.file.name), await tile.file.contents);
+  return promises.writeFile(join(rootPath, tile.file.name), await tile.file.contents());
 }
 
 async function outputResult(outputDir: string, result: IascableBomResult, flatten: boolean = false): Promise<void> {
@@ -309,7 +309,7 @@ async function outputScripts(rootPath: string, files: OutputFile[]): Promise<str
 async function outputScript(rootPath: string, file: OutputFile): Promise<string> {
   const scriptPath: string = join(rootPath, file.name)
 
-  const fileContents = await file.contents.catch(() => {
+  const fileContents = await file.contents().catch(() => {
     console.log(`  Warning: Unable to retrieve file: ${file.name}`)
     return ''
   })

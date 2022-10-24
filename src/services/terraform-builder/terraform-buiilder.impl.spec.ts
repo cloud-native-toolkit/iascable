@@ -205,11 +205,11 @@ describe('terraform-builder', () => {
       test('then the variable should appear in terraform.tfvars', async () => {
         const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
 
-        const tfvarsFile: Optional<TerraformTfvarsFile> = arrayOf(result.files).filter(f => f.name === 'terraform.tfvars').first() as any
+        const tfvarsFile: Optional<TerraformTfvarsFile> = arrayOf(result.files).filter(f => f.name === 'terraform.template.tfvars').first() as any
 
         expect(tfvarsFile.isPresent()).toBeTruthy()
 
-        expect((await tfvarsFile.get().contents).toString()).toContain('_count')
+        expect((await tfvarsFile.get().contents()).toString()).toContain('_count')
       });
     });
 

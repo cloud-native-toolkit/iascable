@@ -1,23 +1,30 @@
+import {dump} from 'js-yaml';
+import {join} from 'path';
+import {Container} from 'typescript-ioc';
+
 import {
   BaseVariable,
-  fromBaseVariable, IBaseOutput,
+  fromBaseVariable,
+  IBaseOutput,
   IBaseVariable,
-  StagePrinter, TerraformOutput, TerraformOutputImpl,
+  StagePrinter,
+  TerraformOutput,
+  TerraformOutputImpl,
   TerraformProvider,
   TerraformTfvars,
   TerraformVariable,
   TerraformVariableImpl
 } from './variables.model';
-import {OutputFile, OutputFileType, UrlFile} from './file.model';
+import {OutputFile, OutputFileType} from './file.model';
 import {Module, ModuleProvider, SingleModuleVersion} from './module.model';
 import {BillOfMaterialModel, BillOfMaterialVariable} from './bill-of-material.model';
 import {ArrayUtil, of as arrayOf} from '../util/array-util/array-util';
 import {Optional} from '../util/optional';
-import {isDefined, isDefinedAndNotNull} from '../util/object-util';
+import {isDefined, isDefinedAndNotNull, isUndefinedOrNull} from '../util/object-util';
 import {ModuleDocumentationApi} from '../services/module-documentation';
-import {Container} from 'typescript-ioc';
 import {CatalogV2Model} from './catalog.model';
 import {TerragruntLayer} from './terragrunt.model';
+import {flatten} from '../util/array-util';
 
 export * from './module.model';
 
@@ -51,7 +58,7 @@ export class TerraformStageFile implements OutputFile {
   name = 'main.tf';
   type = OutputFileType.terraform;
 
-  get contents(): Promise<string | Buffer> {
+  contents(): Promise<string | Buffer> {
     const buffer: Buffer = Object
       .values(this.stages)
       .sort((a: Stage, b: Stage) => a.name.localeCompare(b.name))
@@ -79,7 +86,7 @@ function getValue(value?: string, defaultValue?: string): string | undefined {
 }
 
 function mergeBomVariables(bomVariables: ArrayUtil<BillOfMaterialVariable>) {
-  return (variable: TerraformVariable): TerraformVariable => {
+  return (variable: TfvarsVariable): TfvarsVariable => {
     const bomVariable: Optional<BillOfMaterialVariable> = bomVariables
       .filter(v => v.name === variable.name)
       .first();
@@ -111,7 +118,7 @@ export class TerraformVersionFile implements OutputFile {
     return `${indent}source = "${provider.source}"\n`
   }
 
-  get contents(): Promise<string | Buffer> {
+  contents(): Promise<string | Buffer> {
     const indent = '    ';
 
     const providerString: string = this.providers
@@ -144,7 +151,7 @@ export class TerraformProvidersFile implements OutputFile {
 
   name = 'providers.tf';
 
-  get contents(): Promise<string | Buffer> {
+  contents(): Promise<string | Buffer> {
     const buffer: Buffer = this.providers
       .reduce((previousBuffer: Buffer, provider: TerraformProvider) => {
         return Buffer.concat([
@@ -159,20 +166,18 @@ export class TerraformProvidersFile implements OutputFile {
 }
 
 export class TerraformVariablesFile implements OutputFile {
-  constructor(private variables: TerraformVariable[], private bomVariables?: BillOfMaterialVariable[]) {
+  constructor(private variables: TfvarsVariable[], private bomVariables?: BillOfMaterialVariable[]) {
   }
 
   name = 'variables.tf';
   type = OutputFileType.terraform;
 
-  get contents(): Promise<string | Buffer> {
+  contents(): Promise<string | Buffer> {
 
     const buffer: Buffer = this.variables
       .map(mergeBomVariables(arrayOf(this.bomVariables)))
-      .reduce((previousBuffer: Buffer, variable: TerraformVariable) => {
-        if (!variable.asString) {
-          variable = new TerraformVariableImpl(variable);
-        }
+      .reduce((previousBuffer: Buffer, tfvarsVariable: TfvarsVariable) => {
+        const variable = new TerraformVariableImpl(tfvarsVariable);
 
         return Buffer.concat([
           previousBuffer,
@@ -191,7 +196,7 @@ export class TerraformOutputFile implements OutputFile {
   name = 'output.tf';
   type = OutputFileType.terraform;
 
-  get contents(): Promise<string | Buffer> {
+  contents(): Promise<string | Buffer> {
 
     const buffer: Buffer = this.outputs
       .reduce((previousBuffer: Buffer, output: TerraformOutput) => {
@@ -209,41 +214,96 @@ export class TerraformOutputFile implements OutputFile {
   }
 }
 
+export class CredentialsPropertiesFile implements OutputFile {
+  name: string;
+  type: OutputFileType = OutputFileType.terraform;
+
+  private variables: BillOfMaterialVariable[]
+  private readonly template: boolean;
+
+  constructor({variables, name = 'credentials.properties', template = false}: {variables: BillOfMaterialVariable[], name?: string, template?: boolean}) {
+    this.name = name;
+    this.variables = variables || [];
+    this.template = template;
+  }
+
+  contents(): Promise<string | Buffer> {
+    return Promise.resolve(
+      this.variables
+        .map(this.variableToProperty(this.template))
+        .reduce(flatten, [])
+        .join('\n')
+    )
+  }
+
+  variableToProperty(template: boolean) {
+    return (variable: BillOfMaterialVariable): string[] => {
+      return [
+        `## ${isUndefinedOrNull(variable.value) ? '' : '(optional) '}${variable.description}`,
+        `${template ? '#' : ''}export TF_VAR_${variable.name} = "${variable.value || ''}"`,
+        ''
+      ]
+    }
+  }
+}
+
+export class VariablesYamlFile implements OutputFile {
+  name: string;
+  type: OutputFileType = OutputFileType.documentation;
+
+  variables: BillOfMaterialVariable[];
+
+  constructor({name = 'variables.yaml', variables}: {name?: string, variables: BillOfMaterialVariable[]}) {
+    this.name = name;
+    this.variables = variables;
+  }
+
+  contents(): Promise<string | Buffer> {
+    return Promise.resolve(dump({variables: this.variables}))
+  }
+}
+
+interface TfvarsVariable {
+  name: string;
+  defaultValue?: string;
+  type?: string;
+  description?: string;
+  required?: boolean;
+  important?: boolean;
+  sensitive?: boolean;
+}
+
 export class TerraformTfvarsFile implements OutputFile {
 
   name : string;
   type = OutputFileType.terraform;
-  variables: TerraformVariable[];
+  variables: TfvarsVariable[];
 
-  constructor(variables: TerraformVariable[], public bomVariables?: BillOfMaterialVariable[], name?: string) {
-    if (name) {
-      this.name = `${name}.auto.tfvars`;
-    } else {
-      this.name = 'terraform.tfvars';
-    }
+  constructor(variables: TfvarsVariable[], public bomVariables?: BillOfMaterialVariable[], name: string = 'terraform.tfvars') {
+    this.name = name;
 
     const variableNames: string[] = arrayOf(this.bomVariables).map(v => v.name).asArray();
 
     this.variables = variables
       .map(mergeBomVariables(arrayOf(bomVariables)))
-      .filter(variable => {
+      .filter((variable: TfvarsVariable) => {
         const terraformVar = new TerraformVariableImpl(variable);
 
         return !(!(terraformVar.defaultValue === undefined || terraformVar.defaultValue === null || terraformVar.required || variableNames.includes(terraformVar.name)) && !terraformVar.important)
       })
   }
 
-  get contents(): Promise<string | Buffer> {
+  contents(): Promise<string | Buffer> {
 
     const buffer: Buffer = this.variables
-      .reduce((previousBuffer: Buffer, variable: TerraformVariable) => {
+      .reduce((previousBuffer: Buffer, variable: TfvarsVariable) => {
         const terraformVar = new TerraformVariableImpl(variable);
 
-        variable = new TerraformTfvars({name: terraformVar.name, description: terraformVar.description, value: terraformVar.defaultValue || ""});
+        const tfvarsVariable = new TerraformTfvars({name: terraformVar.name, description: terraformVar.description, value: terraformVar.defaultValue || ""});
 
         return Buffer.concat([
           previousBuffer,
-          Buffer.from(variable.asString())
+          Buffer.from(tfvarsVariable.asString())
         ]);
       }, Buffer.from(''));
 
@@ -261,12 +321,14 @@ export class TerraformComponent implements TerraformComponentModel {
   billOfMaterial?: BillOfMaterialModel;
   terragrunt?: TerragruntLayer;
   tfvarsFile: TerraformTfvarsFile;
+  credentialsTfvarsFile: TerraformTfvarsFile;
   catalog!: CatalogV2Model;
 
   constructor(model: TerraformComponentModel, private name: string | undefined) {
     Object.assign(this as TerraformComponentModel, model);
 
-    this.tfvarsFile = new TerraformTfvarsFile(this.baseVariables, this.bomVariables, this.name);
+    this.tfvarsFile = new TerraformTfvarsFile(this.baseVariables.filter(v => !v.sensitive), this.bomVariables, 'terraform.template.tfvars');
+    this.credentialsTfvarsFile = new TerraformTfvarsFile(this.baseVariables.filter(v => v.sensitive), this.bomVariables, 'credentials.auto.template.tfvars');
 
     if (this.billOfMaterial) {
       const bomVariables: BillOfMaterialVariable[] = this.tfvarsFile.variables.map(v => Object.assign(
@@ -293,6 +355,7 @@ export class TerraformComponent implements TerraformComponentModel {
       this.providers !== undefined && this.providers.length > 0 ? new TerraformVersionFile(this.providers) : undefined,
       this.terragrunt,
       this.tfvarsFile,
+      this.credentialsTfvarsFile,
       ...buildModuleReadmes(this.catalog, this.modules),
     ]
       .filter(isDefined)
@@ -304,25 +367,32 @@ export class TerraformComponent implements TerraformComponentModel {
   }
 }
 
+class ModuleReadme implements OutputFile {
+  name: string;
+  type: OutputFileType = OutputFileType.documentation;
+
+  _docService: ModuleDocumentationApi = Container.get(ModuleDocumentationApi)
+  _module: SingleModuleVersion;
+  _catalog: CatalogV2Model;
+  _modules: SingleModuleVersion[];
+
+  constructor(module: SingleModuleVersion, catalog: CatalogV2Model, modules: SingleModuleVersion[] = [], name: string = 'README.md') {
+    this.name = name
+    this._module = module;
+    this._catalog = catalog;
+    this._modules = modules;
+  }
+
+  contents(): Promise<string | Buffer> {
+    const fullModule: Module = Object.assign({}, this._module, {versions: [this._module.version]})
+
+    return Promise.resolve(this._docService.generateDocumentation(fullModule, this._catalog, this._modules))
+      .then(readme => readme.contents())
+  }
+}
+
 function buildModuleReadmes(catalog: CatalogV2Model, modules: SingleModuleVersion[] = []): OutputFile[] {
-  const docService: ModuleDocumentationApi = Container.get(ModuleDocumentationApi)
-
-  return modules.map(module => {
-    const url: string = getModuleDocumentationUrl(module);
-
-    const fullModule: Module = Object.assign({}, module, {versions: [module.version]})
-
-    return new UrlFile({
-      name: `docs/${module.name}.md`,
-      type: OutputFileType.documentation,
-      url,
-      alternative: async () => {
-        const readme = await docService.generateDocumentation(fullModule, catalog, modules)
-
-        return readme.contents
-      }
-    });
-  });
+  return modules.map(module => new ModuleReadme(module, catalog, modules, join('docs', `${module.name}.md`)))
 }
 
 function getModuleDocumentationUrl(module: SingleModuleVersion): string {

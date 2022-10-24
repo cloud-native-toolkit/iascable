@@ -24,6 +24,7 @@ export interface SolutionVariableModel {
   value?: string;
   alias?: string;
   required?: boolean;
+  sensitive?: boolean;
 }
 
 export interface SolutionLayerModel {
@@ -148,7 +149,7 @@ export class SolutionBomFile implements OutputFile {
     this.name = name
   }
 
-  get contents(): Promise<string | Buffer> {
+  contents(): Promise<string | Buffer> {
     return Promise.resolve(this._solution.asString())
   }
 }

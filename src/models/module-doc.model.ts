@@ -13,7 +13,7 @@ export class ModuleDoc implements OutputFile {
     this._contents = contents
   }
 
-  get contents(): Promise<string | Buffer> {
+  contents(): Promise<string | Buffer> {
     return Promise.resolve(this._contents)
   }
 }
