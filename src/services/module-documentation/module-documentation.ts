@@ -5,7 +5,6 @@ import {ModuleDocumentationApi} from './module-documentation.api';
 import {TerraformBuilderApi} from '../terraform-builder';
 import {SelectedModuleResolverImpl} from '../module-selector/selected-modules.resolver';
 import {
-  Catalog,
   CatalogV2Model,
   Module,
   ModuleOutputRef,
@@ -21,6 +20,7 @@ import {getIascableVersion} from '../../util/iascable-version';
 import {isUndefined} from '../../util/object-util';
 import {ModuleVersionNotFound} from '../../util/version-resolver';
 import {ModuleReadmeTemplate, PrintableVariable, TemplatedFile} from '../../template-models/models';
+import {Catalog} from '../../model-impls/catalog.impl';
 
 export class ModuleDocumentation implements ModuleDocumentationApi {
   @Inject

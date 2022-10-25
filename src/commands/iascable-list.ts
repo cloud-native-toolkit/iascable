@@ -1,7 +1,7 @@
 import {Arguments, Argv} from 'yargs';
 import {CommandLineInput} from './inputs/command-line.input';
 import {BillOfMaterial, BillOfMaterialModel} from '../models';
-import {loadReferenceBoms} from '../services';
+import {loadReferenceBoms} from '../util/bill-of-material-builder';
 
 export const command = 'list';
 export const desc = 'List the available reference bill of materials';

@@ -1,22 +1,23 @@
 import {default as jsYaml} from 'js-yaml';
 import {promises} from 'fs';
 import {resolve, join} from 'path';
+
 import {
   BillOfMaterial, billOfMaterialFromYaml, BillOfMaterialModel,
   BillOfMaterialModule,
   BillOfMaterialVariable,
-  Catalog,
   Module
 } from '../../models';
+import {SolutionModel} from '../../models/solution.model';
 import {
   BillOfMaterialModuleParsingError,
   BillOfMaterialVariableParsingError,
   ModuleNotFound
 } from '../../errors';
-import {isDefinedAndNotNull, isUndefined} from '../../util/object-util';
-import {of as arrayOf} from '../../util/array-util/array-util';
-import {SolutionModel} from '../../models/solution.model';
-import {loadFile} from '../../util/file-util';
+import {isDefinedAndNotNull, isUndefined} from '../object-util';
+import {of as arrayOf} from '../array-util/array-util';
+import {loadFile} from '../file-util';
+import {Catalog} from '../../model-impls/catalog.impl';
 
 export function buildBomVariables(bomVariableYaml: string): BillOfMaterialVariable[] {
   if (!bomVariableYaml) {

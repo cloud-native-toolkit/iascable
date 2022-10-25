@@ -10,14 +10,14 @@ import {
   ModuleVariable
 } from './module.model';
 import {BillOfMaterialModel, BillOfMaterialModule} from './bill-of-material.model';
+import {CustomResourceDefinition, ResourceMetadata} from './crd.model';
+import {SolutionModel} from './solution.model';
+import {BillOfMaterialNotFound, BillOfMaterialVersionNotFound} from '../errors';
+import {flatten} from '../util/array-util';
 import {ArrayUtil, of as ofArray} from '../util/array-util/array-util';
 import {Optional} from '../util/optional';
 import {findMatchingVersions} from '../util/version-resolver';
-import {CustomResourceDefinition, ResourceMetadata} from './crd.model';
-import {flatten} from '../util/array-util';
-import {BillOfMaterialNotFound, BillOfMaterialVersionNotFound} from '../errors';
-import {loadBillOfMaterialFromFile} from '../services';
-import {SolutionModel} from './solution.model';
+import {loadBillOfMaterialFromFile} from '../util/bill-of-material-builder';
 
 export interface CatalogCategoryModel<M = Module> {
   category: string;
@@ -117,10 +117,6 @@ function determineModuleProvider(module: Module) {
   return '';
 }
 
-export function isCatalog(model: Catalog | CatalogV1Model | CatalogV2Model): model is Catalog {
-  return !!model && (typeof (model as Catalog).filter === 'function');
-}
-
 export function isCatalogKind(crd: CustomResourceDefinition): crd is CatalogV1Model | CatalogV2Model {
   return !!crd && crd.kind === 'Catalog'
 }
@@ -154,132 +150,21 @@ export const catalogApiV2Version: string = 'cloudnativetoolkit.dev/v2';
 export const catalogKind: string = 'Catalog';
 export const catalogSummaryKind: string = 'CatalogSummary';
 
-export class Catalog implements CatalogV2Model {
-  private logger: LoggerApi;
-
-  public readonly apiVersion: string = catalogApiV2Version;
-  public readonly kind: string = catalogKind;
-  public readonly metadata?: CatalogV2Metadata;
-  public readonly modules: Module[];
-  public readonly providers: CatalogProviderModel[];
-  public readonly filterValue?: {platform?: string, provider?: string};
-  public readonly flattenedAliases: DenormalizedModuleIdAliases;
-  public readonly moduleIdAliases: ModuleIdAlias[];
-  public readonly boms: BillOfMaterialEntry[];
-
-  constructor(values: CatalogV1Model | CatalogV2Model, filterValue?: {platform?: string, provider?: string}) {
-    this.modules = getFlattenedModules(values)
-    this.providers = values.providers || []
-    this.filterValue = filterValue;
-    this.boms = isCatalogV2Model(values) ? values.boms : []
-
-    this.moduleIdAliases = values.aliases || [];
-    this.flattenedAliases = denormalizeModuleIdAliases(values.aliases);
-    this.metadata = values.metadata;
-
-    this.logger = Container.get(LoggerApi).child('Catalog');
-  }
-
-  static fromModel(model: CatalogV1Model | CatalogV2Model): Catalog {
-    if (isCatalog(model)) {
-      return model;
-    }
-
-    return new Catalog(model);
-  }
-
-  filter({platform, provider, modules}: CatalogFilter | undefined = {}): Catalog {
-    this.logger.debug('Filtering catalog modules to match filter values', {filter: {platform, provider}});
-
-    const filteredModules: Module[] = this.modules
-      .filter((module: Module) => {
-        const result = [module]
-          .filter(matchingPlatforms(platform))
-          .filter(matchingProviders(provider))
-          .filter(matchingModules(modules))
-          .map(matchingModuleVersions(modules));
-
-        return result.length > 0;
-      })
-
-    return new Catalog({apiVersion: catalogApiV2Version, kind: catalogKind, modules: filteredModules, boms: this.boms}, {platform, provider});
-  }
-
-  lookupProvider(provider: ModuleProvider): Optional<CatalogProviderModel> {
-    return ofArray(this.providers)
-      .filter((p: CatalogProviderModel) => p.name === provider.name && p.source === provider.source)
-      .first()
-      .map(p => cloneDeep(p))
-  }
-
-  async lookupBOM({name, version}: {name: string, version?: string}): Promise<BillOfMaterialModel | SolutionModel | undefined> {
-    const bomEntry: BillOfMaterialEntry = ArrayUtil.of(this.boms)
-      .filter(bom => bom.name === name)
-      .first()
-      .orElseThrow(new BillOfMaterialNotFound(name, this.boms))
-
-    const bomVersion: BillOfMaterialVersion = ArrayUtil.of(bomEntry.versions)
-      .filter((v: BillOfMaterialVersion) => !version || (version === v.version))
-      .first()
-      .orElseThrow(new BillOfMaterialVersionNotFound(name, version));
-
-    return loadBillOfMaterialFromFile(bomVersion.metadataUrl)
-  }
-
-  lookupModule(moduleId: {id: string, name?: string} | {name: string, id?: string}): Module | undefined {
-    this.logger.debug('Looking up module from catalog: ', {moduleId, modules: this.modules})
-
-    const result: Module | undefined = ofArray(this.modules)
-      .filter(m => {
-        const match: boolean = this.idsMatch(m, moduleId) || m.name === moduleId.name
-
-        this.logger.debug(`  Matched module: ${match}`, {moduleId, module: m})
-
-        return match
-      })
-      .first()
-      .map(m => Object.assign({}, m))
-      .orElse(undefined as any);
-
-    this.logger.debug('  Found matching module: ', {result})
-
-    return cloneDeep(result)
-  }
-
-  findModulesWithInterface(interfaceId: string): Module[] {
-    return this.modules.filter(m => (m.interfaces || []).includes(interfaceId))
-  }
-
-  getModuleId(moduleId: string): string {
-    const cleanedId = cleanId(moduleId)
-
-    return this.flattenedAliases[cleanedId] || cleanedId
-  }
-
-  idsMatch(a: {id?: string}, b: {id?: string}): boolean {
-    const aId = this.getModuleId(a.id || '')
-    const bId = this.getModuleId(b.id || '')
-
-    return aId === bId
-  }
-
-}
-
-function matchingPlatforms(platform?: string): (m: Module) => boolean {
+export function matchingPlatforms(platform?: string): (m: Module) => boolean {
   return (m: Module) => !m.platforms || !platform || m.platforms.includes(platform);
 }
 
-function matchingProviders(provider?: string): (m: Module) => boolean {
+export function matchingProviders(provider?: string): (m: Module) => boolean {
   return (m: Module) => !provider || provider === 'ibm' || determineModuleProvider(m) !== 'ibm';
 }
 
-function matchingModules(modules?: BillOfMaterialModule[]): (m: Module) => boolean {
+export function matchingModules(modules?: BillOfMaterialModule[]): (m: Module) => boolean {
   return (m: Module) => {
     return !modules || modules.some(module => (module.id === m.id || module.name === m.name));
   };
 }
 
-function matchingModuleVersions(modules?: BillOfMaterialModule[]): (m: Module) => Module {
+export function matchingModuleVersions(modules?: BillOfMaterialModule[]): (m: Module) => Module {
   return (m: Module): Module => {
     const versionMatcher: Optional<string> = ofArray<BillOfMaterialModule>(modules)
       .filter(module => module.id === m.id || module.name === m.name)
@@ -296,7 +181,7 @@ function matchingModuleVersions(modules?: BillOfMaterialModule[]): (m: Module) =
   }
 }
 
-const cleanId = (id?: string): string => {
+export const cleanId = (id?: string): string => {
   return (id || '')
     .replace(/[.]git$/g, '')
     .replace(/^https?:\/\//, '')
@@ -307,26 +192,6 @@ export interface ModuleIdAlias {
   aliases: string[]
 }
 
-interface DenormalizedModuleIdAliases {
+export interface DenormalizedModuleIdAliases {
   [aliasId: string]: string
-}
-
-const denormalizeModuleIdAliases = (aliases: ModuleIdAlias[] = []): DenormalizedModuleIdAliases => {
-  return aliases
-    .map(moduleIdAliasToDenormalizedModuleAlias)
-    .reduce(
-      (result: DenormalizedModuleIdAliases, current: DenormalizedModuleIdAliases) => {
-        return Object.assign(result, current)
-      },
-      {})
-}
-
-const moduleIdAliasToDenormalizedModuleAlias = (moduleAlias: ModuleIdAlias): DenormalizedModuleIdAliases => {
-  return moduleAlias.aliases.reduce(
-    (result: DenormalizedModuleIdAliases, currentAlias: string) => {
-      result[currentAlias] = moduleAlias.id
-
-      return result
-    },
-    {})
 }

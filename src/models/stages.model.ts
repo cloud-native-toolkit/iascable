@@ -26,8 +26,6 @@ import {CatalogV2Model} from './catalog.model';
 import {TerragruntLayer} from './terragrunt.model';
 import {flatten} from '../util/array-util';
 
-export * from './module.model';
-
 export interface IStage {
   name: string;
   source: string;

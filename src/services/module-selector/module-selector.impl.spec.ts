@@ -4,17 +4,17 @@ import {
   BillOfMaterial,
   BillOfMaterialModel,
   BillOfMaterialModule,
-  BillOfMaterialModuleDependency,
-  Catalog, catalogApiV1Version, catalogApiV2Version, catalogKind,
-  CatalogV1Model, CatalogV2Model,
+  catalogApiV2Version,
+  catalogKind,
+  CatalogV2Model,
   SingleModuleVersion
 } from '../../models';
 import {CatalogLoaderApi} from '../catalog-loader';
 import {ModuleSelector, sortModules} from './module-selector.impl';
 import {LoggerApi} from '../../util/logger';
 import {NoopLoggerImpl} from '../../util/logger/noop-logger.impl';
-import {isDefinedAndNotNull} from '../../util/object-util';
 import {BillOfMaterialModuleConfigError} from '../../errors';
+import {Catalog} from '../../model-impls/catalog.impl';
 
 describe('module-selector', () => {
   test('canary verifies test infrastructure', () => {

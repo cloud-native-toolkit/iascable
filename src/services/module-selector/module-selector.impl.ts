@@ -7,7 +7,6 @@ import {
   BillOfMaterial,
   BillOfMaterialModel,
   BillOfMaterialModule,
-  Catalog,
   CatalogFilter,
   CatalogV2Model,
   injectDependsOnFunction,
@@ -20,6 +19,7 @@ import {LoggerApi} from '../../util/logger';
 import {BillOfMaterialModuleConfigError, ModuleMetadataInvalid, ModuleNotFound} from '../../errors';
 import {of as arrayOf} from '../../util/array-util/array-util';
 import {resolveSelectedModules} from './selected-modules.resolver';
+import {Catalog} from '../../model-impls/catalog.impl';
 
 export class ModuleSelector implements ModuleSelectorApi {
   logger: LoggerApi;

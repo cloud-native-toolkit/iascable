@@ -7,7 +7,6 @@ import uniqWith from 'lodash.uniqwith';
 
 import {
   BillOfMaterialEntry,
-  Catalog,
   catalogApiV2Version,
   catalogKind,
   CatalogLoaderApi,
@@ -23,6 +22,7 @@ import {isModule, Module} from '../../models';
 import {CustomResourceDefinition} from '../../models/crd.model';
 import {ArrayUtil} from '../../util/array-util';
 import {loadFile} from '../../util/file-util';
+import {Catalog} from '../../model-impls/catalog.impl';
 
 export class CatalogLoader implements CatalogLoaderApi {
 
