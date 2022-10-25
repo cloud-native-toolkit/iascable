@@ -1,8 +1,8 @@
-import {Catalog} from './catalog.model';
 import {Container} from 'typescript-ioc';
 import {LoggerApi} from '../util/logger';
 import {NoopLoggerImpl} from '../util/logger/noop-logger.impl';
 import {CatalogLoaderApi} from '../services';
+import {Catalog} from './catalog.impl';
 
 describe('catalog model', () => {
   test('canary verifies test infrastructure', () => {
