@@ -21,8 +21,6 @@ import {
   IascableBundle,
   IascableOptions,
   IascableBomResult,
-  loadBillOfMaterialFromFile,
-  loadReferenceBom
 } from '../services';
 import {LoggerApi} from '../util/logger';
 import {DotGraphFile} from '../models/graph.model';
@@ -31,6 +29,7 @@ import {DEFAULT_CATALOG_URLS, setupCatalogUrls} from './support/middleware';
 import {SolutionModel} from '../models/solution.model';
 import {CustomResourceDefinition} from '../models/crd.model';
 import {BundleWriter, BundleWriterType, getBundleWriter} from '../util/bundle-writer';
+import {loadBillOfMaterialFromFile, loadReferenceBom} from '../util/bill-of-material-builder';
 
 export const command = 'build';
 export const desc = 'Configure (and optionally deploy) the iteration zero assets';

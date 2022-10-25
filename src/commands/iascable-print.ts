@@ -2,7 +2,7 @@ import {Arguments, Argv} from 'yargs';
 import {default as jsYaml} from 'js-yaml';
 import {CommandLineInput} from './inputs/command-line.input';
 import {BillOfMaterialModel} from '../models';
-import {loadReferenceBom} from '../services';
+import {loadReferenceBom} from '../util/bill-of-material-builder';
 
 export const command = 'print <name>';
 export const desc = 'Print the provided reference bill of materials';
