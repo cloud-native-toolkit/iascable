@@ -6,8 +6,8 @@ import {KubernetesResource, ResourceMetadata} from './crd.model';
 import {catalogApiV2Version} from './catalog.model';
 import {OutputFile, OutputFileType} from './file.model';
 import {BillOfMaterialVariable} from './bill-of-material.model';
-import {isDefined} from '../util/object-util';
-import {TerraformComponent, TerraformComponentModel} from './stages.model';
+import {isDefined} from '../util/object-util/object-util';
+import {TerraformComponentModel} from './stages.model';
 
 const kindSolution = 'Solution'
 
@@ -58,7 +58,7 @@ export class Solution implements SolutionModel {
   public readonly spec: SolutionSpecModel
 
   readonly original: SolutionModel;
-  _terraform: TerraformComponent[] = []
+  _terraform: TerraformComponentModel[] = []
 
   readonly marker: string = 'solution'
 
@@ -77,10 +77,10 @@ export class Solution implements SolutionModel {
     return new Solution(model)
   }
 
-  get terraform(): TerraformComponent[] {
+  get terraform(): TerraformComponentModel[] {
     return this._terraform
   }
-  set terraform(terraform: TerraformComponent[]) {
+  set terraform(terraform: TerraformComponentModel[]) {
     this._terraform = terraform
 
     // merge variables into solution
@@ -160,9 +160,7 @@ const getTerraformVariables = (terraformComponent: TerraformComponentModel): Bil
   const bomVariables: BillOfMaterialVariable[] = terraformComponent.billOfMaterial?.spec.variables || []
 
   return bomVariables.filter(variable => {
-    const result = !terragruntInputNames.includes(variable.name)
-
-    return result
+    return !terragruntInputNames.includes(variable.name)
   })
 }
 

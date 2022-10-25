@@ -3,7 +3,7 @@ import {
   BillOfMaterialVariable,
   ModuleDependency,
   ModuleOutput,
-  ModuleProvider,
+  ProviderModel,
   ModuleVariable, OutputFile, OutputFileType
 } from '../models';
 import {SolutionLayerModel, SolutionVariableModel} from '../models/solution.model';
@@ -24,7 +24,7 @@ export interface ModuleReadmeTemplate {
   description: string
   documentation?: string
   terraformVersion: string
-  providers: ModuleProvider[]
+  providers: ProviderModel[]
   dependencies: ModuleDependency[]
   examplePath?: string
   example: string

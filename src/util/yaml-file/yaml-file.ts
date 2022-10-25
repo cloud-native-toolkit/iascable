@@ -43,7 +43,7 @@ export class YamlFile<T = any> {
   }
 
   setValues(values: Partial<T>): YamlFile<T> {
-    Object.assign(this.contents, values)
+    Object.assign(this.contents as any, values)
 
     return this
   }

@@ -1,4 +1,4 @@
-import {Arguments, Argv} from 'yargs';
+import {Arguments, Argv, CommandModule} from 'yargs';
 import {Container} from 'typescript-ioc';
 import {promises} from 'fs';
 import {join} from 'path';
@@ -53,7 +53,7 @@ export const handler = async (argv: Arguments<IascableDocsInput & CommandLineInp
     const doc: OutputFile = await cmd.moduleDocumentation(argv.catalogUrls, argv.module)
 
     await outputResult(argv.outDir, argv.module, doc, argv)
-  } catch (err) {
+  } catch (err: any) {
     console.log('')
     console.error(`Error: ${err.message}`)
   }
@@ -70,4 +70,11 @@ const outputResult = async (outputDir: string, moduleName: string, doc: OutputFi
   console.log(`Writing readme for ${moduleName}: ${filename}`)
 
   await promises.writeFile(filename, await doc.contents())
+}
+
+export const iascableDocs: CommandModule = {
+  command,
+  describe: desc,
+  builder,
+  handler: handler as any
 }

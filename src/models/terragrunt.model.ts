@@ -1,8 +1,7 @@
-import {OutputFile, OutputFileType} from './file.model';
 import {BillOfMaterialModel} from './bill-of-material.model';
 import {getAnnotation, getAnnotationList, getMetadataName} from './crd.model';
-import {of as arrayOf} from '../util/array-util';
-import {Optional} from '../util/optional';
+import {OutputFile, OutputFileType} from './file.model';
+import {arrayOf, Optional} from '../util';
 
 export interface TerragruntLayerModel {
   currentBom: BillOfMaterialModel

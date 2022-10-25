@@ -1,4 +1,4 @@
-import {mapSync, split} from 'event-stream';
+import es from 'event-stream';
 import {createReadStream} from 'fs';
 
 export interface TerraformVariableModel {
@@ -77,9 +77,9 @@ export class TerraformFile {
       let multiLineValue: MultiLineValue | undefined
 
       const s = createReadStream(file)
-        .pipe(split())
+        .pipe(es.split())
         .pipe(
-          mapSync((line: string) => {
+          es.mapSync((line: string) => {
             s.pause()
 
             if (multiLineValue) {

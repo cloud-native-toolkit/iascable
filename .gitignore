@@ -13,3 +13,4 @@ docs
 output/
 credentials.properties
 pkg-bin/
+build/

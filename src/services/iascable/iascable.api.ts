@@ -1,17 +1,16 @@
 import {
   BillOfMaterialModel,
   CatalogFilter,
-  ModuleDoc,
   OutputFile,
-  TerraformComponent,
+  TerraformComponentModel,
   Tile,
   TileConfig
-} from '../models';
-import {DotGraphFile} from '../models/graph.model';
-import {SolutionModel} from '../models/solution.model';
-import {BundleWriter} from '../util/bundle-writer';
-import {CustomResourceDefinition} from '../models/crd.model';
-import {isDefined} from '../util/object-util';
+} from '../../models';
+import {DotGraphFile} from '../../models/graph.model';
+import {SolutionModel} from '../../models/solution.model';
+import {BundleWriter} from '../../util/bundle-writer';
+import {CustomResourceDefinition} from '../../models/crd.model';
+import {isDefined} from '../../util/object-util/object-util';
 
 export interface WritableBundle {
   writeBundle(bundleWriter: BundleWriter, options?: {flatten: boolean}): BundleWriter;
@@ -23,13 +22,13 @@ export interface IasableResult<T extends CustomResourceDefinition> {
 }
 
 export interface IascableBomResultBase extends IasableResult<BillOfMaterialModel> {
-  terraformComponent: TerraformComponent;
+  terraformComponent: TerraformComponentModel;
   tile?: Tile;
   graph?: DotGraphFile;
 }
 
 export interface IascableBomResult extends IascableBomResultBase, WritableBundle {
-  terraformComponent: TerraformComponent;
+  terraformComponent: TerraformComponentModel;
   tile?: Tile;
   graph?: DotGraphFile;
 }

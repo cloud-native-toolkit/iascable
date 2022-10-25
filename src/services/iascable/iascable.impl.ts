@@ -16,76 +16,84 @@ import {
   WritableBundle
 } from './iascable.api';
 import {
-  BillOfMaterialFile,
   BillOfMaterialModel,
   BillOfMaterialModule,
   BillOfMaterialModuleById,
   BillOfMaterialModuleByName,
-  BillOfMaterialVariable, GitIgnoreFile,
+  BillOfMaterialVariable,
+  CustomResourceDefinition,
+  DotGraph,
+  DotGraphFile,
+  getAnnotation,
+  getLabel,
+  GitIgnoreFile,
   isBillOfMaterialModel,
   isBillOfMaterialModule,
+  isSolutionModel,
   Module,
   OutputFile,
   OutputFileType,
+  ResourceMetadata,
   SimpleFile,
   SingleModuleVersion,
-  TerraformComponent,
-  TerraformTfvarsFile,
-  Tile,
-  UrlFile,
-  VariablesYamlFile
-} from '../models';
-import {DotGraph, DotGraphFile} from '../models/graph.model';
-import {CatalogLoaderApi} from './catalog-loader';
-import {ModuleSelectorApi} from './module-selector';
-import {DependencyGraphApi} from './dependency-graph';
-import {ModuleDocumentationApi} from './module-documentation';
-import {TerraformBuilderApi} from './terraform-builder';
-import {TileBuilderApi} from './tile-builder';
-import {ArrayUtil, of as arrayOf} from '../util/array-util/array-util'
-import {LoggerApi} from '../util/logger';
-import {Optional} from '../util/optional';
-import {ModuleNotFound} from '../errors';
-import {
-  isSolutionModel,
   Solution,
   SolutionLayerModel,
-  SolutionModel
-} from '../models/solution.model';
+  SolutionModel,
+  TerraformComponentModel,
+  TerragruntBase,
+  TerragruntLayer,
+  Tile,
+  UrlFile,
+} from '../../models';
+import {CatalogLoaderApi} from '../catalog-loader';
+import {ModuleSelectorApi} from '../module-selector';
+import {DependencyGraphApi} from '../dependency-graph';
+import {ModuleDocumentationApi} from '../module-documentation';
+import {TerraformBuilderApi} from '../terraform-builder';
+import {TileBuilderApi} from '../tile-builder';
+import {
+  arrayOf,
+  ArrayUtil,
+  BundleWriter,
+  flatten,
+  isDefined,
+  isDefinedAndNotNull,
+  LoggerApi,
+  Optional
+} from '../../util'
 import {
   isSolutionLayerNotFound,
+  ModuleNotFound,
   NestedSolutionError,
   SolutionLayerNotFound,
   SolutionLayersNotFound
-} from '../errors/solution.error';
-import {BundleWriter} from '../util/bundle-writer';
-import {isDefined, isDefinedAndNotNull} from '../util/object-util';
-import {flatten} from '../util/array-util';
+} from '../../errors';
+import {BomReadmeFile, SolutionBomReadmeFile} from '../bom-documentation/bom-documentation.impl';
 import {
-  CustomResourceDefinition,
-  getAnnotation,
-  getLabel,
-  ResourceMetadata
-} from '../models/crd.model';
-import {TerragruntBase, TerragruntLayer} from '../models/terragrunt.model';
-import {BomReadmeFile, SolutionBomReadmeFile} from './bom-documentation/bom-documentation.impl';
-import {Catalog} from '../model-impls/catalog.impl';
+  BillOfMaterialFile,
+  Catalog,
+  TerraformTfvarsFile,
+  VariablesYamlFile
+} from '../../model-impls';
 
 export class CatalogBuilder implements IascableApi {
-  @Inject
-  logger!: LoggerApi;
-  @Inject
-  loader!: CatalogLoaderApi;
-  @Inject
-  moduleSelector!: ModuleSelectorApi;
-  @Inject
-  terraformBuilder!: TerraformBuilderApi;
-  @Inject
-  tileBuilder!: TileBuilderApi;
-  @Inject
-  dependencyGraph!: DependencyGraphApi;
-  @Inject
-  docBuilder!: ModuleDocumentationApi;
+  logger: LoggerApi;
+  loader: CatalogLoaderApi;
+  moduleSelector: ModuleSelectorApi;
+  terraformBuilder: TerraformBuilderApi;
+  tileBuilder: TileBuilderApi;
+  dependencyGraph: DependencyGraphApi;
+  docBuilder: ModuleDocumentationApi;
+
+  constructor() {
+    this.logger = Container.get(LoggerApi);
+    this.loader = Container.get(CatalogLoaderApi);
+    this.moduleSelector = Container.get(ModuleSelectorApi);
+    this.terraformBuilder = Container.get(TerraformBuilderApi);
+    this.tileBuilder = Container.get(TileBuilderApi);
+    this.dependencyGraph = Container.get(DependencyGraphApi);
+    this.docBuilder = Container.get(ModuleDocumentationApi);
+  }
 
   async build(catalogUrl: string, input?: BillOfMaterialModel, options?: IascableOptions): Promise<IascableBundle> {
     const catalog: Catalog = await this.loader.loadCatalog(catalogUrl);
@@ -170,7 +178,7 @@ export class CatalogBuilder implements IascableApi {
 
     const billOfMaterial: BillOfMaterialModel = applyAnnotationsAndVersionsToBom(bom, modules);
 
-    const terraformComponent: TerraformComponent = await this.terraformBuilder.buildTerraformComponent(modules, catalog, billOfMaterial);
+    const terraformComponent: TerraformComponentModel = await this.terraformBuilder.buildTerraformComponent(modules, catalog, billOfMaterial);
 
     const tile: Tile | undefined = options?.tileConfig ? await this.tileBuilder.buildTileMetadata(terraformComponent.baseVariables, options.tileConfig) : undefined;
 
@@ -365,7 +373,7 @@ class IascableBundleImpl implements IascableBundle {
 
 class IascableBomResultImpl implements IascableBomResult {
   billOfMaterial: BillOfMaterialModel;
-  terraformComponent: TerraformComponent;
+  terraformComponent: TerraformComponentModel;
   supportingFiles: OutputFile[];
   graph?: DotGraphFile;
   tile?: Tile;
@@ -437,7 +445,7 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
 
     this._solution = Solution.fromModel(params.billOfMaterial)
 
-    const terraform: TerraformComponent[] = this.results
+    const terraform: TerraformComponentModel[] = this.results
       .map(result => result.terraformComponent)
 
     this._boms = terraform

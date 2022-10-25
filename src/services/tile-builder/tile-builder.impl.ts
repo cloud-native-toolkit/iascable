@@ -1,6 +1,6 @@
 import {TileBuilderApi} from './tile-builder.api';
 import {TerraformVariable, Tile, TileConfig, TileVariable} from '../../models';
-import {isUndefinedOrNull} from '../../util/object-util';
+import {isUndefinedOrNull} from '../../util/object-util/object-util';
 
 const defaultDescription = 'Installs a common set of DevOps tools used by developers into a cluster';
 

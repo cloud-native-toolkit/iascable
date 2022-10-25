@@ -1,7 +1,7 @@
-import {ModuleSelectorApi} from './module-selector.api';
 import {Container} from 'typescript-ioc';
+
+import {ModuleSelectorApi} from './module-selector.api';
 import {
-  BillOfMaterial,
   BillOfMaterialModel,
   BillOfMaterialModule,
   catalogApiV2Version,
@@ -11,10 +11,10 @@ import {
 } from '../../models';
 import {CatalogLoaderApi} from '../catalog-loader';
 import {ModuleSelector, sortModules} from './module-selector.impl';
-import {LoggerApi} from '../../util/logger';
+import {LoggerApi} from '../../util';
 import {NoopLoggerImpl} from '../../util/logger/noop-logger.impl';
 import {BillOfMaterialModuleConfigError} from '../../errors';
-import {Catalog} from '../../model-impls/catalog.impl';
+import {BillOfMaterial, Catalog} from '../../model-impls';
 
 describe('module-selector', () => {
   test('canary verifies test infrastructure', () => {
@@ -237,7 +237,7 @@ describe('module-selector', () => {
       });
 
       test('then dependencies should come before the module that needs it', async () => {
-        const actualResult = await sortModules(Catalog.fromModel(catalog), bomModules);
+        const actualResult = sortModules(Catalog.fromModel(catalog), bomModules);
 
         expect(actualResult.map(m => m.name)).toEqual(['ibm-container-platform', 'namespace', 'argocd', 'artifactory'])
       });
@@ -259,7 +259,7 @@ describe('module-selector', () => {
       });
 
       test('then it should appear at the end of the list', async () => {
-        const actualResult = await sortModules(Catalog.fromModel(catalog), bomModules);
+        const actualResult = sortModules(Catalog.fromModel(catalog), bomModules);
 
         expect(actualResult.map(m => m.name)).toEqual(['ibm-container-platform', 'namespace', 'argocd', 'artifactory', 'ibm-transit-gateway'])
       });
