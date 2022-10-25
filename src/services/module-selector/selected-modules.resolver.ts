@@ -1,5 +1,5 @@
 import {
-  Catalog, CatalogProviderModel, isCatalogProviderModel,
+  CatalogProviderModel, isCatalogProviderModel,
   Module,
   ModuleDependency,
   ModuleProvider,
@@ -18,6 +18,7 @@ import {LoggerApi} from '../../util/logger';
 import {Container} from 'typescript-ioc';
 import {findMatchingVersions} from '../../util/version-resolver';
 import deepClone from 'lodash.clonedeep';
+import {Catalog} from '../../model-impls/catalog.impl';
 
 export const resolveSelectedModules = (fullCatalog: Catalog, modules: Module[]): SingleModuleVersion[] => {
   return new SelectedModuleResolverImpl(fullCatalog).resolve(modules);

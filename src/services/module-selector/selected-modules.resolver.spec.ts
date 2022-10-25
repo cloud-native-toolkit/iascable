@@ -1,6 +1,5 @@
 import {
   BillOfMaterialModule,
-  Catalog,
   catalogApiV1Version,
   catalogKind,
   Module,
@@ -15,9 +14,9 @@ import {
 } from './selected-modules.resolver';
 import {Container} from 'typescript-ioc';
 import {LoggerApi} from '../../util/logger';
-import {consoleLoggerFactory, LogLevel} from '../../util/logger/console-logger.impl';
 import {NoopLoggerImpl} from '../../util/logger/noop-logger.impl';
 import {CatalogLoaderApi} from '../catalog-loader';
+import {Catalog} from '../../model-impls/catalog.impl';
 
 describe('selected-modules.resolver', () => {
   test('canary verifies test infrastructure', () => {

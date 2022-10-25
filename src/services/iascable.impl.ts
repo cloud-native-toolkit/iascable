@@ -36,7 +36,7 @@ import {
   VariablesYamlFile
 } from '../models';
 import {DotGraph, DotGraphFile} from '../models/graph.model';
-import {Catalog, CatalogLoaderApi} from './catalog-loader';
+import {CatalogLoaderApi} from './catalog-loader';
 import {ModuleSelectorApi} from './module-selector';
 import {DependencyGraphApi} from './dependency-graph';
 import {ModuleDocumentationApi} from './module-documentation';
@@ -69,6 +69,7 @@ import {
 } from '../models/crd.model';
 import {TerragruntBase, TerragruntLayer} from '../models/terragrunt.model';
 import {BomReadmeFile, SolutionBomReadmeFile} from './bom-documentation/bom-documentation.impl';
+import {Catalog} from '../model-impls/catalog.impl';
 
 export class CatalogBuilder implements IascableApi {
   @Inject

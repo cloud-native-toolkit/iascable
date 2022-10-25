@@ -1,5 +1,5 @@
 import {default as compareVersions, CompareOperator} from 'compare-versions';
-import {VersionComparison, versionComparisonFromString, VersionMatcher} from '../../models';
+import {VersionComparison, versionComparisonFromString, VersionMatcher} from '../../models/version-matcher';
 import {concat} from '../array-util';
 
 export class IncompatibleVersions extends Error {

@@ -1,7 +1,6 @@
 import {DependencyGraphApi} from './dependency-graph.api';
 import {
   BillOfMaterialModel,
-  Catalog,
   ModuleDependency,
   ModuleVersion,
   SingleModuleVersion
@@ -12,6 +11,7 @@ import {Optional} from '../../util/optional';
 import {Inject} from 'typescript-ioc';
 import {CatalogLoaderApi} from '../catalog-loader';
 import {ModuleSelectorApi} from '../module-selector';
+import {Catalog} from '../../model-impls/catalog.impl';
 
 export class DependencyGraphImpl implements DependencyGraphApi {
   @Inject

@@ -5,7 +5,6 @@ import {findMatchingVersion, resolveVersions} from '../../util/version-resolver'
 import {
   BillOfMaterialModule,
   BillOfMaterialModuleDependency, BillOfMaterialModuleProvider,
-  Catalog,
   isModule,
   Module,
   ModuleDependency,
@@ -18,6 +17,7 @@ import {ModuleNotFound, ModulesNotFound} from '../../errors';
 import {Optional} from '../../util/optional';
 import {ArrayUtil, of as arrayOf} from '../../util/array-util/array-util';
 import {isDefinedAndNotNull} from '../../util/object-util';
+import {Catalog} from '../../model-impls/catalog.impl';
 
 export class SelectedModules {
   readonly modules: {[source: string]: Module} = {};
