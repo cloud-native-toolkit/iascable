@@ -51,10 +51,10 @@ export class CatalogLoader implements CatalogLoaderApi {
 
   async loadCatalogYaml(catalogUrls: string[]): Promise<CatalogV2Model> {
 
-    const catalogYamls: string[] = await Promise.all(catalogUrls.map(catalogUrl => loadFile(catalogUrl)))
+    const catalogYamls: Array<string | Buffer> = await Promise.all(catalogUrls.map(catalogUrl => loadFile(catalogUrl)))
 
-    return catalogYamls.reduce((result: CatalogV2Model, current: string) => {
-      const inputYaml: CustomResourceDefinition = this.parseYaml(current)
+    return catalogYamls.reduce((result: CatalogV2Model, current: string | Buffer) => {
+      const inputYaml: CustomResourceDefinition = this.parseYaml(current.toString())
 
       const newModel: CatalogModel = isCatalogKind(inputYaml) ? inputYaml : catalogFromModule(inputYaml)
 

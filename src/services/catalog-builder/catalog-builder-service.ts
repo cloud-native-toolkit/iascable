@@ -96,9 +96,9 @@ export class CatalogBuilderService implements CatalogBuilderApi {
 
   async handleModuleMetadataUrl(result: CatalogBuilder, {moduleMetadataUrl, category}: {moduleMetadataUrl: string, category: string}): Promise<void> {
     try {
-      const moduleContent: string = await loadFile(moduleMetadataUrl)
+      const moduleContent: Buffer | string = await loadFile(moduleMetadataUrl)
 
-      const module = load(moduleContent) as Module
+      const module = load(moduleContent.toString()) as Module
 
       const moduleWithCategory: Module = Object.assign(module, {category})
 
@@ -113,9 +113,9 @@ export class CatalogBuilderService implements CatalogBuilderApi {
 
   async handleCatalogInput(result: CatalogBuilder, {catalogInput}: {catalogInput: string}): Promise<void> {
     try {
-      const catalogInputContent: string = await loadFile(catalogInput)
+      const catalogInputContent: Buffer | string = await loadFile(catalogInput)
 
-      const input = load(catalogInputContent) as CatalogInputModel
+      const input = load(catalogInputContent.toString()) as CatalogInputModel
 
       applyAllToSubject(result.aliasesSubject, input.aliases);
       applyAllToSubject(result.providersSubject, input.providers);
@@ -159,9 +159,9 @@ const lookupModuleMetadata = async (moduleTemplate: ModuleTemplate): Promise<Mod
   try {
     moduleMetadataUrl = getModuleMetadataUrl(moduleTemplate)
 
-    const moduleMetadataContent: string = await loadFile(moduleMetadataUrl)
+    const moduleMetadataContent: Buffer | string = await loadFile(moduleMetadataUrl)
 
-    const module: Module = load(moduleMetadataContent) as Module
+    const module: Module = load(moduleMetadataContent.toString()) as Module
 
     return Object.assign(
       module,
