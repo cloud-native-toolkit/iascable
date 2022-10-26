@@ -195,6 +195,9 @@ export class BillOfMaterial implements BillOfMaterialModel {
 }
 
 export function billOfMaterialFromYaml(bomYaml: string | Buffer, name?: string): BillOfMaterialModel | SolutionModel {
+  if (!bomYaml) {
+    throw new Error(`BOM yaml not provided: ${name}`)
+  }
   try {
     const content: any = jsYaml.load(bomYaml.toString());
     if (isBillOfMaterialModel(content)) {

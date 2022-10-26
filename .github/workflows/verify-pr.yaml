@@ -41,6 +41,7 @@ jobs:
             local name="$1"
             if [[ ! -f "${name}" ]]; then
               echo "File missing: ${name}" >&2
+              ls >&2
               exit 1
             fi
           }
