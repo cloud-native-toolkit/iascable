@@ -17,7 +17,7 @@ import {
 import {isDefinedAndNotNull, isUndefined} from '../object-util';
 import {of as arrayOf} from '../array-util/array-util';
 import {loadFile} from '../file-util';
-import {Catalog} from '../../model-impls/catalog.impl';
+import {Catalog} from '../../model-impls';
 
 export function buildBomVariables(bomVariableYaml: string): BillOfMaterialVariable[] {
   if (!bomVariableYaml) {
