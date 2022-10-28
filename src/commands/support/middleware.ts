@@ -1,4 +1,5 @@
 import uniq from 'lodash.uniq';
+import {Arguments} from 'yargs';
 
 export const DEFAULT_CATALOG_URLS = [
   'https://modules.cloudnativetoolkit.dev/index.yaml',
@@ -6,10 +7,10 @@ export const DEFAULT_CATALOG_URLS = [
 ]
 
 export const setupCatalogUrls = (defaultCatalogUrls: string[] = DEFAULT_CATALOG_URLS) => {
-  return (yargs: any) => {
+  return (argv: Arguments<any>): any | Promise<any> => {
     const result: {catalogUrls?: string[]} = {}
 
-    const catalogUrls: string[] | undefined = yargs.catalogUrls
+    const catalogUrls: string[] | undefined = argv.catalogUrls
 
     if (catalogUrls) {
       const newCatalogUrls: string[] = defaultCatalogUrls.concat(catalogUrls)

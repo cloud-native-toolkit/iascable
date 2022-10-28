@@ -1,5 +1,5 @@
 import {Container} from 'typescript-ioc';
-import {Arguments, Argv} from 'yargs';
+import {Arguments, Argv, CommandBuilder, CommandModule} from 'yargs';
 import {fchmod, promises} from 'fs';
 import {default as jsYaml} from 'js-yaml';
 import {dirname, join} from 'path';
@@ -11,8 +11,7 @@ import {
   BillOfMaterialModel,
   isTileConfig,
   OutputFile,
-  OutputFileType,
-  TerraformComponent,
+  OutputFileType, TerraformComponentModel,
   Tile,
   UrlFile
 } from '../models';
@@ -24,7 +23,7 @@ import {
 } from '../services';
 import {LoggerApi} from '../util/logger';
 import {DotGraphFile} from '../models/graph.model';
-import {chmodRecursive} from '../util/file-util';
+import {chmodRecursive} from '../util/file-util/file-util';
 import {DEFAULT_CATALOG_URLS, setupCatalogUrls} from './support/middleware';
 import {SolutionModel} from '../models/solution.model';
 import {CustomResourceDefinition} from '../models/crd.model';
@@ -33,7 +32,7 @@ import {loadBillOfMaterialFromFile, loadReferenceBom} from '../util/bill-of-mate
 
 export const command = 'build';
 export const desc = 'Configure (and optionally deploy) the iteration zero assets';
-export const builder = (yargs: Argv<any>) => {
+export const builder: CommandBuilder<any, any> = (yargs: Argv<any>) => {
   return yargs
     .option('catalogUrls', {
       alias: 'c',
@@ -107,7 +106,9 @@ export const builder = (yargs: Argv<any>) => {
     });
 };
 
-export const handler = async (argv: Arguments<IascableInput & CommandLineInput & {flattenOutput: boolean, zipFile: string}>) => {
+type BuilderArgs = IascableInput & CommandLineInput & {flattenOutput: boolean, zipFile: string}
+
+export const handler = async (argv: Arguments<BuilderArgs>) => {
   process.env.LOG_LEVEL = argv.debug ? 'debug' : 'info';
 
   const cmd: IascableApi = Container.get(IascableApi);
@@ -138,7 +139,7 @@ export const handler = async (argv: Arguments<IascableInput & CommandLineInput &
     )
 
     await bundleWriter.generate(output)
-  } catch (err) {
+  } catch (err: any) {
     if (argv.debug) {
       logger.error('Error building config', {err})
     } else {
@@ -245,7 +246,7 @@ async function outputDependencyGraph(rootPath: string, graph?: DotGraphFile) {
   return promises.writeFile(join(rootPath, graph.name), await graph.contents());
 }
 
-async function outputTerraform(rootPath: string, terraformComponent: TerraformComponent) {
+async function outputTerraform(rootPath: string, terraformComponent: TerraformComponentModel) {
   const logger: LoggerApi = Container.get(LoggerApi)
 
   const promiseList = []
@@ -333,4 +334,11 @@ async function outputScript(rootPath: string, file: OutputFile): Promise<string>
   }
 
   return scriptPath
+}
+
+export const iascableBuild: CommandModule = {
+  command,
+  describe: desc,
+  builder,
+  handler: handler as any
 }

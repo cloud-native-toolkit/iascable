@@ -6,7 +6,8 @@ import {
   BillOfMaterialModule,
   OutputFile,
   OutputFileType,
-  SingleModuleVersion, TerraformComponent
+  SingleModuleVersion,
+  TerraformComponentModel,
 } from '../../models';
 import {isSolutionModel, SolutionModel} from '../../models/solution.model';
 import {getAnnotation} from '../../models/crd.model';
@@ -16,10 +17,8 @@ import {
   SolutionTemplateModel,
   TemplatedFile
 } from '../../template-models/models';
-import {isUndefined} from '../../util/object-util';
 import {ArrayUtil} from '../../util/array-util';
-import {Optional} from '../../util/optional';
-import {TerragruntLayer} from '../../models/terragrunt.model';
+import {Optional} from '../../util/optional/optional';
 
 export class BomDocumentationImpl implements BomDocumentationApi {
   generateDocumentation(bom: BillOfMaterialModel | SolutionModel, name?: string): OutputFile {
@@ -33,15 +32,15 @@ export class BomDocumentationImpl implements BomDocumentationApi {
 
 export class BomReadmeFile extends TemplatedFile {
 
-  constructor(private bom: BillOfMaterialModel, private modules?: SingleModuleVersion[], private terraformComponent?: TerraformComponent, name: string = 'README.md') {
-    super(name, OutputFileType.documentation, join(__dirname, '../../templates/bom-readme.liquid'))
+  constructor(private bom: BillOfMaterialModel, private modules?: SingleModuleVersion[], private terraformComponent?: TerraformComponentModel, name: string = 'README.md') {
+    super(name, OutputFileType.documentation, join(__dirname, './templates/bom-readme.liquid'))
   }
 
   templateFile({inSolution = false}: {inSolution?: boolean} = {}): string {
     if (inSolution) {
-      return join(__dirname, '../../templates/layer-readme.liquid')
+      return join(__dirname, './templates/layer-readme.liquid')
     } else {
-      return join(__dirname, '../../templates/bom-readme.liquid')
+      return join(__dirname, './templates/bom-readme.liquid')
     }
   }
 
@@ -87,7 +86,7 @@ const bomModuleToPrintable = (modules: SingleModuleVersion[] = []) => {
 export class SolutionBomReadmeFile extends TemplatedFile {
 
   constructor(private bom: SolutionModel, name: string = 'README.md') {
-    super(name, OutputFileType.documentation, join(__dirname, '../../templates/solution-readme.liquid'))
+    super(name, OutputFileType.documentation, join(__dirname, './templates/solution-readme.liquid'))
   }
 
   get model(): Promise<SolutionTemplateModel> {

@@ -1,17 +1,18 @@
+import {Inject} from 'typescript-ioc';
+
 import {DependencyGraphApi} from './dependency-graph.api';
 import {
   BillOfMaterialModel,
+  DotGraph,
+  DotNode,
   ModuleDependency,
   ModuleVersion,
   SingleModuleVersion
 } from '../../models';
-import {DotGraph, DotNode} from '../../models/graph.model';
-import {of as arrayOf} from '../../util/array-util/array-util';
-import {Optional} from '../../util/optional';
-import {Inject} from 'typescript-ioc';
+import {arrayOf, Optional} from '../../util';
 import {CatalogLoaderApi} from '../catalog-loader';
 import {ModuleSelectorApi} from '../module-selector';
-import {Catalog} from '../../model-impls/catalog.impl';
+import {Catalog} from '../../model-impls';
 
 export class DependencyGraphImpl implements DependencyGraphApi {
   @Inject

@@ -12,26 +12,36 @@ import {
   IBaseOutput,
   IBaseVariable,
   IPlaceholderVariable,
-  isPlaceholderVariable,
   isSingleModuleVersion,
   Module,
-  ModuleDependency, ModuleOutput,
+  ModuleDependency,
+  ModuleOutput,
   ModuleOutputRef,
-  ModuleProvider, ModuleRefOutput,
-  ModuleRefVariable,
   ModuleVariable,
-  PlaceholderVariable,
+  ProviderModel,
   SingleModuleVersion,
   Stage,
-  StageImpl,
-  TerraformComponent,
+  TerraformComponentModel,
   TerraformProvider,
-  TerraformProviderImpl
 } from '../../models';
 import {ModuleDependencyModuleNotFound, ModuleDependencyNotFound} from '../../errors';
-import {ArrayUtil, of as arrayOf} from '../../util/array-util/array-util'
-import {isDefined, isDefinedAndNotNull, isUndefinedOrNull} from '../../util/object-util';
-import {Optional} from '../../util/optional';
+import {
+  arrayOf,
+  ArrayUtil,
+  isDefined,
+  isDefinedAndNotNull,
+  isUndefinedOrNull,
+  Optional
+} from '../../util'
+import {
+  isPlaceholderVariable,
+  ModuleRefOutput,
+  ModuleRefVariable,
+  PlaceholderVariable,
+  StageImpl,
+  TerraformComponent,
+  TerraformProviderImpl
+} from '../../model-impls';
 
 interface TerraformResult {
   stages: {[name: string]: Stage}
@@ -45,7 +55,7 @@ const extractProvidersFromModule = (module: SingleModuleVersion, {stages, provid
   return (module.version.providers || [])
     .map(mergeBomProvider(bomProviders))
     .reduce(
-      (result: {providers: TerraformProvider[], providerVariables: BaseVariable[]}, provider: ModuleProvider) => {
+      (result: {providers: TerraformProvider[], providerVariables: BaseVariable[]}, provider: ProviderModel) => {
 
         const variables: BaseVariable[] = (provider.variables || []).map(mapModuleVariable(provider))
 
@@ -72,7 +82,7 @@ const buildProviderId = (provider: {name: string, alias?: string}): string => {
 }
 
 export class TerraformBuilderNew implements TerraformBuilderApi {
-  async buildTerraformComponent(modules: SingleModuleVersion[], catalog: CatalogV2Model, billOfMaterial?: BillOfMaterialModel): Promise<TerraformComponent> {
+  async buildTerraformComponent(modules: SingleModuleVersion[], catalog: CatalogV2Model, billOfMaterial?: BillOfMaterialModel): Promise<TerraformComponentModel> {
 
     const terraform: TerraformResult = modules.reduce(
       (result: TerraformResult, module: SingleModuleVersion) => {
@@ -118,22 +128,18 @@ export class TerraformBuilderNew implements TerraformBuilderApi {
 
   moduleVariablesToStageVariables(module: SingleModuleVersion): BaseVariable[] {
 
-    const stageVariables: BaseVariable[] = module.version.variables
+    return module.version.variables
       .map(mergeBomVariables(arrayOf(module.bomModule?.variables)))
       .map(mapModuleVariable(module))
       .filter(isDefinedAndNotNull)
-
-    return stageVariables
   }
 
   moduleOutputsToStageOutputs(module: SingleModuleVersion): BaseOutput[] {
 
-    const stageOutputs: BaseOutput[] = module.version.outputs
+    return module.version.outputs
       .map(mergeBomOutputs(arrayOf(module.bomModule?.outputs)))
       .map(mapModuleOutput(module))
       .filter(isDefinedAndNotNull)
-
-    return stageOutputs
   }
 
   processBaseVariables(variables: IBaseVariable[], billOfMaterialVariables: BillOfMaterialVariable[] = []): IBaseVariable[] {
@@ -227,9 +233,7 @@ function defaultValue(variable: ModuleVariable, bomModule?: BillOfMaterialModule
     .map(v => v.value)
     .orElseGet(() => {
       if (isDefinedAndNotNull(variable)) {
-        const result = variableValue(variable.type, variable.default)
-
-        return result;
+        return variableValue(variable.type, variable.default);
       } else {
         console.log('Variable is not defined or is null')
       }
@@ -251,10 +255,10 @@ const variableValue = (type: string, defaultValue: any): any => {
 
 }
 
-type ModuleProviderPredicate = (provider: ModuleProvider) => boolean
+type ModuleProviderPredicate = (provider: ProviderModel) => boolean
 
-const notIncludesProvider = (providers: ModuleProvider[]): ModuleProviderPredicate => {
-  const providerId = (provider: ModuleProvider) => {
+const notIncludesProvider = (providers: ProviderModel[]): ModuleProviderPredicate => {
+  const providerId = (provider: ProviderModel) => {
     if (!provider.alias) {
       return provider.name;
     }
@@ -262,15 +266,15 @@ const notIncludesProvider = (providers: ModuleProvider[]): ModuleProviderPredica
     return `${provider.name}-${provider.alias}`;
   }
 
-  return (provider: ModuleProvider): boolean => {
+  return (provider: ProviderModel): boolean => {
     return !providers.map(p => providerId(p)).includes(providerId(provider));
   };
 }
 
 
 const mergeBomProvider = (bomProviders: BillOfMaterialProvider[]) => {
-  return (provider: ModuleProvider) => {
-    const result: ModuleProvider = arrayOf(bomProviders)
+  return (provider: ProviderModel) => {
+    const result: ProviderModel = arrayOf(bomProviders)
       .filter(p => p.name === provider.name && p.alias === provider.alias)
       .first()
       .map(bomP => Object.assign({}, provider, bomP))
@@ -281,14 +285,12 @@ const mergeBomProvider = (bomProviders: BillOfMaterialProvider[]) => {
 }
 
 
-const mergeBomProviderOld = (provider: ModuleProvider, bomProviders: BillOfMaterialProvider[]): ModuleProvider => {
-  const result: ModuleProvider = arrayOf(bomProviders)
+const mergeBomProviderOld = (provider: ProviderModel, bomProviders: BillOfMaterialProvider[]): ProviderModel => {
+  return arrayOf(bomProviders)
     .filter(p => p.name === provider.name && p.alias === provider.alias)
     .first()
     .map(bomP => Object.assign({}, provider, bomP))
     .orElse(provider as any);
-
-  return result;
 }
 
 type BaseVariableMap = (variable: IBaseVariable) => IBaseVariable
@@ -339,7 +341,7 @@ const variablesInclude = (variables: IBaseVariable[], name: string): boolean => 
   return variables.map(v => v.name).includes(name)
 }
 
-const mapModuleVariable = (module: SingleModuleVersion | ModuleProvider) => {
+const mapModuleVariable = (module: SingleModuleVersion | ProviderModel) => {
   return (v: ModuleVariable) => {
     if (v.scope === 'ignore') {
       // nothing to do. skip this variable
@@ -376,7 +378,7 @@ const mapModuleVariable = (module: SingleModuleVersion | ModuleProvider) => {
   }
 }
 
-const mapModuleOutput = (module: SingleModuleVersion | ModuleProvider) => {
+const mapModuleOutput = (module: SingleModuleVersion | ProviderModel) => {
   return (o: ModuleOutput): BaseOutput => {
     const moduleName = module.alias || module.name
 

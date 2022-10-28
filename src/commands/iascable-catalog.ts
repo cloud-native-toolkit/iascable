@@ -1,9 +1,8 @@
-import {Arguments, Argv} from 'yargs';
+import {Arguments, Argv, CommandModule} from 'yargs';
 import {Container} from 'typescript-ioc';
 import {createWriteStream, WriteStream, promises} from 'fs';
 import {join} from 'path';
 import {dump} from 'js-yaml';
-// @ts-ignore
 import {Observable} from 'rxjs';
 
 import {CommandLineInput} from './inputs/command-line.input';
@@ -14,10 +13,10 @@ import {
   catalogSummaryKind,
   Module,
   ModuleIdAlias,
-  ModuleProvider,
+  ProviderModel,
   ModuleSummary
 } from '../models';
-import {CatalogBuilderApi, CatalogBuilderResult} from '../services/catalog-builder';
+import {CatalogBuilderApi, CatalogBuilderResult} from '../services';
 
 export const command = 'catalog';
 export const desc = 'Generates the metadata catalog for an individual module or a collection of modules';
@@ -89,7 +88,7 @@ const outputResult = async (outDir: string, result: CatalogBuilderResult): Promi
     writeLine(catalogStream, `kind: ${catalogKind}`)
     writeLine(summaryStream, `kind: ${catalogSummaryKind}`)
 
-    const providers: Promise<ModuleProvider[]> = joinObservable(result.providers)
+    const providers: Promise<ProviderModel[]> = joinObservable(result.providers)
     const aliases: Promise<ModuleIdAlias[]> = joinObservable(result.aliases)
     const boms: Promise<BillOfMaterialEntry[]> = joinObservable(result.boms)
 
@@ -192,4 +191,11 @@ const write = (streamInput: WriteStream | WriteStream[], line: string, indent: n
 
     stream.write(line)
   })
+}
+
+export const iascableCatalog: CommandModule = {
+  command,
+  describe: desc,
+  builder,
+  handler: handler as any
 }

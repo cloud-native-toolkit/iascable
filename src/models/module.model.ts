@@ -1,17 +1,18 @@
-import {VersionMatcher} from './version-matcher';
 import {BillOfMaterialModule} from './bill-of-material.model';
-import {isUndefined} from '../util/object-util';
-import {ArrayUtil, of as arrayOf} from '../util/array-util/array-util';
-import {Optional} from '../util/optional';
-import {CatalogProviderModel} from './catalog.model';
 import {CustomResourceDefinition} from './crd.model';
+import {VersionMatcher} from './version-matcher';
+import {arrayOf, ArrayUtil, isUndefined, Optional} from '../util';
 
-export interface ModuleProvider {
+export interface ProviderModel {
   name: string;
   alias?: string;
   source?: string;
-  variables?: ModuleVariable[];
   dependencies?: ModuleDependency[];
+  variables?: ModuleVariable[];
+}
+
+export const isProviderModel = (value: any): value is ProviderModel => {
+  return !!value && !!(value as ProviderModel).dependencies && !!(value as ProviderModel).variables
 }
 
 export interface ModuleRef {
@@ -39,7 +40,7 @@ export interface ModuleTemplate extends CustomResourceDefinition {
   description?: string;
   platforms: string[];
   provider?: 'ibm' | 'k8s';
-  providers?: ModuleProvider[];
+  providers?: ProviderModel[];
   tags?: string[];
   ibmCatalogId?: string;
   fsReady?: string;
@@ -52,30 +53,20 @@ export interface ModuleTemplate extends CustomResourceDefinition {
   metadataUrl?: string;
 }
 
-export interface Module extends ModuleTemplate {
-  versions: ModuleVersion[];
-  bomModule?: BillOfMaterialModule;
-}
-
 export interface ModuleSummary extends ModuleTemplate {
   versions: Array<{version: string}>;
 }
 
-export function isModule(module: Module | ModuleRef | CustomResourceDefinition): module is Module {
-  return !!module && !!(module as Module).id;
+export interface VersionedModule extends ModuleTemplate {
+  versions: ModuleVersion[];
 }
 
-export function isModuleRef(module: Module | ModuleRef | CustomResourceDefinition): module is ModuleRef {
-  return !!module && !!(module as ModuleRef).source;
-}
-
-export interface SingleModuleVersion extends ModuleTemplate {
+export interface BaseSingleModuleVersion extends ModuleTemplate {
   version: ModuleVersion;
-  bomModule?: BillOfMaterialModule;
 }
 
-export function isSingleModuleVersion(module: any): module is SingleModuleVersion {
-  return !!module && !!(module as SingleModuleVersion).version;
+export function isBaseSingleModuleVersion(module: any): module is BaseSingleModuleVersion {
+  return !!module && !!(module as BaseSingleModuleVersion).version;
 }
 
 export interface ModuleDependency {
@@ -86,7 +77,7 @@ export interface ModuleDependency {
   optional?: boolean;
   discriminator?: string;
   manualResolution?: boolean;
-  _module?: Module | Module[];
+  _module?: VersionedModule | VersionedModule[];
 }
 
 export interface ModuleVersion {
@@ -94,7 +85,7 @@ export interface ModuleVersion {
   dependencies?: ModuleDependency[];
   variables: ModuleVariable[];
   outputs: ModuleOutput[];
-  providers?: Array<ModuleProvider | CatalogProviderModel>;
+  providers?: Array<ProviderModel>;
   terraformVersion?: string;
 }
 
@@ -124,7 +115,7 @@ export interface ModuleOutputRef {
   output: string;
 }
 
-export function dependsOnModule(module: Module, depModule: Module | undefined): boolean {
+export function dependsOnModule(module: VersionedModule, depModule: VersionedModule | undefined): boolean {
   if (isUndefined(depModule)) {
     return false;
   }
@@ -153,10 +144,10 @@ export function dependsOnModule(module: Module, depModule: Module | undefined): 
   return dependencyRefs.some((ref: ModuleRef) => ref.source === depModule.id);
 }
 
-export type ModuleWithDependsOn = Module & {dependsOn: (module: Module | undefined) => boolean};
+export type ModuleWithDependsOn = VersionedModule & {dependsOn: (module: VersionedModule | undefined) => boolean};
 
-export function injectDependsOnFunction(module: Module | undefined): ModuleWithDependsOn {
-  const dependsOn = (depModule: Module | undefined): boolean => {
+export function injectDependsOnFunction(module: VersionedModule | undefined): ModuleWithDependsOn {
+  const dependsOn = (depModule: VersionedModule | undefined): boolean => {
     if (isUndefined(module)) {
       return false;
     }
@@ -172,4 +163,24 @@ export interface ModuleInterfaceModel {
   name: string
   variables?: ModuleVariable[]
   outputs?: ModuleOutput[]
+}
+
+export interface Module extends VersionedModule {
+  bomModule?: BillOfMaterialModule;
+}
+
+export function isModule(module: Module | ModuleRef | CustomResourceDefinition): module is Module {
+  return !!module && !!(module as Module).id;
+}
+
+export function isModuleRef(module: Module | ModuleRef | CustomResourceDefinition): module is ModuleRef {
+  return !!module && !!(module as ModuleRef).source;
+}
+
+export interface SingleModuleVersion extends BaseSingleModuleVersion {
+  bomModule?: BillOfMaterialModule;
+}
+
+export function isSingleModuleVersion(module: any): module is SingleModuleVersion {
+  return !!module && !!(module as SingleModuleVersion).version;
 }

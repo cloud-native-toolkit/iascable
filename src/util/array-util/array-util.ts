@@ -1,5 +1,5 @@
-import {Optional} from '../optional';
-import {isUndefined} from '../object-util';
+import {Optional} from '../optional/optional';
+import {isUndefined} from '../object-util/object-util';
 
 export class ArrayUtil<T = any> {
   public readonly value: T[];
@@ -104,7 +104,7 @@ export class ArrayUtil<T = any> {
   }
 }
 
-export function of<T>(array?: T[]): ArrayUtil<T> {
+export function arrayOf<T>(array?: T[]): ArrayUtil<T> {
   return ArrayUtil.of(array);
 }
 

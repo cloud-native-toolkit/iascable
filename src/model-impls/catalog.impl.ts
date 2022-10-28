@@ -1,27 +1,31 @@
-import {LoggerApi} from '../util/logger';
+import cloneDeep from 'lodash.clonedeep';
+import {Container} from 'typescript-ioc';
+
 import {
   BillOfMaterialEntry,
-  BillOfMaterialModel, BillOfMaterialVersion,
+  BillOfMaterialModel,
+  BillOfMaterialVersion,
   catalogApiV2Version,
   CatalogFilter,
   catalogKind,
-  CatalogProviderModel,
   CatalogV1Model,
   CatalogV2Metadata,
-  CatalogV2Model, cleanId, DenormalizedModuleIdAliases,
+  CatalogV2Model,
+  cleanId,
+  DenormalizedModuleIdAliases,
   getFlattenedModules,
-  isCatalogV2Model, matchingModules, matchingModuleVersions, matchingPlatforms, matchingProviders,
+  isCatalogV2Model,
+  matchingModules,
+  matchingModuleVersions,
+  matchingPlatforms,
+  matchingProviders,
   Module,
   ModuleIdAlias,
-  ModuleProvider
+  ProviderModel,
+  SolutionModel
 } from '../models';
-import {Container} from 'typescript-ioc';
-import {Optional} from '../util/optional';
-import {ArrayUtil, of as ofArray} from '../util/array-util';
-import cloneDeep from 'lodash.clonedeep';
-import {SolutionModel} from '../models/solution.model';
 import {BillOfMaterialNotFound, BillOfMaterialVersionNotFound} from '../errors';
-import {loadBillOfMaterialFromFile} from '../util/bill-of-material-builder';
+import {arrayOf, ArrayUtil, loadBillOfMaterialFromFile, LoggerApi, Optional} from '../util';
 
 export class Catalog implements CatalogV2Model {
   private logger: LoggerApi;
@@ -30,7 +34,7 @@ export class Catalog implements CatalogV2Model {
   public readonly kind: string = catalogKind;
   public readonly metadata?: CatalogV2Metadata;
   public readonly modules: Module[];
-  public readonly providers: CatalogProviderModel[];
+  public readonly providers: ProviderModel[];
   public readonly filterValue?: {platform?: string, provider?: string};
   public readonly flattenedAliases: DenormalizedModuleIdAliases;
   public readonly moduleIdAliases: ModuleIdAlias[];
@@ -74,9 +78,9 @@ export class Catalog implements CatalogV2Model {
     return new Catalog({apiVersion: catalogApiV2Version, kind: catalogKind, modules: filteredModules, boms: this.boms}, {platform, provider});
   }
 
-  lookupProvider(provider: ModuleProvider): Optional<CatalogProviderModel> {
-    return ofArray(this.providers)
-      .filter((p: CatalogProviderModel) => p.name === provider.name && p.source === provider.source)
+  lookupProvider(provider: ProviderModel): Optional<ProviderModel> {
+    return arrayOf(this.providers)
+      .filter((p: ProviderModel) => p.name === provider.name && p.source === provider.source)
       .first()
       .map(p => cloneDeep(p))
   }
@@ -98,7 +102,7 @@ export class Catalog implements CatalogV2Model {
   lookupModule(moduleId: {id: string, name?: string} | {name: string, id?: string}): Module | undefined {
     this.logger.debug('Looking up module from catalog: ', {moduleId, modules: this.modules})
 
-    const result: Module | undefined = ofArray(this.modules)
+    const result: Module | undefined = arrayOf(this.modules)
       .filter(m => {
         const match: boolean = this.idsMatch(m, moduleId) || m.name === moduleId.name
 

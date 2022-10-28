@@ -1,5 +1,5 @@
-import {TerraformVariable, Tile, TileConfig} from '../../models';
+import {IBaseVariable, TerraformVariable, Tile, TileConfig} from '../../models';
 
 export abstract class TileBuilderApi {
-  abstract buildTileMetadata(variables: TerraformVariable[], tileConfig: TileConfig): Tile;
+  abstract buildTileMetadata(variables: IBaseVariable[], tileConfig: TileConfig): Tile;
 }

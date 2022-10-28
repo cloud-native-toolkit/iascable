@@ -14,13 +14,13 @@ import {
   OutputFileType,
   SingleModuleVersion,
   Stage,
-  TerraformComponent
+  TerraformComponentModel
 } from '../../models';
-import {getIascableVersion} from '../../util/iascable-version';
-import {isUndefined} from '../../util/object-util';
+import {getIascableVersion} from '../../util/iascable-version/iascable-version';
+import {isUndefined} from '../../util/object-util/object-util';
 import {ModuleVersionNotFound} from '../../util/version-resolver';
 import {ModuleReadmeTemplate, PrintableVariable, TemplatedFile} from '../../template-models/models';
-import {Catalog} from '../../model-impls/catalog.impl';
+import {Catalog} from '../../model-impls';
 
 export class ModuleDocumentation implements ModuleDocumentationApi {
   @Inject
@@ -36,7 +36,7 @@ export class ModuleReadmeFile extends TemplatedFile {
   terraformBuilder: TerraformBuilderApi;
 
   constructor(private module: Module, private catalogModel: CatalogV2Model, private moduleList?: SingleModuleVersion[], name: string = 'README.md') {
-    super(name, OutputFileType.documentation, join(__dirname, '../../templates/module-readme.liquid'));
+    super(name, OutputFileType.documentation, join(__dirname, './templates/module-readme.liquid'));
 
     this.terraformBuilder = Container.get(TerraformBuilderApi)
   }
@@ -108,7 +108,7 @@ export class ModuleReadmeFile extends TemplatedFile {
   async example(module: Module, catalog: Catalog, moduleList?: SingleModuleVersion[]): Promise<string> {
     const modules: SingleModuleVersion[] = moduleList ? moduleList : new SelectedModuleResolverImpl(catalog).resolve([module])
 
-    const terraform: TerraformComponent = await this.terraformBuilder.buildTerraformComponent(modules, catalog)
+    const terraform: TerraformComponentModel = await this.terraformBuilder.buildTerraformComponent(modules, catalog)
 
     const currentStage: Stage[] = Object.values(terraform.stages).filter(stage => stage.source === module.id)
 

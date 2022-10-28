@@ -1,22 +1,8 @@
 import {Container} from 'typescript-ioc'
 import YAML from 'js-yaml'
-import {get, Response} from 'superagent'
+import superagent, {Response} from 'superagent'
 import ZSchema from 'z-schema'
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import Optional from 'js-optional'
 
-import {LoggerApi} from '../../util/logger'
-import {
-  ModuleInterfaceModel,
-  Module,
-  ModuleOutput,
-  ModuleVariable,
-  ModuleVersion
-} from '../../models'
-import {YamlFile} from '../../util/yaml-file/yaml-file'
-import {TerraformFile, TerraformOutputModel, TerraformVariableModel} from '../../util/terraform/terraform-file'
-import {rightDifference, first} from '../../util/array-util'
 import {InterfaceError, InterfaceErrors} from './errors'
 import {
   ModuleMetadataApi,
@@ -24,6 +10,22 @@ import {
   ModuleServiceCreateResult,
   ModuleServiceVerifyParams
 } from './module-metadata.api';
+import {
+  first,
+  LoggerApi, Optional,
+  rightDifference,
+  TerraformFile,
+  TerraformOutputModel,
+  TerraformVariableModel,
+  YamlFile
+} from '../../util'
+import {
+  Module,
+  ModuleInterfaceModel,
+  ModuleOutput,
+  ModuleVariable,
+  ModuleVersion
+} from '../../models'
 
 export class ModuleMetadataService implements ModuleMetadataApi {
   private logger: LoggerApi
@@ -229,7 +231,7 @@ export class ModuleMetadataService implements ModuleMetadataApi {
     }
 
     try {
-      const response: Response = await get(metadataUrl)
+      const response: Response = await superagent.get(metadataUrl)
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return YAML.load(response.text) as any
@@ -257,7 +259,7 @@ export class ModuleMetadataService implements ModuleMetadataApi {
     this.logger.debug('Loading Schema')
     const url = 'https://modules.cloudnativetoolkit.dev/schemas/module.json'
 
-    const response: Response = await get(url)
+    const response: Response = await superagent.get(url)
 
     const result: string = response.text
 
@@ -319,7 +321,7 @@ export class ModuleMetadataService implements ModuleMetadataApi {
     const shortName: string = id.replace(/.*#(.*)/g, '$1')
 
     const url = `https://modules.cloudnativetoolkit.dev/interfaces/${shortName}.yaml`
-    return get(url)
+    return superagent.get(url)
       .then((response: Response) => response.text)
       .then(text => YAML.load(text) as ModuleInterfaceModel)
   }

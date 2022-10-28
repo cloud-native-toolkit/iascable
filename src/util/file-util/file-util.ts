@@ -2,7 +2,7 @@ import {chmodSync, lstatSync, promises} from 'fs';
 import {join} from 'path';
 import superagent from 'superagent';
 import {PassThrough} from 'stream';
-import {fromReadable} from './stream-util';
+import {fromReadable} from '../stream-util';
 
 export async function chmodRecursive(root: string, mode: number) {
   chmodSync(root, mode)

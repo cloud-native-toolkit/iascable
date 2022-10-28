@@ -1,4 +1,4 @@
-import {Arguments, Argv} from 'yargs';
+import {Arguments, Argv, CommandModule} from 'yargs';
 import {Container} from 'typescript-ioc';
 import {promises} from 'fs';
 import {join} from 'path';
@@ -9,7 +9,7 @@ import superagent from 'superagent';
 import {CommandLineInput} from './inputs/command-line.input';
 import {IascableGenerateInput} from './inputs/iascable.input';
 import {Module} from '../models';
-import {ModuleMetadataApi, ModuleServiceCreateResult} from '../services/module-metadata-service';
+import {ModuleMetadataApi, ModuleServiceCreateResult} from '../services';
 import {LoggerApi} from '../util/logger';
 
 export const command = 'metadata';
@@ -68,7 +68,7 @@ export const builder = (yargs: Argv<any>) => {
       type: 'boolean',
       describe: 'Flag to turn on more detailed output message',
     })
-    .middleware(async argv => {
+    .middleware(async (argv: Arguments<any>): Promise<any> => {
       const {repoSlug, metadataUrl} = await getRepoSlug({
         moduleUrl: argv.moduleUrl,
         local: argv.local,
@@ -83,7 +83,7 @@ export const builder = (yargs: Argv<any>) => {
         moduleVersion
       }
     })
-    .middleware(argv => {
+    .middleware((argv: Arguments<any>): any | Promise<any> => {
       const moduleVersion: string = argv.moduleVersion
 
       if (!moduleVersion) {
@@ -125,7 +125,7 @@ export const handler = async (argv: Arguments<IascableGenerateInput & CommandLin
     const result: ModuleServiceCreateResult = await cmd.create({version, repoSlug, metadataFile, metadataUrl})
 
     await outputResult(argv.outDir, result.metadata, argv)
-  } catch (err) {
+  } catch (err: any) {
     console.log('')
     console.error(`Error: ${err.message}`)
   }
@@ -239,4 +239,11 @@ const getRepoSlug = async ({moduleUrl = '', local = false, publishBranch, metada
   return {
     repoSlug: ''
   }
+}
+
+export const iascableMetadata: CommandModule = {
+  command,
+  describe: desc,
+  builder,
+  handler: handler as any
 }

@@ -1,5 +1,5 @@
 import superagent from 'superagent';
-import {loadFile} from '../util/file-util';
+import {loadFile} from '../util/file-util/file-util';
 
 export enum OutputFileType {
   terraform = 'terraform',
