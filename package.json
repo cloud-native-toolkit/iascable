@@ -7,8 +7,7 @@
   "module": "./build/esm/index.js",
   "types": "./build/src/index.d.ts",
   "files": [
-    "dist",
-    "ref-arch",
+    "build",
     "scripts"
   ],
   "author": "Sean Sundberg <seansund@us.ibm.com>",
