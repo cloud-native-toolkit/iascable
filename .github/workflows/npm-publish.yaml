@@ -32,6 +32,7 @@ jobs:
       - name: Publish to npm
         run: |
           npm ci
+          npm run build
           echo "Publishing package: npm publish --access public ${TAG_NAME}"
           npm publish --access public ${TAG_NAME}
         env:
