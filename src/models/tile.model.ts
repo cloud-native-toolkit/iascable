@@ -1,5 +1,5 @@
 import {OutputFile, OutputFileType} from './file.model';
-import {omit} from '../util/object-util';
+import {omit} from '../util/object-util/object-util';
 
 export interface TileVariable {
   key: string,

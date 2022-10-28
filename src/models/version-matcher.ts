@@ -1,5 +1,4 @@
-import {of as arrayOf} from '../util/array-util/array-util';
-import {isUndefined} from '../util/object-util';
+import {arrayOf, isUndefined} from '../util';
 
 export enum VersionComparison {
   major = '^',

@@ -10,14 +10,14 @@ import {
   catalogKind,
   Module,
   ModuleIdAlias,
-  ModuleProvider, ModuleTemplate, moduleWithCategory
+  ProviderModel, ModuleTemplate, moduleWithCategory
 } from '../../models';
 import {LoggerApi} from '../../util/logger';
-import {loadFile} from '../../util/file-util';
+import {loadFile} from '../../util/file-util/file-util';
 import {flatten} from '../../util/array-util';
 
 interface CatalogBuilder {
-  providersSubject: Subject<ModuleProvider>
+  providersSubject: Subject<ProviderModel>
   aliasesSubject: Subject<ModuleIdAlias>
   modulesSubject: Subject<Module>
   bomsSubject: Subject<BillOfMaterialEntry>
@@ -28,19 +28,19 @@ class CatalogBuilderResultValue implements CatalogBuilderResult, CatalogBuilder 
   kind: string = catalogKind
   apiVersion: string = catalogApiV2Version
 
-  _providers: Subject<ModuleProvider>
+  _providers: Subject<ProviderModel>
   _aliases: Subject<ModuleIdAlias>
   _modules: Subject<Module>
   _boms: Subject<BillOfMaterialEntry>
 
   constructor() {
-    this._providers = new Subject<ModuleProvider>()
+    this._providers = new Subject<ProviderModel>()
     this._aliases = new Subject<ModuleIdAlias>()
     this._modules = new Subject<Module>()
     this._boms = new Subject<BillOfMaterialEntry>()
   }
 
-  get providers(): Observable<ModuleProvider> {
+  get providers(): Observable<ProviderModel> {
     return this._providers
   }
   get aliases(): Observable<ModuleIdAlias> {
@@ -53,7 +53,7 @@ class CatalogBuilderResultValue implements CatalogBuilderResult, CatalogBuilder 
     return this._boms
   }
 
-  get providersSubject(): Subject<ModuleProvider> {
+  get providersSubject(): Subject<ProviderModel> {
     return this._providers
   }
   get aliasesSubject(): Subject<ModuleIdAlias> {

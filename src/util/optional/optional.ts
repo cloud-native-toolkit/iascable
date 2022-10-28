@@ -1,4 +1,4 @@
-import {isDefinedAndNotNull, isUndefinedOrNull} from './object-util';
+import {isDefinedAndNotNull, isUndefinedOrNull} from '../object-util/object-util';
 
 export class NoSuchElement extends Error {
   constructor(message?: string) {
@@ -15,6 +15,10 @@ export class Optional<T = any> {
   }
 
   static of<T = any>(value?: T): Optional<T> {
+    return new Optional(value as T);
+  }
+
+  static ofNullable<T = any>(value?: T): Optional<T> {
     return new Optional(value as T);
   }
 

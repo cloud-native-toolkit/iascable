@@ -1,46 +1,18 @@
-import {LoggerApi} from '../util/logger';
-import {Container} from 'typescript-ioc';
-import cloneDeep from 'lodash.clonedeep';
-
-import {
-  Module,
-  ModuleDependency,
-  ModuleProvider,
-  ModuleTemplate,
-  ModuleVariable
-} from './module.model';
-import {BillOfMaterialModel, BillOfMaterialModule} from './bill-of-material.model';
+import {BillOfMaterialModule} from './bill-of-material.model';
 import {CustomResourceDefinition, ResourceMetadata} from './crd.model';
-import {SolutionModel} from './solution.model';
-import {BillOfMaterialNotFound, BillOfMaterialVersionNotFound} from '../errors';
-import {flatten} from '../util/array-util';
-import {ArrayUtil, of as ofArray} from '../util/array-util/array-util';
-import {Optional} from '../util/optional';
-import {findMatchingVersions} from '../util/version-resolver';
-import {loadBillOfMaterialFromFile} from '../util/bill-of-material-builder';
+import {ModuleTemplate, ProviderModel, VersionedModule} from './module.model';
+import {findMatchingVersions, flatten, arrayOf, Optional} from '../util';
 
-export interface CatalogCategoryModel<M = Module> {
+export interface CatalogCategoryModel<M = VersionedModule> {
   category: string;
   categoryName?: string;
   selection: 'required' | 'single' | 'indirect' | 'multiple';
   modules: M[];
 }
 
-export interface CatalogProviderModel {
-  name: string;
-  source?: string;
-  alias?: string;
-  dependencies: ModuleDependency[];
-  variables: ModuleVariable[];
-}
-
-export const isCatalogProviderModel = (value: any): value is CatalogProviderModel => {
-  return !!value && !!(value as CatalogProviderModel).dependencies && !!(value as CatalogProviderModel).variables
-}
-
 export interface CatalogInputModel extends CustomResourceDefinition {
   categories: CatalogCategoryModel<ModuleTemplate>[];
-  providers?: CatalogProviderModel[];
+  providers?: ProviderModel[];
   aliases?: ModuleIdAlias[];
 }
 
@@ -63,8 +35,8 @@ export interface BillOfMaterialEntry {
 }
 
 export interface CatalogV2Model extends CustomResourceDefinition {
-  modules: Module[];
-  providers?: CatalogProviderModel[];
+  modules: VersionedModule[];
+  providers?: ProviderModel[];
   aliases?: ModuleIdAlias[];
   boms: BillOfMaterialEntry[];
   metadata?: CatalogV2Metadata;
@@ -72,7 +44,7 @@ export interface CatalogV2Model extends CustomResourceDefinition {
 
 export interface CatalogV1Model extends CustomResourceDefinition {
   categories: CatalogCategoryModel[];
-  providers?: CatalogProviderModel[];
+  providers?: ProviderModel[];
   aliases?: ModuleIdAlias[];
 }
 
@@ -104,7 +76,7 @@ export interface CatalogV2Metadata extends ResourceMetadata {
   flavors?: FlavorMetadata[]
 }
 
-function determineModuleProvider(module: Module) {
+function determineModuleProvider(module: VersionedModule) {
   if (module.provider) {
     return module.provider;
   }
@@ -131,7 +103,7 @@ export const isCatalogV2Model = (catalog: CatalogV1Model | CatalogV2Model): cata
 
 export type CatalogModel = CatalogV1Model | CatalogV2Model
 
-export const getFlattenedModules = (input: CatalogModel): Module[] => {
+export const getFlattenedModules = (input: CatalogModel): VersionedModule[] => {
   if (isCatalogV2Model(input)) {
     return (input.modules || [])
   }
@@ -150,23 +122,23 @@ export const catalogApiV2Version: string = 'cloudnativetoolkit.dev/v2';
 export const catalogKind: string = 'Catalog';
 export const catalogSummaryKind: string = 'CatalogSummary';
 
-export function matchingPlatforms(platform?: string): (m: Module) => boolean {
-  return (m: Module) => !m.platforms || !platform || m.platforms.includes(platform);
+export function matchingPlatforms(platform?: string): (m: VersionedModule) => boolean {
+  return (m: VersionedModule) => !m.platforms || !platform || m.platforms.includes(platform);
 }
 
-export function matchingProviders(provider?: string): (m: Module) => boolean {
-  return (m: Module) => !provider || provider === 'ibm' || determineModuleProvider(m) !== 'ibm';
+export function matchingProviders(provider?: string): (m: VersionedModule) => boolean {
+  return (m: VersionedModule) => !provider || provider === 'ibm' || determineModuleProvider(m) !== 'ibm';
 }
 
-export function matchingModules(modules?: BillOfMaterialModule[]): (m: Module) => boolean {
-  return (m: Module) => {
+export function matchingModules(modules?: BillOfMaterialModule[]): (m: VersionedModule) => boolean {
+  return (m: VersionedModule) => {
     return !modules || modules.some(module => (module.id === m.id || module.name === m.name));
   };
 }
 
-export function matchingModuleVersions(modules?: BillOfMaterialModule[]): (m: Module) => Module {
-  return (m: Module): Module => {
-    const versionMatcher: Optional<string> = ofArray<BillOfMaterialModule>(modules)
+export function matchingModuleVersions(modules?: BillOfMaterialModule[]): (m: VersionedModule) => VersionedModule {
+  return (m: VersionedModule): VersionedModule => {
+    const versionMatcher: Optional<string> = arrayOf<BillOfMaterialModule>(modules)
       .filter(module => module.id === m.id || module.name === m.name)
       .first()
       .map<string>(module => module.version as any);

@@ -1,6 +1,4 @@
 import {Container} from 'typescript-ioc';
-import {promises} from 'fs';
-import {default as superagent, Response} from 'superagent';
 import {JSON_SCHEMA, load} from 'js-yaml';
 import uniqBy from 'lodash.uniqby';
 import uniqWith from 'lodash.uniqwith';
@@ -11,18 +9,19 @@ import {
   catalogKind,
   CatalogLoaderApi,
   CatalogModel,
-  CatalogProviderModel,
   CatalogV2Metadata,
   CatalogV2Model,
   getFlattenedModules,
-  isCatalogKind, isCatalogV2Model, ModuleIdAlias
+  isCatalogKind,
+  isCatalogV2Model,
+  ModuleIdAlias
 } from './catalog-loader.api';
 import {LoggerApi} from '../../util/logger';
-import {isModule, Module} from '../../models';
+import {isModule, Module, ProviderModel} from '../../models';
 import {CustomResourceDefinition} from '../../models/crd.model';
 import {ArrayUtil} from '../../util/array-util';
-import {loadFile} from '../../util/file-util';
-import {Catalog} from '../../model-impls/catalog.impl';
+import {loadFile} from '../../util/file-util/file-util';
+import {Catalog} from '../../model-impls';
 
 export class CatalogLoader implements CatalogLoaderApi {
 
@@ -41,7 +40,7 @@ export class CatalogLoader implements CatalogLoaderApi {
 
     const catalog = new Catalog(catalogModel);
 
-    catalog.providers.forEach((p: CatalogProviderModel) => {
+    catalog.providers.forEach((p: ProviderModel) => {
       p.dependencies = p.dependencies || []
       p.variables = p.variables || []
     })
@@ -60,18 +59,6 @@ export class CatalogLoader implements CatalogLoaderApi {
 
       return mergeCatalogs(result, newModel)
     }, {} as any)
-  }
-
-  async loadCatalogFromFile(fileName: string): Promise<string> {
-    const catalogYaml = await promises.readFile(fileName);
-
-    return catalogYaml.toString();
-  }
-
-  async loadCatalogFromUrl(catalogUrl: string): Promise<string> {
-    const response: Response = await superagent.get(catalogUrl);
-
-    return response.text;
   }
 
   parseYaml<T>(text: string): T {

@@ -1,4 +1,4 @@
-import {BillOfMaterial} from './bill-of-material.model';
+import {BillOfMaterial} from '../model-impls';
 
 describe('bill-of-material model', () => {
   test('canary verifies test infrastructure', () => {
