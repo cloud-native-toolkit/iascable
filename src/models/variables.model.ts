@@ -271,9 +271,19 @@ export class TerraformProviderImpl implements TerraformProvider {
       .toString();
   }
 
+  private providerSpecificConfig(indent: string = '  '): string {
+    if (this.name === 'azurerm') {
+      return `${indent}features {}`
+    }
+
+    return ''
+  }
+
   asString(): string {
     return `provider "${this.name}" {
 ${this.aliasString('  ')}
+${this.providerSpecificConfig('  ')}
+
 ${this.variableString('  ')}
 }`
   }
