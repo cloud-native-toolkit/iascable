@@ -181,6 +181,8 @@ const cleanDefaultValues = (
         v.default = defaultValue.replace(/^"(.*)"$/g, '$1')
       } else if (v.type === 'bool') {
         v.default = defaultValue === 'true'
+      } else if (v.type === 'map(string)') {
+        v.default = JSON.parse(defaultValue)
       } else if (v.type === 'list(string)') {
         v.default = JSON.parse(defaultValue)
       } else {
