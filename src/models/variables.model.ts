@@ -447,10 +447,29 @@ export class TerraformTfvars {
 
 type Formatter = (value: string) => {type: string, value: string};
 
-const getTypeFormatter = (type: string): Formatter => {
-  const lookupType = type.match(/^list\(object\(/) ? 'object-list' : type.match(/^object\(/) ? 'object' : type.match(/^list\(/) ? 'list' : type;
+const lookupType = (type: string): string => {
+  if (type.match(/^list\(object\(/)) {
+    return 'object-list'
+  }
 
-  const formatter = typeFormatters[lookupType] || defaultFormatter;
+  if (type.match(/^object\(/)) {
+    return 'object'
+  }
+
+  if (type.match(/^list\(/)) {
+    return 'list'
+  }
+
+  if (type.match(/^map\(/)) {
+    return 'map'
+  }
+
+  return type
+}
+
+const getTypeFormatter = (type: string): Formatter => {
+
+  const formatter = typeFormatters[lookupType(type)] || defaultFormatter;
 
   return formatter;
 }
@@ -487,6 +506,22 @@ const typeFormatters: {[type: string]: Formatter} = {
 
     // tslint:disable-next-line:triple-equals
     return {type: 'string', value: value == '' ? '"[]"' : `"${JSON.stringify(value).replace(/"/g, '\\"')}"`};
+  }),
+  'map': buildTypeFormatter('map', (value: any) => {
+    if (value === 'null' || value === null) {
+      value = '';
+    }
+
+    if (typeof value === 'string') {
+      try {
+        value = JSON.parse(value)
+      } catch (error) {
+        value = {};
+      }
+    }
+
+    // tslint:disable-next-line:triple-equals
+    return {type: 'string', value: value == '' ? '"{}"' : `"${JSON.stringify(value).replace(/"/g, '\\"')}"`};
   }),
   'object': buildTypeFormatter('object', (value: any) => {
     if (value === 'null' || value === null) {
