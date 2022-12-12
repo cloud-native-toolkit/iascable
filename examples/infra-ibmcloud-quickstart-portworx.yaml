@@ -1,7 +1,7 @@
 apiVersion: cloudnativetoolkit.dev/v2
 kind: Solution
 metadata:
-  name: infra-ibmcloud-quickstart
+  name: Infra IBMCloud Quickstart
   labels:
     type: infrastructure
     platform: ibm

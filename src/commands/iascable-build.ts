@@ -1,34 +1,35 @@
-import {Container} from 'typescript-ioc';
-import {Arguments, Argv, CommandBuilder, CommandModule} from 'yargs';
-import {fchmod, promises} from 'fs';
-import {default as jsYaml} from 'js-yaml';
-import {dirname, join} from 'path';
-import uniq from 'lodash.uniq';
+import { Container } from 'typescript-ioc'
+import { Arguments, Argv, CommandBuilder, CommandModule } from 'yargs'
+import { fchmod, promises } from 'fs'
+import { default as jsYaml } from 'js-yaml'
+import { dirname, join } from 'path'
+import uniq from 'lodash.uniq'
 
-import {IascableInput} from './inputs/iascable.input';
-import {CommandLineInput} from './inputs/command-line.input';
+import { IascableInput } from './inputs/iascable.input'
+import { CommandLineInput } from './inputs/command-line.input'
+import { DEFAULT_CATALOG_URLS, setupCatalogUrls } from './support/middleware'
 import {
   BillOfMaterialModel,
+  CustomResourceDefinition,
+  DotGraphFile,
   isTileConfig,
   OutputFile,
-  OutputFileType, TerraformComponentModel,
+  OutputFileType,
+  SolutionModel,
+  TerraformComponentModel,
   Tile,
   UrlFile
-} from '../models';
+} from '../models'
+import { IascableApi, IascableBomResult, IascableBundle, IascableOptions } from '../services'
 import {
-  IascableApi,
-  IascableBundle,
-  IascableOptions,
-  IascableBomResult,
-} from '../services';
-import {LoggerApi} from '../util/logger';
-import {DotGraphFile} from '../models/graph.model';
-import {chmodRecursive} from '../util/file-util/file-util';
-import {DEFAULT_CATALOG_URLS, setupCatalogUrls} from './support/middleware';
-import {SolutionModel} from '../models/solution.model';
-import {CustomResourceDefinition} from '../models/crd.model';
-import {BundleWriter, BundleWriterType, getBundleWriter} from '../util/bundle-writer';
-import {loadBillOfMaterialFromFile, loadReferenceBom} from '../util/bill-of-material-builder';
+  BundleWriter,
+  BundleWriterType,
+  chmodRecursive,
+  getBundleWriter,
+  loadBillOfMaterialFromFile,
+  loadReferenceBom,
+  LoggerApi
+} from '../util'
 
 export const command = 'build';
 export const desc = 'Configure (and optionally deploy) the iteration zero assets';
