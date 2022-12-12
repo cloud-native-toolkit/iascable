@@ -554,11 +554,15 @@ const matchIascableBomResult = (layerName: string) => {
 const getBomPath = (bom: CustomResourceDefinition, defaultName: string = 'component'): string => {
   const pathParts: string[] = [
     getAnnotation(bom, 'path') || '',
-    bom.metadata?.name || defaultName
+    formatName(bom.metadata?.name || defaultName)
   ]
     .filter(v => !!v)
 
   return join(...pathParts)
+}
+
+const formatName = (name: string): string => {
+  return name.toLowerCase().replace(/ +/g, '-')
 }
 
 const writeFiles = (writer: BundleWriter, files: Array<OutputFile | undefined> = [], options?: {flatten?: boolean}) => {
