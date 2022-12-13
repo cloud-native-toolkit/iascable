@@ -20,7 +20,7 @@ export class DotGraphFile implements OutputFile {
 
   constructor(public dotGraph: DotGraph) {}
 
-  get contents(): Promise<string | Buffer> {
+  contents(): Promise<string | Buffer> {
     return Promise.resolve(graphToString(this.dotGraph))
   }
 }

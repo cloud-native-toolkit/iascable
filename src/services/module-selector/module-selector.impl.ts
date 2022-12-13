@@ -3,11 +3,10 @@ import {Container} from 'typescript-ioc';
 import deepClone from 'lodash.clonedeep';
 
 import {ModuleSelectorApi} from './module-selector.api';
+import {resolveSelectedModules} from './selected-modules.resolver';
 import {
-  BillOfMaterial,
   BillOfMaterialModel,
   BillOfMaterialModule,
-  Catalog,
   CatalogFilter,
   CatalogV2Model,
   injectDependsOnFunction,
@@ -16,10 +15,9 @@ import {
   ModuleWithDependsOn,
   SingleModuleVersion
 } from '../../models';
-import {LoggerApi} from '../../util/logger';
+import {arrayOf, LoggerApi} from '../../util';
 import {BillOfMaterialModuleConfigError, ModuleMetadataInvalid, ModuleNotFound} from '../../errors';
-import {of as arrayOf} from '../../util/array-util/array-util';
-import {resolveSelectedModules} from './selected-modules.resolver';
+import {BillOfMaterial, Catalog} from '../../model-impls';
 
 export class ModuleSelector implements ModuleSelectorApi {
   logger: LoggerApi;

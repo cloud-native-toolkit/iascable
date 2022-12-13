@@ -1,4 +1,5 @@
-import * as superagent from 'superagent';
+import superagent from 'superagent';
+import {loadFile} from '../util/file-util/file-util';
 
 export enum OutputFileType {
   terraform = 'terraform',
@@ -11,7 +12,23 @@ export enum OutputFileType {
 export interface OutputFile {
   name: string;
   type?: OutputFileType;
-  readonly contents: Promise<string | Buffer>;
+  contents(options?: {flatten?: boolean}): Promise<string | Buffer>;
+}
+
+export class SimpleFile implements OutputFile {
+  name: string;
+  type?: OutputFileType;
+  _contents: string | Buffer
+
+  constructor({name, type, contents}: {name: string, type?: OutputFileType, contents: string | Buffer}) {
+    this.name = name
+    this.type = type
+    this._contents = contents
+  }
+
+  contents(): Promise<string | Buffer> {
+    return Promise.resolve(this._contents)
+  }
 }
 
 export class UrlFile implements OutputFile {
@@ -27,10 +44,23 @@ export class UrlFile implements OutputFile {
     this._alternative = alternative;
   }
 
-  get contents(): Promise<string | Buffer> {
-    return superagent
-      .get(this.url)
-      .then(res => res.text)
-      .catch(() => this._alternative())
+  contents(): Promise<string | Buffer> {
+    return loadFile(this.url).catch(() => this._alternative())
   }
+}
+
+export class GitIgnoreFile implements OutputFile {
+  name: string = '.gitignore';
+  type: OutputFileType = OutputFileType.documentation;
+
+  contents(options?: { flatten?: boolean }): Promise<string | Buffer> {
+    return Promise.resolve(`terraform.tfstate
+terraform.tfstate.backup
+credentials.yaml
+credentials.auto.tfvars
+.tmp/
+.terraform/
+`);
+  }
+
 }

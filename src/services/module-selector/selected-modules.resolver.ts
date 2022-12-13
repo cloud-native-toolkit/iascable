@@ -1,9 +1,12 @@
+import {Container} from 'typescript-ioc';
+import deepClone from 'lodash.clonedeep';
+
 import {
-  Catalog, CatalogProviderModel, isCatalogProviderModel,
+  isProviderModel,
   Module,
   ModuleDependency,
-  ModuleProvider,
   ModuleVersion,
+  ProviderModel,
   SingleModuleVersion
 } from '../../models';
 import {
@@ -12,12 +15,8 @@ import {
   NoMatchingModuleVersions,
   PreferredModuleNotFound
 } from '../../errors';
-import {ArrayUtil, of as arrayOf} from '../../util/array-util/array-util';
-import {Optional} from '../../util/optional';
-import {LoggerApi} from '../../util/logger';
-import {Container} from 'typescript-ioc';
-import {findMatchingVersions} from '../../util/version-resolver';
-import deepClone from 'lodash.clonedeep';
+import {Catalog} from '../../model-impls';
+import {arrayOf, ArrayUtil, findMatchingVersions, LoggerApi, Optional} from '../../util';
 
 export const resolveSelectedModules = (fullCatalog: Catalog, modules: Module[]): SingleModuleVersion[] => {
   return new SelectedModuleResolverImpl(fullCatalog).resolve(modules);
@@ -49,13 +48,11 @@ export class SelectedModuleResolverImpl implements SelectedModulesResolver {
 
     const modulesWithDependencies: Module[] = this.resolveDependencies(modulesWithFilteredVersions)
 
-    const singleModuleVersions: SingleModuleVersion[] = modulesWithDependencies.map(module => {
+    return modulesWithDependencies.map(module => {
       const version: ModuleVersion = arrayOf(module.versions).first().get()
 
       return Object.assign({}, module, {version, versions: []})
     })
-
-    return singleModuleVersions;
   }
 
   resolveDependencies(modules: Module[]): Module[] {
@@ -73,7 +70,7 @@ export class SelectedModuleResolverImpl implements SelectedModulesResolver {
 
     this.logger.debug('Resolving module dependencies: ', {module, moduleVersion})
 
-    const providers: Array<ModuleProvider | CatalogProviderModel> = this.getProviders(moduleVersion)
+    const providers: Array<ProviderModel> = this.getProviders(moduleVersion)
     moduleVersion.providers = providers
 
     const providerDependencies: ModuleDependency[] = this.getProviderDependencies(providers)
@@ -85,7 +82,7 @@ export class SelectedModuleResolverImpl implements SelectedModulesResolver {
       return modules
     }
 
-    const modulesWithDependencies: Module[] = moduleDependencies
+    return moduleDependencies
       .reduce((result: Module[], originalDep: ModuleDependency) => {
 
         const dep: ModuleDependency = updateDepFromBom(originalDep, module)
@@ -130,23 +127,21 @@ export class SelectedModuleResolverImpl implements SelectedModulesResolver {
 
         return result
       }, modules.slice())
-
-    return modulesWithDependencies
   }
 
-  getProviders(moduleVersion: ModuleVersion): Array<ModuleProvider | CatalogProviderModel> {
+  getProviders(moduleVersion: ModuleVersion): Array<ProviderModel> {
 
     return arrayOf(moduleVersion.providers)
-      .map<ModuleProvider | CatalogProviderModel>((p: ModuleProvider) => {
+      .map<ProviderModel>((p: ProviderModel) => {
         return this.catalog.lookupProvider(p).orElse(p as any)
       })
       .asArray()
   }
 
-  getProviderDependencies(moduleProviders: Array<ModuleProvider | CatalogProviderModel>): ModuleDependency[] {
+  getProviderDependencies(moduleProviders: Array<ProviderModel>): ModuleDependency[] {
 
     return arrayOf(moduleProviders)
-      .map((p: ModuleProvider | CatalogProviderModel) => isCatalogProviderModel(p) ? p.dependencies : [])
+      .map((p: ProviderModel) => isProviderModel(p) ? p.dependencies : [])
       .mergeMap<ModuleDependency>()
       .asArray()
   }
@@ -266,10 +261,7 @@ export const matchRefs = (dep: ModuleDependency, module: Module, catalog: Catalo
     .map(ref => ref.source)
     .map(source => catalog.getModuleId(source))
 
-  const match: boolean = refIds
-    .includes(module.id.replace(/.git$/, ''))
-
-  return match
+  return refIds.includes(module.id.replace(/.git$/, ''))
 }
 
 export const matchAlias = (dep: ModuleDependency, module: Module): boolean => {

@@ -1,5 +1,6 @@
+// @ts-ignore
 import {Observable} from 'rxjs'
-import {BillOfMaterialEntry, Module, ModuleIdAlias, ModuleProvider} from '../../models';
+import {BillOfMaterialEntry, Module, ModuleIdAlias, ProviderModel} from '../../models';
 
 export interface CatalogBuilderParams {
   moduleMetadataUrl?: string
@@ -10,7 +11,7 @@ export interface CatalogBuilderParams {
 export interface CatalogBuilderResult {
   kind: string
   apiVersion: string
-  providers: Observable<ModuleProvider>
+  providers: Observable<ProviderModel>
   aliases: Observable<ModuleIdAlias>
   modules: Observable<Module>
   boms: Observable<BillOfMaterialEntry>

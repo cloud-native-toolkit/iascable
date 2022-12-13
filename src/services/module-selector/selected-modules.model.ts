@@ -1,23 +1,28 @@
 import {Container} from 'typescript-ioc';
 
-import {LoggerApi} from '../../util/logger';
-import {findMatchingVersion, resolveVersions} from '../../util/version-resolver';
 import {
-  BillOfMaterialModule,
-  BillOfMaterialModuleDependency, BillOfMaterialModuleProvider,
-  Catalog,
+  arrayOf,
+  ArrayUtil,
+  findMatchingVersion,
+  isDefinedAndNotNull,
+  LoggerApi,
+  Optional,
+  resolveVersions
+} from '../../util';
+import {
+  BillOfMaterialModuleDependency,
+  BillOfMaterialModuleProvider,
   isModule,
   Module,
   ModuleDependency,
-  ModuleMatcher, ModuleProvider,
+  ModuleMatcher,
   ModuleRef,
   ModuleVersion,
-  SingleModuleVersion, injectDependsOnFunction, ModuleWithDependsOn
+  ProviderModel,
+  SingleModuleVersion
 } from '../../models';
 import {ModuleNotFound, ModulesNotFound} from '../../errors';
-import {Optional} from '../../util/optional';
-import {ArrayUtil, of as arrayOf} from '../../util/array-util/array-util';
-import {isDefinedAndNotNull} from '../../util/object-util';
+import {Catalog} from '../../model-impls';
 
 export class SelectedModules {
   readonly modules: {[source: string]: Module} = {};
@@ -262,7 +267,7 @@ export class SelectedModules {
   }
 }
 
-function mergeBomValues(version: ModuleVersion, dependencies?: BillOfMaterialModuleDependency[], providers?: ModuleProvider[]): ModuleVersion {
+function mergeBomValues(version: ModuleVersion, dependencies?: BillOfMaterialModuleDependency[], providers?: ProviderModel[]): ModuleVersion {
   const bomDeps: ArrayUtil<BillOfMaterialModuleDependency> = arrayOf<BillOfMaterialModuleDependency>(dependencies);
   const bomProviders: ArrayUtil<BillOfMaterialModuleProvider> = arrayOf<BillOfMaterialModuleProvider>(providers);
 
@@ -281,7 +286,7 @@ function mergeBomValues(version: ModuleVersion, dependencies?: BillOfMaterialMod
     })
     .asArray();
 
-  const updatedProviders: ModuleProvider[] = arrayOf(version.providers)
+  const updatedProviders: ProviderModel[] = arrayOf(version.providers)
     .map(p => {
       const bomProvider: Optional<BillOfMaterialModuleProvider> = bomProviders.filter(bomP => bomP.name === p.name).first();
 

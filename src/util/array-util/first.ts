@@ -1,5 +1,4 @@
-// @ts-ignore
-import Optional from 'js-optional'
+import {Optional} from '../optional'
 
 export const first = <T>(arr: T[] = []): Optional<T> => {
   if (arr.length === 0) {

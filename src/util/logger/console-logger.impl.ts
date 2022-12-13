@@ -1,5 +1,5 @@
 import {LoggerApi} from './logger.api';
-import {isDefinedAndNotNull, isUndefined} from '../object-util';
+import {isDefinedAndNotNull, isUndefined} from '../object-util/object-util';
 import {ObjectFactory} from 'typescript-ioc';
 
 export enum LogLevel {
@@ -10,7 +10,7 @@ export enum LogLevel {
 }
 
 const isSomeEnum = <T>(e: T) => (token: any): token is T[keyof T] =>
-  Object.values(e).includes(token as T[keyof T]);
+  Object.values(e as any).includes(token as T[keyof T]);
 
 const isLogLevel = isSomeEnum(LogLevel);
 

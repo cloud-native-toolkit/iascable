@@ -1,0 +1,5 @@
+tasks:
+  - init: |
+      npm ci
+    command: |
+      npm run tdd

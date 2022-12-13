@@ -1,6 +1,7 @@
-import {default as compareVersions, CompareOperator} from 'compare-versions';
-import {VersionComparison, versionComparisonFromString, VersionMatcher} from '../../models';
+import {compareVersions, compare, CompareOperator} from 'compare-versions';
+
 import {concat} from '../array-util';
+import {VersionComparison, versionComparisonFromString, VersionMatcher} from '../../models';
 
 export class IncompatibleVersions extends Error {
   constructor(public readonly versions: VersionMatcher[]) {
@@ -76,7 +77,7 @@ export function findUnionOfMatchers(baseMatchers: VersionMatcher[], newMatchers:
 
     const incompatible: VersionMatcher[] = matchers
       .filter(m => (m.comparator !== VersionComparison.eq))
-      .filter(m => compareVersions.compare(m.version, matcher.version, asCompareOperator(m.comparator)))
+      .filter(m => compare(m.version, matcher.version, asCompareOperator(m.comparator)))
 
     if (incompatible.length > 0) {
       throw new IncompatibleVersions(concat([], eqMatchers, incompatible));
@@ -136,7 +137,7 @@ export function findMatchingVersions<T extends {version: string}, M extends {id:
 
   const matchingVersions: Array<T> = module.versions
     .sort((a: T, b: T) => compareVersions(a.version, b.version) * -1)
-    .filter(m => matchers.every(v => compareVersions.compare(m.version, v.version, asCompareOperator(v.comparator))));
+    .filter(m => matchers.every(v => compare(m.version, v.version, asCompareOperator(v.comparator))));
 
   return matchingVersions;
 }

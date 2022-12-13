@@ -1,3 +1,4 @@
+import {BillOfMaterialEntry} from '../models';
 
 export class BillOfMaterialParsingError extends Error {
   constructor(bomYaml: string) {
@@ -30,5 +31,17 @@ export class BillOfMaterialModuleConfigError extends Error {
     this.availableVariableNames = availableVariableNames;
     this.unmatchedDependencyNames = unmatchedDependencyNames;
     this.unmatchedVariableNames = unmatchedVariableNames;
+  }
+}
+
+export class BillOfMaterialNotFound extends Error {
+  constructor(public name: string, public boms: BillOfMaterialEntry[]) {
+    super(`Unable to find bill of material: ${name} (${boms.map(bom => bom.name)})`)
+  }
+}
+
+export class BillOfMaterialVersionNotFound extends Error {
+  constructor(public name: string, public version?: string) {
+    super(`Unable to find bill of material version: ${name}${version ? ` (${version})` : ''}`)
   }
 }

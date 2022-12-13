@@ -1,3 +1,4 @@
+// @ts-ignore
 import {Observable, Subject} from 'rxjs';
 import {Container} from 'typescript-ioc';
 import {load} from 'js-yaml';
@@ -9,14 +10,14 @@ import {
   catalogKind,
   Module,
   ModuleIdAlias,
-  ModuleProvider, ModuleTemplate, moduleWithCategory
+  ProviderModel, ModuleTemplate, moduleWithCategory
 } from '../../models';
 import {LoggerApi} from '../../util/logger';
-import {loadFile} from '../../util/file-util';
+import {loadFile} from '../../util/file-util/file-util';
 import {flatten} from '../../util/array-util';
 
 interface CatalogBuilder {
-  providersSubject: Subject<ModuleProvider>
+  providersSubject: Subject<ProviderModel>
   aliasesSubject: Subject<ModuleIdAlias>
   modulesSubject: Subject<Module>
   bomsSubject: Subject<BillOfMaterialEntry>
@@ -27,19 +28,19 @@ class CatalogBuilderResultValue implements CatalogBuilderResult, CatalogBuilder 
   kind: string = catalogKind
   apiVersion: string = catalogApiV2Version
 
-  _providers: Subject<ModuleProvider>
+  _providers: Subject<ProviderModel>
   _aliases: Subject<ModuleIdAlias>
   _modules: Subject<Module>
   _boms: Subject<BillOfMaterialEntry>
 
   constructor() {
-    this._providers = new Subject<ModuleProvider>()
+    this._providers = new Subject<ProviderModel>()
     this._aliases = new Subject<ModuleIdAlias>()
     this._modules = new Subject<Module>()
     this._boms = new Subject<BillOfMaterialEntry>()
   }
 
-  get providers(): Observable<ModuleProvider> {
+  get providers(): Observable<ProviderModel> {
     return this._providers
   }
   get aliases(): Observable<ModuleIdAlias> {
@@ -52,7 +53,7 @@ class CatalogBuilderResultValue implements CatalogBuilderResult, CatalogBuilder 
     return this._boms
   }
 
-  get providersSubject(): Subject<ModuleProvider> {
+  get providersSubject(): Subject<ProviderModel> {
     return this._providers
   }
   get aliasesSubject(): Subject<ModuleIdAlias> {
@@ -95,9 +96,9 @@ export class CatalogBuilderService implements CatalogBuilderApi {
 
   async handleModuleMetadataUrl(result: CatalogBuilder, {moduleMetadataUrl, category}: {moduleMetadataUrl: string, category: string}): Promise<void> {
     try {
-      const moduleContent: string = await loadFile(moduleMetadataUrl)
+      const moduleContent: Buffer | string = await loadFile(moduleMetadataUrl)
 
-      const module = load(moduleContent) as Module
+      const module = load(moduleContent.toString()) as Module
 
       const moduleWithCategory: Module = Object.assign(module, {category})
 
@@ -112,9 +113,9 @@ export class CatalogBuilderService implements CatalogBuilderApi {
 
   async handleCatalogInput(result: CatalogBuilder, {catalogInput}: {catalogInput: string}): Promise<void> {
     try {
-      const catalogInputContent: string = await loadFile(catalogInput)
+      const catalogInputContent: Buffer | string = await loadFile(catalogInput)
 
-      const input = load(catalogInputContent) as CatalogInputModel
+      const input = load(catalogInputContent.toString()) as CatalogInputModel
 
       applyAllToSubject(result.aliasesSubject, input.aliases);
       applyAllToSubject(result.providersSubject, input.providers);
@@ -158,9 +159,9 @@ const lookupModuleMetadata = async (moduleTemplate: ModuleTemplate): Promise<Mod
   try {
     moduleMetadataUrl = getModuleMetadataUrl(moduleTemplate)
 
-    const moduleMetadataContent: string = await loadFile(moduleMetadataUrl)
+    const moduleMetadataContent: Buffer | string = await loadFile(moduleMetadataUrl)
 
-    const module: Module = load(moduleMetadataContent) as Module
+    const module: Module = load(moduleMetadataContent.toString()) as Module
 
     return Object.assign(
       module,

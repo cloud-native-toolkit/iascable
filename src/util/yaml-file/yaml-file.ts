@@ -1,5 +1,5 @@
 import {promises} from 'fs'
-import YAML from 'js-yaml'
+import {dump, load} from 'js-yaml'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class YamlFile<T = any> {
@@ -23,7 +23,7 @@ export class YamlFile<T = any> {
       })
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: S = YAML.load(contents.toString()) as any
+    const result: S = load(contents.toString()) as any
 
     return new YamlFile(file, result)
   }
@@ -43,13 +43,13 @@ export class YamlFile<T = any> {
   }
 
   setValues(values: Partial<T>): YamlFile<T> {
-    Object.assign(this.contents, values)
+    Object.assign(this.contents as any, values)
 
     return this
   }
 
   async write(): Promise<YamlFile<T>> {
-    await promises.writeFile(this.filename, YAML.dump(this.contents))
+    await promises.writeFile(this.filename, dump(this.contents))
 
     return this
   }

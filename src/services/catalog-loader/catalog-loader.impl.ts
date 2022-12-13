@@ -1,25 +1,27 @@
 import {Container} from 'typescript-ioc';
-import {promises} from 'fs';
-import {default as superagent, Response} from 'superagent';
 import {JSON_SCHEMA, load} from 'js-yaml';
-import _ from 'lodash';
+import uniqBy from 'lodash.uniqby';
+import uniqWith from 'lodash.uniqwith';
 
 import {
   BillOfMaterialEntry,
-  Catalog,
   catalogApiV2Version,
   catalogKind,
   CatalogLoaderApi,
   CatalogModel,
-  CatalogProviderModel,
+  CatalogV2Metadata,
   CatalogV2Model,
   getFlattenedModules,
-  isCatalogKind, isCatalogV2Model, ModuleIdAlias
+  isCatalogKind,
+  isCatalogV2Model,
+  ModuleIdAlias
 } from './catalog-loader.api';
 import {LoggerApi} from '../../util/logger';
-import {isModule, Module} from '../../models';
+import {isModule, Module, ProviderModel} from '../../models';
 import {CustomResourceDefinition} from '../../models/crd.model';
 import {ArrayUtil} from '../../util/array-util';
+import {loadFile} from '../../util/file-util/file-util';
+import {Catalog} from '../../model-impls';
 
 export class CatalogLoader implements CatalogLoaderApi {
 
@@ -38,7 +40,7 @@ export class CatalogLoader implements CatalogLoaderApi {
 
     const catalog = new Catalog(catalogModel);
 
-    catalog.providers.forEach((p: CatalogProviderModel) => {
+    catalog.providers.forEach((p: ProviderModel) => {
       p.dependencies = p.dependencies || []
       p.variables = p.variables || []
     })
@@ -48,30 +50,15 @@ export class CatalogLoader implements CatalogLoaderApi {
 
   async loadCatalogYaml(catalogUrls: string[]): Promise<CatalogV2Model> {
 
-    const catalogYamls: string[] = await Promise.all(catalogUrls.map(catalogUrl => catalogUrl.startsWith('file:/')
-      ? this.loadCatalogFromFile(catalogUrl.replace('file:', ''))
-      : this.loadCatalogFromUrl(catalogUrl)
-    ))
+    const catalogYamls: Array<string | Buffer> = await Promise.all(catalogUrls.map(catalogUrl => loadFile(catalogUrl)))
 
-    return catalogYamls.reduce((result: CatalogV2Model, current: string) => {
-      const inputYaml: CustomResourceDefinition = this.parseYaml(current)
+    return catalogYamls.reduce((result: CatalogV2Model, current: string | Buffer) => {
+      const inputYaml: CustomResourceDefinition = this.parseYaml(current.toString())
 
       const newModel: CatalogModel = isCatalogKind(inputYaml) ? inputYaml : catalogFromModule(inputYaml)
 
       return mergeCatalogs(result, newModel)
     }, {} as any)
-  }
-
-  async loadCatalogFromFile(fileName: string): Promise<string> {
-    const catalogYaml = await promises.readFile(fileName);
-
-    return catalogYaml.toString();
-  }
-
-  async loadCatalogFromUrl(catalogUrl: string): Promise<string> {
-    const response: Response = await superagent.get(catalogUrl);
-
-    return response.text;
   }
 
   parseYaml<T>(text: string): T {
@@ -91,12 +78,19 @@ const mergeCatalogs = (baseCatalog: CatalogModel, newCatalog: CatalogModel): Cat
     .reduce(
       (result: CatalogV2Model, current: CatalogModel) => {
 
-        const mergedAlises = _.uniqBy((current.aliases || []).concat(result.aliases || []), 'id')
-        const providers = _.uniqBy((current.providers || []).concat(result.providers || []), 'name')
+        const mergedAlises = uniqBy((current.aliases || []).concat(result.aliases || []), 'id')
+        const providers = uniqBy((current.providers || []).concat(result.providers || []), 'name')
         const {modules, aliases} = mergeModules(getFlattenedModules(current), result.modules || [], mergedAlises)
-        const boms = _.uniqBy(getBoms(current).concat(result.boms || []), 'name')
-
-        return {kind: catalogKind, apiVersion: catalogApiV2Version, aliases, providers, modules, boms}
+        const boms = uniqBy(getBoms(current).concat(result.boms || []), 'name')
+        const metadata:CatalogV2Metadata = {
+          name: 'Merged Catalog',
+          ...result.metadata,
+          ...current.metadata,
+          cloudProviders: uniqBy((isCatalogV2Model(current)? current.metadata?.cloudProviders ?? [] : []).concat(result.metadata?.cloudProviders ?? []), 'name'),
+          flavors: uniqBy((isCatalogV2Model(current)? current.metadata?.flavors ?? [] : []).concat(result.metadata?.flavors ?? []), 'name'),
+          useCases: uniqBy((isCatalogV2Model(current)? current.metadata?.useCases ?? [] : []).concat(result.metadata?.useCases ?? []), 'name'),
+        };
+        return {kind: catalogKind, apiVersion: catalogApiV2Version, aliases, providers, modules, boms, metadata}
       },
       {} as CatalogV2Model
     )
@@ -122,7 +116,7 @@ const catalogFromModule = (inputYaml: CustomResourceDefinition): CatalogV2Model 
 
 const mergeModules = (newModules: Module[], baseModules: Module[], aliases: ModuleIdAlias[] = []): {modules: Module[], aliases: ModuleIdAlias[]} => {
 
-  const modules = _.uniqWith(newModules.concat(baseModules), (a: Module, b: Module) => {
+  const modules = uniqWith(newModules.concat(baseModules), (a: Module, b: Module) => {
     const match = a.name === b.name
 
     if (match) {

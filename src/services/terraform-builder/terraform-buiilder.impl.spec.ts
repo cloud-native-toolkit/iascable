@@ -1,26 +1,28 @@
+import {Container} from 'typescript-ioc';
+
 import {
-  BillOfMaterial,
   BillOfMaterialModel,
   BillOfMaterialModule,
   CatalogV2Model,
-  GlobalRefVariable,
-  isModuleRefVariable,
   Module,
   ModuleRef,
-  ModuleRefVariable,
+  OutputFile,
   SingleModuleVersion,
-  TerraformComponent,
-  TerraformTfvarsFile
+  TerraformComponentModel,
 } from '../../models';
-import {Container} from 'typescript-ioc';
-import {LoggerApi} from '../../util/logger';
+import {arrayOf, LoggerApi, Optional} from '../../util';
 import {NoopLoggerImpl} from '../../util/logger/noop-logger.impl';
 import {ModuleSelectorApi} from '../module-selector';
 import {CatalogLoaderApi} from '../catalog-loader';
 import {TerraformBuilderApi} from './terraform-builder.api';
 import {TerraformBuilderNew} from './terraform-builder.new';
-import {of as arrayOf} from '../../util/array-util/array-util';
-import {Optional} from '../../util/optional';
+import {
+  BillOfMaterial,
+  GlobalRefVariable,
+  isModuleRefVariable,
+  ModuleRefVariable,
+  TerraformTfvarsFile
+} from '../../model-impls';
 
 describe('terraform-builder', () => {
   test('canary verifies test infrastructure', () => {
@@ -60,7 +62,7 @@ describe('terraform-builder', () => {
       });
 
       test('then use the module defined by the alias', async () => {
-        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
+        const result: TerraformComponentModel = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
 
         expect(Object.keys(result.stages).length).toEqual(4);
 
@@ -117,7 +119,7 @@ describe('terraform-builder', () => {
       });
 
       test('then return all matching dependent modules', async () => {
-        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
+        const result: TerraformComponentModel = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
 
         expect(Object.keys(result.stages).length).toEqual(4);
 
@@ -147,13 +149,13 @@ describe('terraform-builder', () => {
       });
 
       test('then associate optional dependent module', async () => {
-        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
+        const result: TerraformComponentModel = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
 
         expect(Object.keys(result.stages).length).toEqual(4);
 
         const module: Optional<Module> = arrayOf(result.stages['ibm-vpc-subnets'].module.version.dependencies)
-          .filter(d => d.id === 'gateways')
-          .map(d => d._module)
+          .filter((d: any) => d.id === 'gateways')
+          .map((d: any) => d._module)
           .mergeMap<Module>()
           .first();
 
@@ -175,7 +177,7 @@ describe('terraform-builder', () => {
       });
 
       test('then do not associate optional dependent module', async () => {
-        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
+        const result: TerraformComponentModel = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
 
         expect(Object.keys(result.stages).length).toEqual(3);
 
@@ -203,13 +205,15 @@ describe('terraform-builder', () => {
       });
 
       test('then the variable should appear in terraform.tfvars', async () => {
-        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
+        const result: TerraformComponentModel = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
 
-        const tfvarsFile: Optional<TerraformTfvarsFile> = arrayOf(result.files).filter(f => f.name === 'terraform.tfvars').first() as any
+        const tfvarsFile: Optional<TerraformTfvarsFile> = arrayOf(result.files)
+          .filter((f: OutputFile) => f.name === 'terraform.template.tfvars')
+          .first() as any
 
         expect(tfvarsFile.isPresent()).toBeTruthy()
 
-        expect((await tfvarsFile.get().contents).toString()).toContain('_count')
+        expect((await tfvarsFile.get().contents()).toString()).toContain('_count')
       });
     });
 
@@ -227,7 +231,7 @@ describe('terraform-builder', () => {
       });
 
       test('then result should include provider modules', async () => {
-        const result: TerraformComponent = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
+        const result: TerraformComponentModel = await classUnderTest.buildTerraformComponent(selectedModules, catalog);
 
         expect(result.stages['clis']).toBeDefined()
         expect(result.providers?.length).toEqual(1)

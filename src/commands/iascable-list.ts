@@ -1,7 +1,9 @@
-import {Arguments, Argv} from 'yargs';
+import {Arguments, Argv, CommandModule} from 'yargs';
+
 import {CommandLineInput} from './inputs/command-line.input';
-import {BillOfMaterial, BillOfMaterialModel} from '../models';
-import {loadReferenceBoms} from '../services';
+import {BillOfMaterialModel} from '../models';
+import {BillOfMaterial} from '../model-impls';
+import {loadReferenceBoms} from '../util/bill-of-material-builder';
 
 export const command = 'list';
 export const desc = 'List the available reference bill of materials';
@@ -23,3 +25,10 @@ export const handler = async (argv: Arguments<CommandLineInput>) => {
       console.log(`  ${bom.getName()}: ${bom.getDescription()}`);
     });
 };
+
+export const iascableList: CommandModule = {
+  command,
+  describe: desc,
+  builder,
+  handler: handler as any
+}

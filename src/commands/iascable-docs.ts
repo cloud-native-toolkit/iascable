@@ -1,14 +1,14 @@
-import {Arguments, Argv} from 'yargs';
+import {Arguments, Argv, CommandModule} from 'yargs';
 import {Container} from 'typescript-ioc';
 import {promises} from 'fs';
 import {join} from 'path';
 
 import {CommandLineInput} from './inputs/command-line.input';
 import {IascableDocsInput} from './inputs/iascable.input';
-import {ModuleDoc} from '../models';
+import {ModuleDoc, OutputFile} from '../models';
 import {IascableApi} from '../services';
 import {LoggerApi} from '../util/logger';
-import {DEFAULT_CATALOG_URL, setupCatalogUrls} from './support/middleware';
+import {DEFAULT_CATALOG_URLS, setupCatalogUrls} from './support/middleware';
 
 export const command = 'docs [module]';
 export const desc = 'Produces the documentation for a given module';
@@ -21,7 +21,7 @@ export const builder = (yargs: Argv<any>) => {
       alias: 'c',
       type: 'array',
       description: 'The url of the module catalog. Can be https:// or file:/ protocol. This argument can be passed multiple times to include multiple catalogs.',
-      default: 'https://modules.cloudnativetoolkit.dev/index.yaml'
+      default: DEFAULT_CATALOG_URLS
     })
     .option('outDir', {
       alias: 'o',
@@ -36,7 +36,7 @@ export const builder = (yargs: Argv<any>) => {
       default: false,
       type: 'boolean'
     })
-    .middleware(setupCatalogUrls(DEFAULT_CATALOG_URL))
+    .middleware(setupCatalogUrls(DEFAULT_CATALOG_URLS))
     .option('debug', {
       type: 'boolean',
       describe: 'Flag to turn on more detailed output message',
@@ -50,16 +50,16 @@ export const handler = async (argv: Arguments<IascableDocsInput & CommandLineInp
   const logger: LoggerApi = Container.get(LoggerApi).child('build');
 
   try {
-    const doc: ModuleDoc = await cmd.moduleDocumentation(argv.catalogUrls, argv.module)
+    const doc: OutputFile = await cmd.moduleDocumentation(argv.catalogUrls, argv.module)
 
     await outputResult(argv.outDir, argv.module, doc, argv)
-  } catch (err) {
+  } catch (err: any) {
     console.log('')
     console.error(`Error: ${err.message}`)
   }
 };
 
-const outputResult = async (outputDir: string, moduleName: string, doc: ModuleDoc, options: {flattenOutput: boolean}) => {
+const outputResult = async (outputDir: string, moduleName: string, doc: OutputFile, options: {flattenOutput: boolean}) => {
 
   const basePath = options.flattenOutput ? outputDir : join(outputDir, moduleName)
 
@@ -69,5 +69,12 @@ const outputResult = async (outputDir: string, moduleName: string, doc: ModuleDo
 
   console.log(`Writing readme for ${moduleName}: ${filename}`)
 
-  await promises.writeFile(filename, await doc.contents)
+  await promises.writeFile(filename, await doc.contents())
+}
+
+export const iascableDocs: CommandModule = {
+  command,
+  describe: desc,
+  builder,
+  handler: handler as any
 }
