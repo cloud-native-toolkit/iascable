@@ -1,7 +1,6 @@
 # IasCable
 
-Library and CLI used to generate Infrastructure as Code installable components composed from a catalog of 
-modules.
+Library and CLI used to generate Infrastructure as Code installable components composed of available modules from a catalog.
 
 ## CLI Usage
 
@@ -32,7 +31,7 @@ argument.
 
 ### Commands
 
-To build a Terraform template from a Bill of Materials, run the following command:
+To build a Terraform template from a Bill of Materials or Solution Bill of Materials, run the following command:
 
 ```shell
 iascable build [-c {CATALOG_URL}] [-c {CATALOG_URL}] -i {BOM_INPUT} [-i {BOM_INPUT}] [-o {OUTPUT_DIR}]
@@ -40,7 +39,7 @@ iascable build [-c {CATALOG_URL}] [-c {CATALOG_URL}] -i {BOM_INPUT} [-i {BOM_INP
 
 where:
 - `CATALOG_URL` is the url of the module catalog. The default module catalog is  https://modules.cloudnativetoolkit.dev/index.yaml. Multiple module catalogs can be provided. The catalogs are combined, with the last one taking precedence in the case of duplicate modules.
-- `BOM_INPUT` is the input file containing the Bill of Material definition. Multiple bom files can be provided at the same time.
+- `BOM_INPUT` is the input file containing the Bill of Material or Solution Bill of Material definition. Multiple bom files can be provided at the same time.
 - `OUTPUT_DIR` is the directory where the output terraform template will be generated.
 
 ## Library usage
