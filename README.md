@@ -4,7 +4,7 @@ Library and CLI used to generate Infrastructure as Code installable components c
 
 ## CLI Usage
 
-### Installation
+### Installation (non-M1 Macbook)
 
 To install the latest version of iascable into `/usr/local/bin`, run the following:
 
@@ -18,7 +18,28 @@ If you would like to install a different version of the CLI and/or put it in a d
 curl -sL https://iascable.cloudnativetoolkit.dev/install.sh | RELEASE=2.15.1 DEST_DIR=~/bin sh
 ```
 
-#### Install beta version
+### Installation on M1 Macbook
+The M1 Macbook version will install the AMD64 binary and requires Rosetta to be installed. If you do not have Rosetta installed, see [this](https://support.apple.com/en-us/HT211861) link.
+
+To install the latest version of iascable into `/usr/local/bin`, as above for non-M1 Macbooks, however add a sudo to write to /usr/local/bin as follows:
+
+```shell
+curl -sL https://iascable.cloudnativetoolkit.dev/install.sh | sudo sh
+```
+
+If you would like to install a different version of the CLI and/or put it in a different directory, use the following:
+
+```shell
+curl -sL https://iascable.cloudnativetoolkit.dev/install.sh | RELEASE=2.15.1 DEST_DIR=~/bin sh
+```
+
+Note that the install script creates a new binary for the downloaded version and creates a symbolic link to it. Over time, you may build up multiple versions in your destination directory which may need to be manually removed if not required. This also allows for using a prior version by updating the symbolic link to point to a different version as follows:
+
+```shell
+sudo ln -s /usr/local/bin/iascable-2.25.5 /usr/local/bin/iascable
+```
+
+### Install beta version
 
 If you would like to install the latest beta release of the cli, use the following:
 
