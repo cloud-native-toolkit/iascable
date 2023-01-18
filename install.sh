@@ -2,6 +2,7 @@
 
 DEST_DIR="${1:-$DEST_DIR}"
 RELEASE="${2:-$RELEASE}"
+TMP_DIR="/tmp"
 
 if [ -z "${DEST_DIR}" ]; then
   DEST_DIR="/usr/local/bin"
@@ -52,5 +53,45 @@ case $(uname -m) in
     *)       echo "Unable to determine system architecture" >&2; exit 1 ;;
 esac
 
-echo "Installing version ${RELEASE} of iascable for ${TYPE}${ARCH} into ${DEST_DIR}"
-curl --progress-bar -Lo "${DEST_DIR}/iascable" "https://github.com/cloud-native-toolkit/iascable/releases/download/${RELEASE}/iascable-${TYPE}${ARCH}" && chmod +x "${DEST_DIR}/iascable"
+# If an Apple M1 Mac, use AMD64 architecture with Rosetta
+if [[ "${TYPE}" == "macos" ]] && [[ "${ARCH}" == "-arm64" ]]; then
+  # Check that Rosetta is installed before continuing (Rosetta is known as oah by macos)
+  if [[ ! $(/usr/bin/pgrep oahd) ]]; then
+    echo "Rosetta must be installed. Please install and try again."
+    exit 2;
+  fi
+
+  # Create temporary directory if it does nto exist
+  if [[ ! -d "${TMP_DIR}" ]]; then
+    mkdir -p "${TMP_DIR}"
+  fi
+
+  # Download the binary to a temporary directory (/tmp by default)
+  echo "Downloading ${RELEASE} of iascable for ${TYPE} into ${TMP_DIR}"
+  curl --progress-bar -Lo "${TMP_DIR}/iascable-${RELEASE}" "https://github.com/cloud-native-toolkit/iascable/releases/download/${RELEASE}/iascable-${TYPE}" 
+  chmod +x "${TMP_DIR}/iascable-${RELEASE}"
+
+  # Check if there is an existing version of iascable installed. 
+  if [[ -h "${DEST_DIR}/iascable" ]]; then   # Link file
+    # Remove link file
+    echo "Detected existing linked file ${DEST_DIR}/iascable"
+    rm "${DEST_DIR}/iascable"
+  elif [[ -x "${DEST_DIR}/iascable" ]]; then
+    # Get current version number
+    VERSION=$($DEST_DIR/iascable --version)
+    echo "Detected existing executable with version ${VERSION}"
+
+    # Copy existing binary to copy with current release
+    mv "${DEST_DIR}/iascable" "${DEST_DIR}/iascable-${VERSION}"
+  fi
+
+  # Move binary to destination directory and create link
+  echo "Moving ${TMP_DIR}/iascable-${RELEASE} to ${DEST_DIR} and creating symbolic link" 
+  mv "${TMP_DIR}/iascable-${RELEASE}" "${DEST_DIR}/iascable-${RELEASE}"
+  ln -s "${DEST_DIR}/iascable-${RELEASE}" "${DEST_DIR}/iascable"
+
+else  # Non-Mac M1
+  echo "Installing version ${RELEASE} of iascable for ${TYPE}${ARCH} into ${DEST_DIR}"
+  curl --progress-bar -Lo "${DEST_DIR}/iascable" "https://github.com/cloud-native-toolkit/iascable/releases/download/${RELEASE}/iascable-${TYPE}${ARCH}" && chmod +x "${DEST_DIR}/iascable"
+fi
+
