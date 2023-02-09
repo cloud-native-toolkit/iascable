@@ -1,0 +1,126 @@
+apiVersion: cloudnativetoolkit.dev/v2
+kind: Solution
+metadata:
+  name: api-mgmt
+  annotations:
+    displayName: >-
+      Solution based on Integration - APIConnect, Integration - App Connect on
+      IBM.
+    description: >-
+      Solution based on Integration - APIConnect, Integration - App Connect in
+      Quick-Start reference architecture deployed on IBM with IBM - ODF Cluster
+      Storage as storage option.
+spec:
+  stack:
+    - name: 105-ibm-vpc-openshift
+      layer: infrastructure
+      description: IBM VPC and public Red Hat OpenShift server
+      version: v1.0.0
+    - name: 200-openshift-gitops
+      layer: software
+      description: >-
+        Provisions OpenShift GitOps (ArgoCD) into an existing cluster and
+        bootstraps it to a gitops repository
+      version: v1.0.0
+    - name: 210-ibm-odf-storage
+      layer: infrastructure
+      description: Installs OpenShift Data Foundation in an IBM cluster
+      version: v1.0.0
+    - name: 220-dev-tools
+      layer: software
+      description: Provisions development tools in an OpenShift cluster
+      version: v1.0.0
+    - name: 220-integration-apiconnect
+      layer: software
+      description: GitOps deployment of API Connect for Cloud pak for Integration
+    - name: 240-integration-ace
+      layer: software
+      description: GitOps deployment of App Connect for Cloud pak for Integration
+  version: v1.0.0
+  variables:
+    - name: config_banner_text
+      type: string
+      description: The text that will appear in the top banner in the cluster
+    - name: gitops_repo_repo
+      type: string
+      description: >-
+        The short name of the repository (i.e. the part after the org/group
+        name)
+    - name: ibmcloud_api_key
+      type: string
+      description: The api key used to access IBM Cloud
+      sensitive: true
+    - name: region
+      type: string
+    - name: resource_group_name
+      type: string
+      description: The name of the resource group
+    - name: cluster_flavor
+      type: string
+      description: The machine type that will be provisioned for classic infrastructure
+      value: bx2.16x64
+    - name: cluster_name
+      type: string
+      description: The name of the cluster that will be created within the resource group
+      value: ''
+    - name: cluster_subnets__count
+      type: number
+      description: The number of subnets that should be provisioned
+      value: 3
+    - name: common_tags
+      type: list(string)
+      description: Common tags that should be added to the instance
+      value: []
+    - name: gitops_repo_host
+      type: string
+      description: >-
+        The host for the git repository. The git host used can be a GitHub,
+        GitHub Enterprise, Gitlab, Bitbucket, Gitea or Azure DevOps server. If
+        the host is null assumes in-cluster Gitea instance will be used.
+      value: ''
+    - name: gitops_repo_org
+      type: string
+      description: >-
+        The org/group where the git repository exists/will be provisioned. If
+        the value is left blank then the username org will be used.
+      value: ''
+    - name: gitops_repo_project
+      type: string
+      description: >-
+        The project that will be used for the git repo. (Primarily used for
+        Azure DevOps repos)
+      value: ''
+    - name: gitops_repo_token
+      type: string
+      description: The personal access token used to access the repository
+      value: ''
+      sensitive: true
+    - name: gitops_repo_type
+      type: string
+      description: The type of the hosted git repository (github or gitlab).
+      value: ''
+    - name: gitops_repo_username
+      type: string
+      description: The username of the user with access to the repository
+      value: ''
+    - name: name_prefix
+      type: string
+      description: >-
+        The prefix name for the service. If not provided it will default to the
+        resource group name
+      value: ''
+    - name: rwo_storage_class
+      type: string
+      description: ReadWriteOnce access type Storage Class
+      value: ''
+    - name: rwx_storage_class
+      type: string
+      description: ReadWriteMany access type Storage Class
+      value: portworx-rwx-gp-sc
+    - name: worker_count
+      type: number
+      description: >-
+        The number of worker nodes that should be provisioned for classic
+        infrastructure
+      value: 1
+  files: []

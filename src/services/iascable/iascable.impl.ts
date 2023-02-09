@@ -54,8 +54,8 @@ import {TileBuilderApi} from '../tile-builder';
 import {
   arrayOf,
   ArrayUtil,
-  BundleWriter,
-  flatten,
+  BundleWriter, first,
+  flatten, flattenReverse,
   isDefined,
   isDefinedAndNotNull,
   LoggerApi,
@@ -75,6 +75,7 @@ import {
   TerraformTfvarsFile,
   VariablesYamlFile
 } from '../../model-impls';
+import { LayerNeeds, LayerProvides } from '../../models/layer-dependencies.model'
 
 export class CatalogBuilder implements IascableApi {
   logger: LoggerApi;
@@ -259,24 +260,43 @@ const applyVersionsToBomModules = (billOfMaterial: BillOfMaterialModel, modules:
 
 const applyAnnotationsToBom = (billOfMaterial: BillOfMaterialModel, modules: SingleModuleVersion[]): BillOfMaterialModel => {
 
-  const provides: string[] = uniq(modules
+  const provides: LayerProvides[] = uniqBy(modules
     .map(extractProvidedCapabilities)
     .reduce(
-      flatten,
+      flattenReverse,
       extractProvidedCapabilitiesFromBom(billOfMaterial)
-    ))
-  const needs: string[] = uniq(modules
+    ),
+    'name'
+  )
+  const needs: LayerNeeds[] = uniqBy(modules
     .map(extractNeededCapabilities(provides))
     .reduce(
-      flatten,
+      flattenLayerNeeds,
       extractNeededCapabilitiesFromBom(billOfMaterial)
-    ))
+    ),
+    'name'
+  )
 
   const metadata: ResourceMetadata = billOfMaterial.metadata || {name: 'bom'}
   const annotations: {[name: string]: string} = metadata.annotations || {}
 
-  annotations['dependencies.cloudnativetoolkit.dev/provides'] = provides.join(',')
-  annotations['dependencies.cloudnativetoolkit.dev/needs'] = needs.join(',')
+  if (provides.length > 0) {
+    annotations['dependencies.cloudnativetoolkit.dev/provides'] = provides.map(val => val.name).join(',')
+  }
+  if (needs.length > 0) {
+    annotations['dependencies.cloudnativetoolkit.dev/needs'] = needs.map(val => val.name).join(',')
+  }
+
+  provides
+    .filter(provide => !!provide.alias)
+    .forEach(provide => {
+      annotations[`dependencies.cloudnativetoolkit.dev/provides_${provide.name}`] = provide.alias
+    })
+  needs
+    .filter(need => need.aliases && need.aliases.length > 0)
+    .forEach(need => {
+      annotations[`dependencies.cloudnativetoolkit.dev/needs_${need.name}`] = need.aliases.join(',')
+    })
 
   metadata.annotations = annotations
   billOfMaterial.metadata = metadata
@@ -284,49 +304,87 @@ const applyAnnotationsToBom = (billOfMaterial: BillOfMaterialModel, modules: Sin
   return billOfMaterial
 }
 
-const extractProvidedCapabilitiesFromBom = (bom: CustomResourceDefinition): string[] => {
+const flattenLayerNeeds = (result: LayerNeeds[], current: LayerNeeds[] = []) => {
+  current.forEach(need => {
+    first(result.filter(val => val.name === need.name))
+      .ifPresent(origNeed => origNeed.aliases = uniq(origNeed.aliases.concat(...need.aliases)))
+      .ifNotPresent(() => result.push(need))
+  })
+
+  return result
+}
+
+export const extractProvidedCapabilitiesFromBom = (bom: CustomResourceDefinition): LayerProvides[] => {
   const providesAnnotation: string = getAnnotation(bom, 'dependencies.cloudnativetoolkit.dev/provides') || ''
 
-  return providesAnnotation.split(',').filter(v => !!v)
+  return providesAnnotation.split(',').filter(v => !!v).map(name => {
+    const alias: string = getAnnotation(bom, `dependencies.cloudnativetoolkit.dev/provides_${name}`) || defaultProvidesAlias(name)
+
+    return {name, alias}
+  })
 }
 
-const extractNeededCapabilitiesFromBom = (bom: CustomResourceDefinition): string[] => {
+const defaultProvidesAlias = (name: string): string => {
+  if (name === 'gitops') {
+    return 'gitops_repo_config'
+  }
+
+  return name
+}
+
+export const extractNeededCapabilitiesFromBom = (bom: CustomResourceDefinition): LayerNeeds[] => {
   const needsAnnotation: string = getAnnotation(bom, 'dependencies.cloudnativetoolkit.dev/needs') || ''
 
-  return needsAnnotation.split(',').filter(v => !!v)
+  return needsAnnotation.split(',').filter(v => !!v).map(name => {
+    const aliasesAnnotation: string = getAnnotation(bom, `dependencies.cloudnativetoolkit.dev/needs_${name}`) || ''
+
+    return {name, aliases: aliasesAnnotation.split(',').filter(v => !!v)}
+  })
 }
 
-const extractProvidedCapabilities = (module: SingleModuleVersion): string[] => {
-  const provides: string[] = []
+const extractProvidedCapabilities = (module: SingleModuleVersion): LayerProvides[] => {
+  const provides: LayerProvides[] = []
 
   // TODO this should be completely based on interfaces
   const interfaces: string[] = (module.interfaces || [])
     .map(value => value.replace(/.*#/, ''))
 
   if (interfaces.includes('cluster') && module.name !== 'ocp-login') {
-    provides.push('cluster')
+    provides.push({name: 'cluster', alias: module.alias || module.name})
   }
 
-  // TODO revisit this
-  if (module.name === 'argocd-bootstrap') {
-    provides.push('gitops')
+  if (interfaces.includes('gitops-provider') || module.name === 'argocd-bootstrap') {
+    provides.push({name: 'gitops', alias: module.alias || module.name})
+  }
+
+  if (interfaces.includes('cluster-storage')) {
+    provides.push({name: 'storage', alias: module.alias || module.name})
   }
 
   return provides
 }
 
-const extractNeededCapabilities = (provides: string[]) => {
-  return (module: SingleModuleVersion): string[] => {
-    const needs: string[] = []
+const extractNeededCapabilities = (allProvides: LayerProvides[]) => {
+  const provides: string[] = allProvides.map(val => val.name)
+
+  return (module: SingleModuleVersion): LayerNeeds[] => {
+    const needs: LayerNeeds[] = []
+
+    const interfaces: string[] = (module.interfaces || [])
+      .map(value => value.replace(/.*#/, ''))
 
     // TODO this should be completely based on interfaces
     if (module.name === 'ocp-login' && !provides.includes('cluster')) {
-      needs.push('cluster')
+      needs.push({name: 'cluster', aliases: [module.alias || module.name]})
     }
 
-    // TODO this should be based on interfaecs as well
+    // TODO this should be based on interfaces as well
     if (module.name === 'gitops-repo' && !provides.includes('gitops')) {
-      needs.push('gitops')
+      needs.push({name: 'gitops', aliases: [module.alias || module.name]})
+    }
+
+    if (interfaces.includes('storage-consumer') && !provides.includes('storage')) {
+      needs.push({name: 'storage', aliases: [module.alias || module.name]})
     }
 
     return needs
@@ -615,21 +673,22 @@ const fileType = (type: string): OutputFileType | undefined => {
 }
 
 const hasUnmetClusterNeed = (bundle: IascableBundle): boolean => {
-  const needs: string[] = uniq(
+  const needs: LayerNeeds[] = uniq(
     bundle.results
       .map(result => result.billOfMaterial)
       .map(bom => extractNeededCapabilitiesFromBom(bom))
       .reduce(flatten, [])
   )
 
-  const provides: string[] = uniq(
+  const provides: LayerProvides[] = uniq(
     bundle.results
       .map(result => result.billOfMaterial)
       .map(bom => extractProvidedCapabilitiesFromBom(bom))
       .reduce(flatten, [])
   )
 
-  return needs.includes('cluster') && !provides.includes('cluster')
+  return needs.map(need => need.name).includes('cluster') &&
+    !provides.map(provide => provide.name).includes('cluster')
 }
 
 const bomBundleToSolutionBundle = (solution: Solution, bundle: IascableBundle): IascableBundle => {
