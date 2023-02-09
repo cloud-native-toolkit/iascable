@@ -1,7 +1,9 @@
 import {BillOfMaterialModel} from './bill-of-material.model';
 import {getAnnotation, getAnnotationList, getMetadataName} from './crd.model';
 import {OutputFile, OutputFileType} from './file.model';
-import {arrayOf, Optional} from '../util';
+import { arrayOf, first, Optional } from '../util'
+import { LayerNeeds, LayerProvides } from './layer-dependencies.model'
+import { extractNeededCapabilitiesFromBom, extractProvidedCapabilitiesFromBom } from '../services'
 
 export interface TerragruntLayerModel {
   currentBom: BillOfMaterialModel
@@ -40,7 +42,7 @@ export class TerragruntLayer implements TerragruntLayerModel, OutputFile {
   }
 
   processDependencies() {
-    const needs: string[] = getAnnotationList(this.currentBom, 'dependencies.cloudnativetoolkit.dev/needs')
+    const needs: LayerNeeds[] = extractNeededCapabilitiesFromBom(this.currentBom)
     if (needs.length === 0) {
       return ''
     }
@@ -54,53 +56,80 @@ export class TerragruntLayer implements TerragruntLayerModel, OutputFile {
     }
 
     needs
-      .forEach(need => {
+      .forEach((layerNeed: LayerNeeds) => {
+        const need = layerNeed.name
+
         const bom: Optional<BillOfMaterialModel> = this.findMatchingDependency(need)
 
-        // TODO lookup input and output variables from bom/module
-        if (bom.isPresent()) {
-          const needBom: BillOfMaterialModel = bom.get()
+        if (!bom.isPresent()) {
+          return
+        }
 
-          if (need === 'cluster') {
-            const depPrefix = 'cluster'
+        const providesBom: BillOfMaterialModel = bom.get()
+        const layerProvides: LayerProvides[] = extractProvidedCapabilitiesFromBom(providesBom)
 
-            const dependency: TerragruntDependencyModel = {
-              name: 'cluster',
-              path: getMetadataName(needBom, 'cluster'),
-              outputs: [],
-            }
+        if (need === 'cluster') {
+          const providesPrefix: string = first(layerProvides.filter(val => val.name === need).map(val => val.alias))
+            .orElse('cluster')
 
-            this.dependencies.push(dependency)
-
-            // TODO include ca_cert and kubeconfig variables (requires module changes)
-            addInput({name: 'server_url', dependency, output: `${depPrefix}_server_url`})
-            addInput({name: 'cluster_login_user', dependency, output: `${depPrefix}_username`})
-            addInput({name: 'cluster_login_password', dependency, output: `${depPrefix}_password`})
-            addInput({name: 'cluster_login_token', dependency, output: `${depPrefix}_token`})
-          } else if (need === 'gitops') {
-            const depPrefix = 'gitops_repo_config'
-
-            const dependency: TerragruntDependencyModel = {
-              name: 'gitops',
-              path: getMetadataName(needBom, 'gitops'),
-              outputs: [],
-            }
-
-            this.dependencies.push(dependency)
-
-            addInput({name: 'gitops_repo_host', dependency, output: `${depPrefix}_host`})
-            addInput({name: 'gitops_repo_org', dependency, output: `${depPrefix}_org`})
-            addInput({name: 'gitops_repo_repo', dependency, output: `${depPrefix}_name`})
-            addInput({name: 'gitops_repo_project', dependency, output: `${depPrefix}_project`})
-            addInput({name: 'gitops_repo_username', dependency, output: `${depPrefix}_username`})
-            addInput({name: 'gitops_repo_token', dependency, output: `${depPrefix}_token`})
-          } else if (need === 'storage') {
-            this.dependencies.push({
-              name: 'storage',
-              path: getMetadataName(needBom, 'storage'),
-              outputs: [],
-            })
+          const dependency: TerragruntDependencyModel = {
+            name: 'cluster',
+            path: getMetadataName(providesBom, 'cluster'),
+            outputs: [],
           }
+
+          this.dependencies.push(dependency)
+
+          const needsPrefixes: string[] = layerNeed.aliases || ['cluster']
+
+          // TODO include ca_cert variable (requires module changes)
+          addInput({name: 'server_url', dependency, output: `${providesPrefix}_server_url`})
+          needsPrefixes.forEach(needPrefix => {
+            addInput({name: `${needPrefix}_server_url`, dependency, output: `${providesPrefix}_server_url`})
+            addInput({name: `${needPrefix}_login_user`, dependency, output: `${providesPrefix}_username`})
+            addInput({name: `${needPrefix}_login_password`, dependency, output: `${providesPrefix}_password`})
+            addInput({name: `${needPrefix}_login_token`, dependency, output: `${providesPrefix}_token`})
+          })
+        } else if (need === 'gitops') {
+          const providesPrefix: string = first(layerProvides.filter(val => val.name === need).map(val => val.alias))
+            .orElse('gitops_repo_config')
+
+          const dependency: TerragruntDependencyModel = {
+            name: 'gitops',
+            path: getMetadataName(providesBom, 'gitops'),
+            outputs: [],
+          }
+
+          this.dependencies.push(dependency)
+
+          const needsPrefixes: string[] = layerNeed.aliases || ['gitops_repo']
+          needsPrefixes.forEach(needPrefix => {
+            addInput({name: `${needPrefix}_host`, dependency, output: `${providesPrefix}_host`})
+            addInput({name: `${needPrefix}_org`, dependency, output: `${providesPrefix}_org`})
+            addInput({name: `${needPrefix}_repo`, dependency, output: `${providesPrefix}_name`})
+            addInput({name: `${needPrefix}_project`, dependency, output: `${providesPrefix}_project`})
+            addInput({name: `${needPrefix}_username`, dependency, output: `${providesPrefix}_username`})
+            addInput({name: `${needPrefix}_token`, dependency, output: `${providesPrefix}_token`})
+          })
+        } else if (need === 'storage') {
+          const providesPrefix: string = first(layerProvides.filter(val => val.name === need).map(val => val.alias))
+            .orElse('storage')
+
+          const dependency: TerragruntDependencyModel = {
+            name: 'storage',
+            path: getMetadataName(providesBom, 'storage'),
+            outputs: [],
+          }
+
+          this.dependencies.push(dependency)
+
+          const needsPrefixes: string[] = layerNeed.aliases || ['util-storage-class-manager']
+          needsPrefixes.forEach(needPrefix => {
+            addInput({name: `${needPrefix}_rwx_storage_class`, dependency, output: `${providesPrefix}_rwx_storage_class`})
+            addInput({name: `${needPrefix}_rwo_storage_class`, dependency, output: `${providesPrefix}_rwo_storage_class`})
+            addInput({name: `${needPrefix}_file_storage_class`, dependency, output: `${providesPrefix}_file_storage_class`})
+            addInput({name: `${needPrefix}_block_storage_class`, dependency, output: `${providesPrefix}_block_storage_class`})
+          })
         }
       })
   }

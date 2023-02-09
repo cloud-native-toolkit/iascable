@@ -287,56 +287,6 @@ async function outputTile(rootPath: string, tile: Tile | undefined) {
   return promises.writeFile(join(rootPath, tile.file.name), await tile.file.contents());
 }
 
-async function outputResult(outputDir: string, result: IascableBomResult, flatten: boolean = false): Promise<void> {
-  const bomPath: string = getBomPath(outputDir, result.billOfMaterial)
-  const rootPath: string = join(outputDir, bomPath)
-
-  await outputTerraform(flatten ? rootPath : join(rootPath, 'terraform'), result.terraformComponent);
-  await outputBillOfMaterial(rootPath, result.billOfMaterial);
-  await outputTile(rootPath, result.tile);
-  await outputDependencyGraph(rootPath, result.graph)
-  await outputScripts(outputDir, [
-    new UrlFile({name: 'launch.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/iascable/main/scripts/launch.sh', type: OutputFileType.executable}),
-    new UrlFile({name: join(bomPath, 'apply.sh'), url: 'https://raw.githubusercontent.com/cloud-native-toolkit/iascable/main/scripts/apply.sh', type: OutputFileType.executable}),
-    new UrlFile({name: join(bomPath, 'destroy.sh'), url: 'https://raw.githubusercontent.com/cloud-native-toolkit/iascable/main/scripts/destroy.sh', type: OutputFileType.executable}),
-  ])
-}
-
-async function outputScripts(rootPath: string, files: OutputFile[]): Promise<string[]> {
-
-  return Promise.all(files.map(f => outputScript(rootPath, f)))
-}
-
-async function outputScript(rootPath: string, file: OutputFile): Promise<string> {
-  const scriptPath: string = join(rootPath, file.name)
-
-  const fileContents = await file.contents().catch(() => {
-    console.log(`  Warning: Unable to retrieve file: ${file.name}`)
-    return ''
-  })
-
-  if (!fileContents) {
-    return scriptPath
-  }
-
-  await promises.writeFile(scriptPath, fileContents)
-    .catch(() => {
-      return {}
-    })
-
-  try {
-    const { fd } = await promises.open(scriptPath, 'r');
-    // TODO is there a way to do the equivalent of `chmod +x` and not explicitly set 777?
-    fchmod(fd, 0o777, err => {
-      if (err) throw err;
-    });
-  } catch (error) {
-    // nothing to do
-  }
-
-  return scriptPath
-}
-
 export const iascableBuild: CommandModule = {
   command,
   describe: desc,

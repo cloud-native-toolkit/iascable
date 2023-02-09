@@ -6,8 +6,8 @@ import {KubernetesResource, ResourceMetadata} from './crd.model';
 import {catalogApiV2Version} from './catalog.model';
 import {OutputFile, OutputFileType} from './file.model';
 import {BillOfMaterialVariable} from './bill-of-material.model';
-import {isDefined} from '../util/object-util/object-util';
 import {TerraformComponentModel} from './stages.model';
+import {isDefined} from '../util';
 
 const kindSolution = 'Solution'
 
