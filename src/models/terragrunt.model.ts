@@ -104,12 +104,12 @@ export class TerragruntLayer implements TerragruntLayerModel, OutputFile {
 
           const needsPrefixes: string[] = layerNeed.aliases || ['gitops_repo']
           needsPrefixes.forEach(needPrefix => {
-            addInput({name: `${needPrefix}_host`, dependency, output: `${providesPrefix}_host`})
-            addInput({name: `${needPrefix}_org`, dependency, output: `${providesPrefix}_org`})
-            addInput({name: `${needPrefix}_repo`, dependency, output: `${providesPrefix}_name`})
-            addInput({name: `${needPrefix}_project`, dependency, output: `${providesPrefix}_project`})
-            addInput({name: `${needPrefix}_username`, dependency, output: `${providesPrefix}_username`})
-            addInput({name: `${needPrefix}_token`, dependency, output: `${providesPrefix}_token`})
+            addInput({name: `${needPrefix}_host`, dependency, output: `${providesPrefix}_config_host`})
+            addInput({name: `${needPrefix}_org`, dependency, output: `${providesPrefix}_config_org`})
+            addInput({name: `${needPrefix}_repo`, dependency, output: `${providesPrefix}_config_name`})
+            addInput({name: `${needPrefix}_project`, dependency, output: `${providesPrefix}_config_project`})
+            addInput({name: `${needPrefix}_username`, dependency, output: `${providesPrefix}_config_username`})
+            addInput({name: `${needPrefix}_token`, dependency, output: `${providesPrefix}_config_token`})
           })
         } else if (need === 'storage') {
           const providesPrefix: string = first(layerProvides.filter(val => val.name === need).map(val => val.alias))

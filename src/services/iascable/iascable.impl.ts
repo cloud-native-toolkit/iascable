@@ -261,7 +261,7 @@ const applyVersionsToBomModules = (billOfMaterial: BillOfMaterialModel, modules:
 const applyAnnotationsToBom = (billOfMaterial: BillOfMaterialModel, modules: SingleModuleVersion[]): BillOfMaterialModel => {
 
   const provides: LayerProvides[] = uniqBy(modules
-    .map(extractProvidedCapabilities)
+    .map(extractProvidedCapabilities(modules))
     .reduce(
       flattenReverse,
       extractProvidedCapabilitiesFromBom(billOfMaterial)
@@ -342,26 +342,32 @@ export const extractNeededCapabilitiesFromBom = (bom: CustomResourceDefinition):
   })
 }
 
-const extractProvidedCapabilities = (module: SingleModuleVersion): LayerProvides[] => {
-  const provides: LayerProvides[] = []
+const extractProvidedCapabilities = (modules: SingleModuleVersion[]) => {
+  return (module: SingleModuleVersion): LayerProvides[] => {
+    const provides: LayerProvides[] = []
 
-  // TODO this should be completely based on interfaces
-  const interfaces: string[] = (module.interfaces || [])
-    .map(value => value.replace(/.*#/, ''))
+    // TODO this should be completely based on interfaces
+    const interfaces: string[] = (module.interfaces || [])
+      .map(value => value.replace(/.*#/, ''))
 
-  if (interfaces.includes('cluster') && module.name !== 'ocp-login') {
-    provides.push({name: 'cluster', alias: module.alias || module.name})
+    if (interfaces.includes('cluster') && module.name !== 'ocp-login') {
+      provides.push({name: 'cluster', alias: module.alias || module.name})
+    }
+
+    if (interfaces.includes('gitops-provider') || module.name === 'argocd-bootstrap') {
+      // TODO use an interface and better error handling
+      const aliasModule = first(modules.filter(m => m.name === 'gitops-repo'))
+        .orElse({alias: 'gitops_repo', name: 'gitops-repo'} as any)
+
+      provides.push({name: 'gitops', alias: aliasModule.alias || aliasModule.name})
+    }
+
+    if (interfaces.includes('cluster-storage')) {
+      provides.push({name: 'storage', alias: module.alias || module.name})
+    }
+
+    return provides
   }
-
-  if (interfaces.includes('gitops-provider') || module.name === 'argocd-bootstrap') {
-    provides.push({name: 'gitops', alias: module.alias || module.name})
-  }
-
-  if (interfaces.includes('cluster-storage')) {
-    provides.push({name: 'storage', alias: module.alias || module.name})
-  }
-
-  return provides
 }
 
 const extractNeededCapabilities = (allProvides: LayerProvides[]) => {
