@@ -13,7 +13,7 @@ import {CustomResourceDefinition} from '../../models/crd.model';
 import {isDefined} from '../../util/object-util/object-util';
 
 export interface WritableBundle {
-  writeBundle(bundleWriter: BundleWriter, options?: {flatten: boolean}): BundleWriter;
+  writeBundle(bundleWriter: BundleWriter, options?: {flatten: boolean, basePath: string}): BundleWriter;
 }
 
 export interface IasableResult<T extends CustomResourceDefinition> {

@@ -170,7 +170,7 @@ export interface Module extends VersionedModule {
 }
 
 export function isModule(module: Module | ModuleRef | CustomResourceDefinition): module is Module {
-  return !!module && !!(module as Module).id;
+  return !!module && !!(module as Module).name && !!(module as Module).versions;
 }
 
 export function isModuleRef(module: Module | ModuleRef | CustomResourceDefinition): module is ModuleRef {

@@ -24,8 +24,9 @@ import {
   ModuleInterfaceModel,
   ModuleOutput,
   ModuleVariable,
-  ModuleVersion
+  ModuleVersion, Solution
 } from '../../models'
+import { BillOfMaterial } from '../../model-impls'
 
 export class ModuleMetadataService implements ModuleMetadataApi {
   private logger: LoggerApi
@@ -224,7 +225,7 @@ export class ModuleMetadataService implements ModuleMetadataApi {
   async loadMetadata({
     metadataUrl
   }: {
-    metadataUrl?: string
+    metadataUrl?: string,
   }): Promise<Module | undefined> {
     if (!metadataUrl) {
       return

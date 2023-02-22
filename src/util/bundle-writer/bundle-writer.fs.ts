@@ -58,6 +58,10 @@ export class BundleWriterFs implements BundleWriter {
       }
     }
   }
+
+  getPath() {
+    return '.'
+  }
 }
 
 const getFilePath = (path?: string, filepath?: string): string | undefined => {
@@ -103,5 +107,9 @@ class BundleWriterFolder implements BundleWriter {
 
   async generate(file: string): Promise<void> {
     return this.writer.generate(file)
+  }
+
+  getPath() {
+    return this.path;
   }
 }

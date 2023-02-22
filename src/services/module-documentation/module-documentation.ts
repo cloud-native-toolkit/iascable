@@ -118,7 +118,7 @@ export class ModuleReadmeFile extends TemplatedFile {
 
     currentStage[0].module.version.version = ''
 
-    return currentStage[0].asString(terraform.stages)
+    return currentStage[0].asString(terraform.stages, '.')
   }
 
 }

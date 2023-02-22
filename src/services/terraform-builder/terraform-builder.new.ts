@@ -136,7 +136,7 @@ export class TerraformBuilderNew implements TerraformBuilderApi {
 
   moduleOutputsToStageOutputs(module: SingleModuleVersion): BaseOutput[] {
 
-    return module.version.outputs
+    return (module.version.outputs || [])
       .map(mergeBomOutputs(arrayOf(module.bomModule?.outputs)))
       .map(mapModuleOutput(module))
       .filter(isDefinedAndNotNull)

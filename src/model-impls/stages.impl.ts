@@ -1,5 +1,5 @@
+import {join, relative, resolve} from 'path';
 import {Container} from 'typescript-ioc';
-import {join} from 'path';
 import {dump} from 'js-yaml';
 
 import {
@@ -52,7 +52,7 @@ export class StageImpl implements Stage, StagePrinter {
     this.variables = values.variables;
   }
 
-  sourceString(indent: string = '  '): string {
+  sourceString(path: string, indent: string = '  '): string {
     if (this.module.registryId) {
       const version = this.module.version.version ? `${indent}version = "${this.module.version.version.replace('v', '')}"` : ''
 
@@ -60,15 +60,19 @@ export class StageImpl implements Stage, StagePrinter {
 ${version}`
     }
 
-    const urlRef = this.module.version.version && !this.module.id.startsWith('file:') ? `?ref=${this.module.version.version}` : ''
-    return `${indent}source = "${this.module.id}${urlRef}"`
+    const urlRef = this.module.version.version && !(this.module.id.startsWith('file:') || this.module.id.startsWith('/')) ? `?ref=${this.module.version.version}` : ''
+
+    const moduleId = !(this.module.id.startsWith('file:') || this.module.id.startsWith('/'))
+      ? this.module.id
+      : relative(resolve(path), this.module.id)
+    return `${indent}source = "${moduleId}${urlRef}"`
   }
 
-  asString(stages: {[name: string]: {name: string}}): string {
+  asString(stages: {[name: string]: {name: string}}, path: string): string {
     return `module "${this.name}" {
-${this.sourceString()}
+${this.sourceString(path)}
 
-${this.providersAsString(this.module.version.providers)}${this.variablesAsString(stages)}
+${this.providersAsString(this.module.version.providers)}${this.variablesAsString(stages, path)}
 }
 `;
   }
@@ -102,7 +106,7 @@ ${indent}}
 `;
   }
 
-  variablesAsString(stages: {[name: string]: {name: string}}, indent: string = '  '): string {
+  variablesAsString(stages: {[name: string]: {name: string}}, path: string, indent: string = '  '): string {
     return this.variables
       .filter(v => !!v)
       .sort((a: BaseVariable, b: BaseVariable) => a.name.localeCompare(b.name))
@@ -116,7 +120,7 @@ ${indent}}
 
         return result;
       })
-      .map(variable => indent + variable.asString(stages))
+      .map(variable => indent + variable.asString(stages, path))
       .join('\n');
   }
 }
@@ -128,7 +132,7 @@ export class TerraformStageFile implements OutputFile {
   name = 'main.tf';
   type = OutputFileType.terraform;
 
-  contents(): Promise<string | Buffer> {
+  contents(options: {path: string} = {path: '.'}): Promise<string | Buffer> {
     const buffer: Buffer = Object
       .values(this.stages)
       .sort((a: Stage, b: Stage) => a.name.localeCompare(b.name))
@@ -139,7 +143,7 @@ export class TerraformStageFile implements OutputFile {
 
         return Buffer.concat([
           previousBuffer,
-          Buffer.from(stage.asString(this.stages))
+          Buffer.from(stage.asString(this.stages, options.path))
         ]);
       }, Buffer.from(''));
 
