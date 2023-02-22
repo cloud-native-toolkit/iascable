@@ -17,7 +17,7 @@ export const builder = (yargs: Argv<any>) => {
 
 export const handler = async (argv: Arguments<{name: string} & CommandLineInput>) => {
 
-  const referenceBom: BillOfMaterialModel = await loadReferenceBom(argv.name);
+  const referenceBom: BillOfMaterialModel = await loadReferenceBom({path: argv.name, name: argv.name});
 
   const yaml = jsYaml.dump(referenceBom);
   console.log(yaml);

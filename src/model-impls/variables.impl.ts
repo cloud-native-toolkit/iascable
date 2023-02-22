@@ -171,7 +171,7 @@ export class TerraformProviderImpl implements TerraformProvider {
     return this._variables
       .reduce((previousValue: Buffer, variable: BaseVariable) => {
 
-        const value: string = `${indent}${variable.asString(this.stages)}`
+        const value: string = `${indent}${variable.asString(this.stages, '')}`
 
         return Buffer.concat([
           previousValue,

@@ -18,4 +18,6 @@ export abstract class BundleWriter {
   abstract folder(name: string): BundleWriter;
 
   abstract generate(file: string, options?: {flatten: boolean}): Promise<void>;
+
+  abstract getPath(): string;
 }

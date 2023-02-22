@@ -1,7 +1,8 @@
-import {Container} from 'typescript-ioc';
-import {JSON_SCHEMA, load} from 'js-yaml';
-import uniqBy from 'lodash.uniqby';
-import uniqWith from 'lodash.uniqwith';
+import { dirname, resolve } from 'path'
+import { Container } from 'typescript-ioc'
+import { JSON_SCHEMA, load } from 'js-yaml'
+import uniqBy from 'lodash.uniqby'
+import uniqWith from 'lodash.uniqwith'
 
 import {
   BillOfMaterialEntry,
@@ -12,16 +13,23 @@ import {
   CatalogV2Metadata,
   CatalogV2Model,
   getFlattenedModules,
+  isBomKind,
   isCatalogKind,
   isCatalogV2Model,
+  isSolutionKind,
   ModuleIdAlias
-} from './catalog-loader.api';
-import {LoggerApi} from '../../util/logger';
-import {isModule, Module, ProviderModel} from '../../models';
-import {CustomResourceDefinition} from '../../models/crd.model';
-import {ArrayUtil} from '../../util/array-util';
-import {loadFile} from '../../util/file-util/file-util';
-import {Catalog} from '../../model-impls';
+} from './catalog-loader.api'
+import {
+  CustomResourceDefinition,
+  getAnnotation,
+  isModule,
+  isSolution,
+  Module,
+  ProviderModel,
+  Solution
+} from '../../models'
+import { BillOfMaterial, Catalog } from '../../model-impls'
+import { ArrayUtil, loadFile, LoggerApi } from '../../util'
 
 export class CatalogLoader implements CatalogLoaderApi {
 
@@ -50,12 +58,18 @@ export class CatalogLoader implements CatalogLoaderApi {
 
   async loadCatalogYaml(catalogUrls: string[]): Promise<CatalogV2Model> {
 
-    const catalogYamls: Array<string | Buffer> = await Promise.all(catalogUrls.map(catalogUrl => loadFile(catalogUrl)))
+    const catalogYamls: Array<{content: string | Buffer, url: string}> = await Promise.all(catalogUrls.map(async url => ({content: await loadFile(url), url})))
 
-    return catalogYamls.reduce((result: CatalogV2Model, current: string | Buffer) => {
-      const inputYaml: CustomResourceDefinition = this.parseYaml(current.toString())
+    return catalogYamls.reduce((result: CatalogV2Model, current: {content: string | Buffer, url: string}) => {
+      const inputYaml: CustomResourceDefinition = this.parseYaml(current.content.toString())
 
-      const newModel: CatalogModel = isCatalogKind(inputYaml) ? inputYaml : catalogFromModule(inputYaml)
+      const newModel: CatalogModel = isCatalogKind(inputYaml)
+        ? inputYaml
+        : isBomKind(inputYaml)
+          ? catalogFromBom(inputYaml)
+          : isSolutionKind(inputYaml)
+            ? catalogFromSolution(inputYaml)
+            : catalogFromModule(inputYaml, current.url)
 
       return mergeCatalogs(result, newModel)
     }, {} as any)
@@ -81,7 +95,7 @@ const mergeCatalogs = (baseCatalog: CatalogModel, newCatalog: CatalogModel): Cat
         const mergedAlises = uniqBy((current.aliases || []).concat(result.aliases || []), 'id')
         const providers = uniqBy((current.providers || []).concat(result.providers || []), 'name')
         const {modules, aliases} = mergeModules(getFlattenedModules(current), result.modules || [], mergedAlises)
-        const boms = uniqBy(getBoms(current).concat(result.boms || []), 'name')
+        const boms: BillOfMaterialEntry[] = uniqBy(getBoms(current).concat(result.boms || []), 'name')
         const metadata:CatalogV2Metadata = {
           name: 'Merged Catalog',
           ...result.metadata,
@@ -104,14 +118,40 @@ const getBoms = (catalog: CatalogModel): BillOfMaterialEntry[] => {
   return catalog.boms || []
 }
 
-const catalogFromModule = (inputYaml: CustomResourceDefinition): CatalogV2Model => {
+const catalogUrlToPath = (catalogUrl: string): string => {
+  return resolve(dirname(catalogUrl));
+}
+
+const catalogFromModule = (inputYaml: CustomResourceDefinition, catalogUrl: string): CatalogV2Model => {
   const modules: Module[] = []
 
   if (isModule(inputYaml)) {
-    modules.push(Object.assign({}, inputYaml, {category: 'other'}))
+    const id = inputYaml.id || catalogUrlToPath(catalogUrl)
+
+    modules.push(Object.assign({}, inputYaml, {category: 'other', id}))
   }
 
   return {kind: catalogKind, apiVersion: catalogApiV2Version, modules, boms: []}
+}
+
+const catalogFromBom = (inputYaml: CustomResourceDefinition): CatalogV2Model => {
+  const boms: BillOfMaterialEntry[] = []
+
+  if (isBomKind(inputYaml)) {
+    boms.push(buildBillOfMaterialEntry(inputYaml))
+  }
+
+  return {kind: catalogKind, apiVersion: catalogApiV2Version, modules: [], boms}
+}
+
+const catalogFromSolution = (inputYaml: CustomResourceDefinition): CatalogV2Model => {
+  const boms: BillOfMaterialEntry[] = []
+
+  if (isSolution(inputYaml)) {
+    boms.push(buildBillOfMaterialEntry(inputYaml))
+  }
+
+  return {kind: catalogKind, apiVersion: catalogApiV2Version, modules: [], boms}
 }
 
 const mergeModules = (newModules: Module[], baseModules: Module[], aliases: ModuleIdAlias[] = []): {modules: Module[], aliases: ModuleIdAlias[]} => {
@@ -140,4 +180,20 @@ const mergeModules = (newModules: Module[], baseModules: Module[], aliases: Modu
   })
 
   return {modules, aliases: aliases}
+}
+
+const buildBillOfMaterialEntry = (bom: BillOfMaterial | Solution): BillOfMaterialEntry => {
+
+  return {
+    name: bom.metadata.name,
+    displayName: getAnnotation(bom, 'displayName') || bom.metadata.name,
+    description: getAnnotation(bom, 'description') || '',
+    tags: [],
+    category: 'other',
+    type: isBomKind(bom) ? 'bom' : 'solution',
+    versions: [{
+      version: bom.spec.version || 'v1.0.0',
+      content: bom
+    }]
+  };
 }

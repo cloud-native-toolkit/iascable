@@ -12,7 +12,7 @@ export enum OutputFileType {
 export interface OutputFile {
   name: string;
   type?: OutputFileType;
-  contents(options?: {flatten?: boolean}): Promise<string | Buffer>;
+  contents(options?: {flatten?: boolean, path: string}): Promise<string | Buffer>;
 }
 
 export class SimpleFile implements OutputFile {

@@ -1,7 +1,7 @@
-import {Container, Inject} from 'typescript-ioc';
-import {join} from 'path';
-import uniq from 'lodash.uniq';
-import uniqBy from 'lodash.uniqby';
+import { Container } from 'typescript-ioc'
+import { join } from 'path'
+import uniq from 'lodash.uniq'
+import uniqBy from 'lodash.uniqby'
 
 import {
   IascableApi,
@@ -14,7 +14,7 @@ import {
   isIascableBomResult,
   isIascableSolutionResult,
   WritableBundle
-} from './iascable.api';
+} from './iascable.api'
 import {
   BillOfMaterialModel,
   BillOfMaterialModule,
@@ -43,19 +43,21 @@ import {
   TerragruntBase,
   TerragruntLayer,
   Tile,
-  UrlFile,
-} from '../../models';
-import {CatalogLoaderApi} from '../catalog-loader';
-import {ModuleSelectorApi} from '../module-selector';
-import {DependencyGraphApi} from '../dependency-graph';
-import {ModuleDocumentationApi} from '../module-documentation';
-import {TerraformBuilderApi} from '../terraform-builder';
-import {TileBuilderApi} from '../tile-builder';
+  UrlFile
+} from '../../models'
+import { CatalogLoaderApi } from '../catalog-loader'
+import { ModuleSelectorApi } from '../module-selector'
+import { DependencyGraphApi } from '../dependency-graph'
+import { ModuleDocumentationApi } from '../module-documentation'
+import { TerraformBuilderApi } from '../terraform-builder'
+import { TileBuilderApi } from '../tile-builder'
 import {
   arrayOf,
   ArrayUtil,
-  BundleWriter, first,
-  flatten, flattenReverse,
+  BundleWriter,
+  first,
+  flatten,
+  flattenReverse,
   isDefined,
   isDefinedAndNotNull,
   LoggerApi,
@@ -67,14 +69,14 @@ import {
   NestedSolutionError,
   SolutionLayerNotFound,
   SolutionLayersNotFound
-} from '../../errors';
-import {BomReadmeFile, SolutionBomReadmeFile} from '../bom-documentation/bom-documentation.impl';
+} from '../../errors'
+import { BomReadmeFile, SolutionBomReadmeFile } from '../bom-documentation/bom-documentation.impl'
 import {
   BillOfMaterialFile,
   Catalog,
   TerraformTfvarsFile,
   VariablesYamlFile
-} from '../../model-impls';
+} from '../../model-impls'
 import { LayerNeeds, LayerProvides } from '../../models/layer-dependencies.model'
 
 export class CatalogBuilder implements IascableApi {
@@ -423,7 +425,7 @@ class IascableBundleImpl implements IascableBundle {
     this.supportingFiles = supportingFiles
   }
 
-  writeBundle(baseWriter: BundleWriter, options: {flatten: boolean} = {flatten: false}): BundleWriter {
+  writeBundle(baseWriter: BundleWriter, options: {flatten: boolean, basePath: string} = {flatten: false, basePath: '.'}): BundleWriter {
 
     this.results.forEach((result: WritableBundle) => {
       result.writeBundle(baseWriter, options)
@@ -451,15 +453,18 @@ class IascableBomResultImpl implements IascableBomResult {
     this.tile = params.tile
   }
 
-  writeBundle(baseWriter: BundleWriter, inOptions: { flatten?: boolean } = {flatten: false}): BundleWriter {
+  writeBundle(baseWriter: BundleWriter, inOptions: { flatten?: boolean, basePath: string } = {flatten: false, basePath: '.'}): BundleWriter {
     const writer: BundleWriter = baseWriter.folder(getBomPath(this.billOfMaterial))
 
-    const options = Object.assign({}, inOptions, {inSolution: this.inSolution})
+    const options = Object.assign(
+      {},
+      inOptions,
+      {inSolution: this.inSolution})
 
     writeFiles(
       options.flatten ? writer : writer.folder('terraform'),
       this.terraformComponent.files,
-      options,
+      options
     )
 
     writeFiles(
@@ -567,16 +572,16 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
     ])
   }
 
-  writeBundle(bundleWriter: BundleWriter, options?: { flatten: boolean }): BundleWriter {
+  writeBundle(bundleWriter: BundleWriter, options?: { flatten: boolean, basePath: string }): BundleWriter {
     const solutionWriter: BundleWriter = bundleWriter.folder(getBomPath(this.billOfMaterial, 'solution'))
 
-    writeFile(solutionWriter, this._solution.asFile());
+    writeFile(solutionWriter, this._solution.asFile(), options);
 
     this.results.forEach((result: IascableBomResult) => {
       result.writeBundle(solutionWriter, options)
     })
 
-    writeFiles(solutionWriter, this.supportingFiles)
+    writeFiles(solutionWriter, this.supportingFiles, options)
 
     return solutionWriter
   }
@@ -629,21 +634,27 @@ const formatName = (name: string): string => {
   return name.toLowerCase().replace(/ +/g, '-')
 }
 
-const writeFiles = (writer: BundleWriter, files: Array<OutputFile | undefined> = [], options?: {flatten?: boolean}) => {
+const writeFiles = (writer: BundleWriter, files: Array<OutputFile | undefined> = [], options?: {flatten?: boolean, basePath: string}) => {
   files
     .filter(f => isDefinedAndNotNull(f))
     .map(f => f as OutputFile)
     .forEach(writeFilesWithWriter(writer, options))
 }
 
-const writeFilesWithWriter = (writer: BundleWriter, options?: {flatten?: boolean}) => {
+const writeFilesWithWriter = (writer: BundleWriter, options?: {flatten?: boolean, basePath: string}) => {
   return (file: OutputFile) => {
     writeFile(writer, file, options)
   }
 }
 
-const writeFile = (writer: BundleWriter, file: OutputFile, options?: {flatten?: boolean}) => {
-  writer.file(file.name, file.contents(options), {executable: file.type === OutputFileType.executable})
+const writeFile = (writer: BundleWriter, file: OutputFile, options: {flatten?: boolean, basePath: string} = {flatten: false, basePath: '.'}) => {
+  const fileOptions: {flatten?: boolean, path: string} = Object.assign({}, options, {path: join(options?.basePath, writer.getPath())})
+
+  writer.file(
+    file.name,
+    file.contents(fileOptions),
+    {executable: file.type === OutputFileType.executable}
+  )
 }
 
 const handleBomLookupResult = (result: Array<BillOfMaterialModel | SolutionModel | SolutionLayerNotFound>): Array<BillOfMaterialModel> => {

@@ -2,6 +2,8 @@ import {BillOfMaterialModule} from './bill-of-material.model';
 import {CustomResourceDefinition, ResourceMetadata} from './crd.model';
 import {ModuleTemplate, ProviderModel, VersionedModule} from './module.model';
 import {findMatchingVersions, flatten, arrayOf, Optional} from '../util';
+import { BillOfMaterial } from '../model-impls'
+import { Solution } from './solution.model'
 
 export interface CatalogCategoryModel<M = VersionedModule> {
   category: string;
@@ -18,7 +20,8 @@ export interface CatalogInputModel extends CustomResourceDefinition {
 
 export interface BillOfMaterialVersion {
   version: string;
-  metadataUrl: string;
+  metadataUrl?: string;
+  content?: BillOfMaterial | Solution;
 }
 
 export interface BillOfMaterialEntry {
@@ -91,6 +94,14 @@ function determineModuleProvider(module: VersionedModule) {
 
 export function isCatalogKind(crd: CustomResourceDefinition): crd is CatalogV1Model | CatalogV2Model {
   return !!crd && crd.kind === 'Catalog'
+}
+
+export function isBomKind(crd: CustomResourceDefinition): crd is BillOfMaterial {
+  return !!crd && crd.kind === 'BillOfMaterial'
+}
+
+export function isSolutionKind(crd: CustomResourceDefinition): crd is Solution {
+  return !!crd && crd.kind === 'Solution'
 }
 
 export const isCatalogV1Model = (catalog: CatalogV1Model | CatalogV2Model): catalog is CatalogV1Model => {

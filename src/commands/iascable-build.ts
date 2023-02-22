@@ -1,8 +1,6 @@
 import { Container } from 'typescript-ioc'
 import { Arguments, Argv, CommandBuilder, CommandModule } from 'yargs'
-import { fchmod, promises } from 'fs'
-import { default as jsYaml } from 'js-yaml'
-import { dirname, join } from 'path'
+import { join } from 'path'
 import uniq from 'lodash.uniq'
 
 import { IascableInput } from './inputs/iascable.input'
@@ -11,20 +9,13 @@ import { DEFAULT_CATALOG_URLS, setupCatalogUrls } from './support/middleware'
 import {
   BillOfMaterialModel,
   CustomResourceDefinition,
-  DotGraphFile,
   isTileConfig,
-  OutputFile,
-  OutputFileType,
-  SolutionModel,
-  TerraformComponentModel,
-  Tile,
-  UrlFile
+  SolutionModel
 } from '../models'
-import { IascableApi, IascableBomResult, IascableBundle, IascableOptions } from '../services'
+import { IascableApi, IascableBundle, IascableOptions } from '../services'
 import {
   BundleWriter,
   BundleWriterType,
-  chmodRecursive,
   getBundleWriter,
   loadBillOfMaterialFromFile,
   loadReferenceBom,
@@ -133,10 +124,12 @@ export const handler = async (argv: Arguments<BuilderArgs>) => {
     const writerType = argv.zipFile ? BundleWriterType.zip : BundleWriterType.filesystem
     const output = argv.zipFile ? join(outputDir, argv.zipFile) : outputDir
 
+    const basePath = argv.zipFile ? './' : outputDir
+
     console.log(`Writing output to: ${output}`)
     const bundleWriter: BundleWriter = result.writeBundle(
       getBundleWriter(writerType),
-      {flatten: argv.flattenOutput}
+      {flatten: argv.flattenOutput, basePath}
     )
 
     await bundleWriter.generate(output)
@@ -148,16 +141,6 @@ export const handler = async (argv: Arguments<BuilderArgs>) => {
     }
   }
 };
-
-const getBomPath = (outputDir1: string, bom: BillOfMaterialModel): string => {
-  const pathParts: string[] = [
-    bom.metadata?.annotations?.path || '',
-    bom.metadata?.name || 'component'
-  ]
-    .filter(v => !!v)
-
-  return join(...pathParts)
-}
 
 const loadCatalogUrls = (boms: CustomResourceDefinition[], inputUrls: string[]): string[] => {
   return boms
@@ -198,7 +181,7 @@ async function loadBoms(referenceNames?: string[], inputNames?: string[], names:
   for (let i = 0; i < bomNames.length; i++) {
     const name = names.length > i ? names[i] : ''
 
-    const bom: BillOfMaterialModel | SolutionModel | undefined = await bomFunction(bomNames[i], name)
+    const bom: BillOfMaterialModel | SolutionModel | undefined = await bomFunction({path: bomNames[i], name})
 
     if (!bom) {
       throw new Error(`Unable to load BOM: ${bomNames[i]}`)
@@ -225,66 +208,6 @@ function buildCatalogBuilderOptions(input: IascableInput): IascableOptions {
     },
     tileConfig: isTileConfig(tileConfig) ? tileConfig : undefined,
   };
-}
-
-async function outputBillOfMaterial(rootPath: string, billOfMaterial: BillOfMaterialModel) {
-  await promises.mkdir(rootPath, {recursive: true})
-
-  await chmodRecursive(rootPath, 0o777)
-
-  return promises.writeFile(join(rootPath, 'bom.yaml'), jsYaml.dump(billOfMaterial));
-}
-
-async function outputDependencyGraph(rootPath: string, graph?: DotGraphFile) {
-  if (!graph) {
-    return
-  }
-
-  await promises.mkdir(rootPath, {recursive: true})
-
-  await chmodRecursive(rootPath, 0o777)
-
-  return promises.writeFile(join(rootPath, graph.name), await graph.contents());
-}
-
-async function outputTerraform(rootPath: string, terraformComponent: TerraformComponentModel) {
-  const logger: LoggerApi = Container.get(LoggerApi)
-
-  const promiseList = []
-  for (let i = 0; i < terraformComponent.files.length; i++) {
-    const file = terraformComponent.files[i]
-
-    try {
-      if (!file || !file.name) {
-        continue
-      }
-
-      const path = join(rootPath, file.name);
-      await promises.mkdir(dirname(path), {recursive: true})
-
-      const fileContents: string | Buffer = await file.contents();
-
-      const result = promises.writeFile(path, fileContents);
-
-      promiseList.push(result)
-    } catch (err) {
-      logger.warn(`Warning: Unable to generate file ${file.name}`)
-      logger.debug('  Error: ', err)
-    }
-  }
-
-  return Promise.all(promiseList)
-}
-
-async function outputTile(rootPath: string, tile: Tile | undefined) {
-  if (!tile || !tile.file) {
-    return;
-  }
-
-  await promises.mkdir(rootPath, {recursive: true})
-  await chmodRecursive(rootPath, 0o777)
-
-  return promises.writeFile(join(rootPath, tile.file.name), await tile.file.contents());
 }
 
 export const iascableBuild: CommandModule = {

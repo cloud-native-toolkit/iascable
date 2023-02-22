@@ -52,6 +52,11 @@ export class BundleWriterZip implements BundleWriter {
     return new BundleWriterZip({root: this._root, current})
   }
 
+  getPath() {
+
+    return this._zip.name
+  }
+
   async generate(file: string): Promise<void> {
     const path: string = dirname(file)
     if (path) {

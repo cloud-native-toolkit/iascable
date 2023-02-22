@@ -96,7 +96,7 @@ export class Catalog implements CatalogV2Model {
       .first()
       .orElseThrow(new BillOfMaterialVersionNotFound(name, version));
 
-    return loadBillOfMaterialFromFile(bomVersion.metadataUrl)
+    return loadBillOfMaterialFromFile({path: bomVersion.metadataUrl, content: bomVersion.content})
   }
 
   lookupModule(moduleId: {id: string, name?: string} | {name: string, id?: string}): Module | undefined {

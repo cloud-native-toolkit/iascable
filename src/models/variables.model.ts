@@ -3,7 +3,7 @@ import {ModuleVariable} from './module.model';
 import {arrayOf} from '../util';
 
 export interface StagePrinter {
-  asString(stages: {[name: string]: {name: string}}): string;
+  asString(stages: {[name: string]: {name: string}}, path: string): string;
 }
 
 export interface IBaseVariable {
