@@ -95,7 +95,7 @@ const mergeCatalogs = (baseCatalog: CatalogModel, newCatalog: CatalogModel): Cat
         const mergedAlises = uniqBy((current.aliases || []).concat(result.aliases || []), 'id')
         const providers = uniqBy((current.providers || []).concat(result.providers || []), 'name')
         const {modules, aliases} = mergeModules(getFlattenedModules(current), result.modules || [], mergedAlises)
-        const boms = uniqBy(getBoms(current).concat(result.boms || []), 'name')
+        const boms: BillOfMaterialEntry[] = uniqBy(getBoms(current).concat(result.boms || []), 'name')
         const metadata:CatalogV2Metadata = {
           name: 'Merged Catalog',
           ...result.metadata,

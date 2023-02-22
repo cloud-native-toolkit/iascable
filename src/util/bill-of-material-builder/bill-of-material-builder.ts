@@ -1,23 +1,23 @@
-import {default as jsYaml} from 'js-yaml';
-import {promises} from 'fs';
-import {resolve, join} from 'path';
+import { default as jsYaml } from 'js-yaml'
+import { promises } from 'fs'
+import { join, resolve } from 'path'
 
-import {isDefinedAndNotNull, isUndefined} from '../object-util';
-import {arrayOf} from '../array-util';
-import {loadFile} from '../file-util';
+import { isDefinedAndNotNull, isUndefined } from '../object-util'
+import { arrayOf } from '../array-util'
+import { loadFile } from '../file-util'
 import {
   BillOfMaterialModel,
   BillOfMaterialModule,
   BillOfMaterialVariable,
   Module,
   SolutionModel
-} from '../../models';
+} from '../../models'
 import {
   BillOfMaterialModuleParsingError,
   BillOfMaterialVariableParsingError,
   ModuleNotFound
-} from '../../errors';
-import {BillOfMaterial, billOfMaterialFromYaml, Catalog} from '../../model-impls';
+} from '../../errors'
+import { BillOfMaterial, billOfMaterialFromYaml, Catalog } from '../../model-impls'
 
 export function buildBomVariables(bomVariableYaml: string): BillOfMaterialVariable[] {
   if (!bomVariableYaml) {
@@ -69,7 +69,10 @@ function parseModuleConfigYaml(moduleConfigYaml: string): Omit<BillOfMaterialMod
   }
 }
 
-export async function loadReferenceBom(name: string, newName?: string): Promise<BillOfMaterialModel> {
+export async function loadReferenceBom(value: {path: string, name?: string}): Promise<BillOfMaterialModel> {
+  const name = value.path
+  const newName = value.name
+
   const boms: BillOfMaterialModel[] = await loadReferenceBoms();
 
   const nameMatcher = new RegExp(name + '.*', 'ig');
@@ -103,14 +106,18 @@ export async function loadReferenceBoms(): Promise<BillOfMaterialModel[]> {
   return Promise.all(
     files
       .map(async filename => {
-        return loadBillOfMaterialFromFile(join(basePath, filename));
+        return loadBillOfMaterialFromFile({path: join(basePath, filename)});
       })
       .filter(b => !isUndefined(b)) as any
   );
 }
 
-export async function loadBillOfMaterialFromFile(input?: string, name?: string): Promise<BillOfMaterialModel | SolutionModel | undefined> {
-  return input
-    ? loadFile(input).then(text => billOfMaterialFromYaml(text, name))
+export async function loadBillOfMaterialFromFile({path, content, name}: {path?: string, content?: BillOfMaterialModel | SolutionModel, name?: string}): Promise<BillOfMaterialModel | SolutionModel | undefined> {
+  if (content) {
+    return content;
+  }
+
+  return path
+    ? loadFile(path).then(text => billOfMaterialFromYaml(text, name))
     : new BillOfMaterial(name);
 }

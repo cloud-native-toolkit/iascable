@@ -1,8 +1,6 @@
 import { Container } from 'typescript-ioc'
 import { Arguments, Argv, CommandBuilder, CommandModule } from 'yargs'
-import { fchmod, promises } from 'fs'
-import { default as jsYaml } from 'js-yaml'
-import { dirname, join } from 'path'
+import { join } from 'path'
 import uniq from 'lodash.uniq'
 
 import { IascableInput } from './inputs/iascable.input'
@@ -11,20 +9,13 @@ import { DEFAULT_CATALOG_URLS, setupCatalogUrls } from './support/middleware'
 import {
   BillOfMaterialModel,
   CustomResourceDefinition,
-  DotGraphFile,
   isTileConfig,
-  OutputFile,
-  OutputFileType,
-  SolutionModel,
-  TerraformComponentModel,
-  Tile,
-  UrlFile
+  SolutionModel
 } from '../models'
-import { IascableApi, IascableBomResult, IascableBundle, IascableOptions } from '../services'
+import { IascableApi, IascableBundle, IascableOptions } from '../services'
 import {
   BundleWriter,
   BundleWriterType,
-  chmodRecursive,
   getBundleWriter,
   loadBillOfMaterialFromFile,
   loadReferenceBom,
@@ -190,7 +181,7 @@ async function loadBoms(referenceNames?: string[], inputNames?: string[], names:
   for (let i = 0; i < bomNames.length; i++) {
     const name = names.length > i ? names[i] : ''
 
-    const bom: BillOfMaterialModel | SolutionModel | undefined = await bomFunction(bomNames[i], name)
+    const bom: BillOfMaterialModel | SolutionModel | undefined = await bomFunction({path: bomNames[i], name})
 
     if (!bom) {
       throw new Error(`Unable to load BOM: ${bomNames[i]}`)
