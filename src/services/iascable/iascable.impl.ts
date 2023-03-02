@@ -648,7 +648,7 @@ const writeFilesWithWriter = (writer: BundleWriter, options?: {flatten?: boolean
 }
 
 const writeFile = (writer: BundleWriter, file: OutputFile, options: {flatten?: boolean, basePath: string} = {flatten: false, basePath: '.'}) => {
-  const fileOptions: {flatten?: boolean, path: string} = Object.assign({}, options, {path: join(options?.basePath, writer.getPath())})
+  const fileOptions: {flatten?: boolean, path: string} = Object.assign({}, options, {path: join(options?.basePath || '.', writer.getPath())})
 
   writer.file(
     file.name,
