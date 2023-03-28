@@ -11,6 +11,7 @@ import {SolutionModel} from '../../models/solution.model';
 import {BundleWriter} from '../../util/bundle-writer';
 import {CustomResourceDefinition} from '../../models/crd.model';
 import {isDefined} from '../../util/object-util/object-util';
+import { CapabilityModel } from '../../models/capability.model'
 
 export interface WritableBundle {
   writeBundle(bundleWriter: BundleWriter, options?: {flatten: boolean, basePath: string}): BundleWriter;
@@ -39,6 +40,7 @@ export const isIascableBomResult = (result: IasableResult<any>): result is Iasca
 
 export interface IascableSolutionResultBase extends IasableResult<SolutionModel> {
   results: IascableBomResult[]
+  capabilities: CapabilityModel[]
 }
 
 export interface IascableSolutionResult extends IascableSolutionResultBase, WritableBundle {

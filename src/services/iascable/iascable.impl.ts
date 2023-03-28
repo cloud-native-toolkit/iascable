@@ -78,6 +78,11 @@ import {
   VariablesYamlFile
 } from '../../model-impls'
 import { LayerNeeds, LayerProvides } from '../../models/layer-dependencies.model'
+import {
+  CapabilityDependencyModel,
+  CapabilityModel,
+  isCapabilityInterfaceDependencyModel
+} from '../../models/capability.model'
 
 export class CatalogBuilder implements IascableApi {
   logger: LoggerApi;
@@ -169,7 +174,7 @@ export class CatalogBuilder implements IascableApi {
     //   result.results.push(...clusterResult.results)
     // }
 
-    return bomBundleToSolutionBundle(solution, result)
+    return bomBundleToSolutionBundle(solution, result, catalog.capabilities)
   }
 
   async buildBom(catalog: Catalog, bom: BillOfMaterialModel, options?: IascableOptions): Promise<IascableBundle> {
@@ -179,7 +184,7 @@ export class CatalogBuilder implements IascableApi {
 
     const modules: SingleModuleVersion[] = await this.moduleSelector.resolveBillOfMaterial(catalog, bom);
 
-    const billOfMaterial: BillOfMaterialModel = applyAnnotationsAndVersionsToBom(bom, modules);
+    const billOfMaterial: BillOfMaterialModel = applyAnnotationsAndVersionsToBom(bom, catalog.capabilities, modules);
 
     const terraformComponent: TerraformComponentModel = await this.terraformBuilder.buildTerraformComponent(modules, catalog, billOfMaterial);
 
@@ -225,10 +230,10 @@ const matchingBomModule = (module: SingleModuleVersion) => (bomModule: BillOfMat
   return (!!bomModule.alias && bomModule.alias === module.alias) || (!bomModule.alias && bomModule.name === module.name || bomModule.id === module.id)
 }
 
-const applyAnnotationsAndVersionsToBom = (billOfMaterial: BillOfMaterialModel, modules: SingleModuleVersion[]): BillOfMaterialModel => {
+const applyAnnotationsAndVersionsToBom = (billOfMaterial: BillOfMaterialModel, capabilities: CapabilityModel[], modules: SingleModuleVersion[]): BillOfMaterialModel => {
   const versionedBom: BillOfMaterialModel = applyVersionsToBomModules(billOfMaterial, modules)
 
-  return applyAnnotationsToBom(versionedBom, modules)
+  return applyAnnotationsToBom(versionedBom, capabilities, modules)
 }
 
 const applyVersionsToBomModules = (billOfMaterial: BillOfMaterialModel, modules: SingleModuleVersion[]): BillOfMaterialModel => {
@@ -260,10 +265,10 @@ const applyVersionsToBomModules = (billOfMaterial: BillOfMaterialModel, modules:
   return Object.assign({}, billOfMaterial, {spec: newSpec});
 }
 
-const applyAnnotationsToBom = (billOfMaterial: BillOfMaterialModel, modules: SingleModuleVersion[]): BillOfMaterialModel => {
+const applyAnnotationsToBom = (billOfMaterial: BillOfMaterialModel, capabilities: CapabilityModel[], modules: SingleModuleVersion[]): BillOfMaterialModel => {
 
   const provides: LayerProvides[] = uniqBy(modules
-    .map(extractProvidedCapabilities(modules))
+    .map(extractProvidedCapabilities(capabilities, modules))
     .reduce(
       flattenReverse,
       extractProvidedCapabilitiesFromBom(billOfMaterial)
@@ -271,7 +276,7 @@ const applyAnnotationsToBom = (billOfMaterial: BillOfMaterialModel, modules: Sin
     'name'
   )
   const needs: LayerNeeds[] = uniqBy(modules
-    .map(extractNeededCapabilities(provides))
+    .map(extractNeededCapabilities(capabilities, provides))
     .reduce(
       flattenLayerNeeds,
       extractNeededCapabilitiesFromBom(billOfMaterial)
@@ -344,58 +349,56 @@ export const extractNeededCapabilitiesFromBom = (bom: CustomResourceDefinition):
   })
 }
 
-const extractProvidedCapabilities = (modules: SingleModuleVersion[]) => {
-  return (module: SingleModuleVersion): LayerProvides[] => {
-    const provides: LayerProvides[] = []
+const matchCapabilityProvider = (modules: SingleModuleVersion[], module: SingleModuleVersion) => {
+  const interfaces: string[] = (module.interfaces || [])
+    .map(value => value.replace(/.*#/, ''))
 
-    // TODO this should be completely based on interfaces
-    const interfaces: string[] = (module.interfaces || [])
-      .map(value => value.replace(/.*#/, ''))
-
-    if (interfaces.includes('cluster') && module.name !== 'ocp-login') {
-      provides.push({name: 'cluster', alias: module.alias || module.name})
-    }
-
-    if (interfaces.includes('gitops-provider') || module.name === 'argocd-bootstrap') {
-      // TODO use an interface and better error handling
-      const aliasModule = first(modules.filter(m => m.name === 'gitops-repo'))
-        .orElse({alias: 'gitops_repo', name: 'gitops-repo'} as any)
-
-      provides.push({name: 'gitops', alias: aliasModule.alias || aliasModule.name})
-    }
-
-    if (interfaces.includes('cluster-storage')) {
-      provides.push({name: 'storage', alias: module.alias || module.name})
-    }
-
-    return provides
+  return (capability: CapabilityModel): boolean => {
+    return capability.providers.some((provider: CapabilityDependencyModel) => {
+      return isCapabilityInterfaceDependencyModel(provider)
+        ? interfaces.includes(provider.interface) && module.name !== provider.excludeModule
+        : provider.module === module.name
+    })
   }
 }
 
-const extractNeededCapabilities = (allProvides: LayerProvides[]) => {
+const matchCapabilityConsumer = (provides: string[], module: SingleModuleVersion) => {
+  const interfaces: string[] = (module.interfaces || [])
+    .map(value => value.replace(/.*#/, ''))
+
+  return (capability: CapabilityModel): boolean => {
+    return !provides.includes(capability.name) && capability.consumers
+      .some((consumer: CapabilityDependencyModel) => {
+        return isCapabilityInterfaceDependencyModel(consumer)
+          ? interfaces.includes(consumer.interface) && module.name !== consumer.excludeModule
+          : consumer.module === module.name
+      })
+  }
+}
+
+const extractProvidedCapabilities = (capabilities: CapabilityModel[], modules: SingleModuleVersion[]) => {
+  return (module: SingleModuleVersion): LayerProvides[] => {
+
+    return capabilities
+      .filter(matchCapabilityProvider(modules, module))
+      .map(capability => {
+        const aliasModule: SingleModuleVersion = capability.providerAliasModule
+          ? first(modules.filter(m => m.name === capability.providerAliasModule))
+            .orElse({alias: capability.providerAliasModule.replace('-', '_'), name: capability.providerAliasModule} as any)
+          : module
+
+        return {name: capability.name, alias: aliasModule.alias || aliasModule.name}
+      })
+  }
+}
+
+const extractNeededCapabilities = (capabilities: CapabilityModel[], allProvides: LayerProvides[]) => {
   const provides: string[] = allProvides.map(val => val.name)
 
   return (module: SingleModuleVersion): LayerNeeds[] => {
-    const needs: LayerNeeds[] = []
-
-    const interfaces: string[] = (module.interfaces || [])
-      .map(value => value.replace(/.*#/, ''))
-
-    // TODO this should be completely based on interfaces
-    if (module.name === 'ocp-login' && !provides.includes('cluster')) {
-      needs.push({name: 'cluster', aliases: [module.alias || module.name]})
-    }
-
-    // TODO this should be based on interfaces as well
-    if (module.name === 'gitops-repo' && !provides.includes('gitops')) {
-      needs.push({name: 'gitops', aliases: [module.alias || module.name]})
-    }
-
-    if (interfaces.includes('storage-consumer') && !provides.includes('storage')) {
-      needs.push({name: 'storage', aliases: [module.alias || module.name]})
-    }
-
-    return needs
+    return capabilities
+      .filter(matchCapabilityConsumer(provides, module))
+      .map(capability => ({name: capability.name, aliases: [module.alias || module.name]}))
   }
 }
 
@@ -506,6 +509,7 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
 
   _solution: Solution;
   _boms: BillOfMaterialModel[];
+  capabilities: CapabilityModel[];
 
   constructor(params: IascableSolutionResultBase) {
     this.results = params.results
@@ -521,6 +525,7 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
       .map(terraform => terraform.billOfMaterial)
       .filter(isDefined)
       .map(bom => bom as BillOfMaterialModel)
+    this.capabilities = params.capabilities
 
     this.addTerragruntConfig()
     this._solution.terraform = terraform
@@ -538,7 +543,8 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
       .forEach(terraformComponent => {
         terraformComponent.terragrunt = new TerragruntLayer({
           currentBom: terraformComponent.billOfMaterial as BillOfMaterialModel,
-          boms: this._boms
+          boms: this._boms,
+          capabilities: this.capabilities
         })
       })
   }
@@ -708,14 +714,14 @@ const hasUnmetClusterNeed = (bundle: IascableBundle): boolean => {
     !provides.map(provide => provide.name).includes('cluster')
 }
 
-const bomBundleToSolutionBundle = (solution: Solution, bundle: IascableBundle): IascableBundle => {
+const bomBundleToSolutionBundle = (solution: Solution, bundle: IascableBundle, capabilities: CapabilityModel[]): IascableBundle => {
   const results: IascableBomResult[] = bundle.results
     .filter(isIascableBomResult)
     .map(r => Object.assign(r, {inSolution: true}))
   const solutionResults: IascableSolutionResult[] = bundle.results
     .filter(isIascableSolutionResult)
 
-  solutionResults.push(new IascableSolutionResultImpl({billOfMaterial: solution, results}))
+  solutionResults.push(new IascableSolutionResultImpl({billOfMaterial: solution, results, capabilities}))
 
   return new IascableBundleImpl({
     results: solutionResults,
