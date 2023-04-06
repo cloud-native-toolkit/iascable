@@ -1,0 +1,8 @@
+apiVersion: cloud.ibm.com/v1alpha1
+kind: BillOfMaterial
+metadata:
+  name: mas-manage
+spec:
+  modules:
+    - name: gitops-repo
+    - name: gitops-mas-manage

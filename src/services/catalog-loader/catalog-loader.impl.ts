@@ -30,6 +30,7 @@ import {
 } from '../../models'
 import { BillOfMaterial, Catalog } from '../../model-impls'
 import { ArrayUtil, loadFile, LoggerApi } from '../../util'
+import { CapabilityModel } from '../../models/capability.model'
 
 export class CatalogLoader implements CatalogLoaderApi {
 
@@ -44,7 +45,7 @@ export class CatalogLoader implements CatalogLoaderApi {
 
     this.logger.msg('Loading catalog from url(s): ' + catalogUrls);
 
-    const catalogModel: CatalogV2Model = await this.loadCatalogYaml(catalogUrls);
+    const catalogModel: CatalogV2Model = this.processCapabilities(await this.loadCatalogYaml(catalogUrls));
 
     const catalog = new Catalog(catalogModel);
 
@@ -84,11 +85,134 @@ export class CatalogLoader implements CatalogLoaderApi {
       }
     ) as any;
   }
+
+  processCapabilities(catalogModel: CatalogV2Model) {
+
+    // TODO remove this method once the capabilities are in the catalog
+    if (catalogModel.capabilities && catalogModel.capabilities.length > 0) {
+      return catalogModel
+    }
+
+    const capabilities: CapabilityModel[] = [{
+      name: 'cluster',
+      providers: [{
+        interface: 'cluster',
+        excludeModule: 'ocp-login'
+      }],
+      consumers: [{
+        module: 'ocp-login'
+      }],
+      mapping: [{
+        source: 'server_url',
+        destination: 'server_url',
+        destinationGlobal: true
+      }, {
+        source: 'server_url',
+        destination: 'server_url',
+      }, {
+        source: 'username',
+        destination: 'login_user'
+      }, {
+        source: 'password',
+        destination: 'login_password'
+      }, {
+        source: 'token',
+        destination: 'login_token'
+      }]
+    }, {
+      name: 'gitops',
+      defaultProviderAlias: 'gitops_repo_config',
+      defaultConsumerAlias: 'gitops_repo',
+      providerAliasModule: 'gitops-repo',
+      providers: [{
+        interface: 'gitops-provider'
+      }, {
+        module: 'argocd-bootstrap'
+      }],
+      consumers: [{
+        module: 'gitops-repo'
+      }],
+      mapping: [{
+        source: 'config_host',
+        destination: 'host'
+      }, {
+        source: 'config_org',
+        destination: 'org'
+      }, {
+        source: 'config_name',
+        destination: 'repo'
+      }, {
+        source: 'config_project',
+        destination: 'project'
+      }, {
+        source: 'config_username',
+        destination: 'username'
+      }, {
+        source: 'config_token',
+        destination: 'token'
+      }]
+    }, {
+      name: 'storage',
+      defaultConsumerAlias: 'util-storage-class-manager',
+      providers: [{
+        interface: 'cluster-storage'
+      }],
+      consumers: [{
+        interface: 'storage-consumer'
+      }],
+      mapping: [{
+        source: 'rwx_storage_class',
+        destination: 'rwx_storage_class'
+      }, {
+        source: 'rwo_storage_class',
+        destination: 'rwo_storage_class'
+      }, {
+        source: 'file_storage_class',
+        destination: 'file_storage_class'
+      }, {
+        source: 'block_storage_class',
+        destination: 'block_storage_class'
+      }]
+    }, {
+      name: 'mas-core',
+      defaultConsumerAlias: 'mas_core_existing',
+      providers: [{
+        module: 'gitops-mas-core'
+      }],
+      consumers: [{
+        module: 'util-mas-core-existing'
+      }],
+      mapping: [{
+        source: 'core_namespace',
+        destination: 'core_namespace'
+      }, {
+        source: 'entitlement_secret_name',
+        destination: 'entitlement_secret_name'
+      }, {
+        source: 'mas_instance_id',
+        destination: 'mas_instance_id'
+      }, {
+        source: 'mas_workspace_id',
+        destination: 'mas_workspace_id'
+      }]
+    }]
+
+    /*
+      core_namespace = var.namespace
+  entitlement_secret_name = "secret-name"
+  mas_instance_id = "inst1"
+  mas_workspace_id = "mas"
+
+     */
+    catalogModel.capabilities = capabilities
+
+    return catalogModel
+  }
 }
 
 const mergeCatalogs = (baseCatalog: CatalogModel, newCatalog: CatalogModel): CatalogV2Model => {
 
-  return [baseCatalog, newCatalog]
+  const mergedCatalog: CatalogV2Model = [baseCatalog, newCatalog]
     .reduce(
       (result: CatalogV2Model, current: CatalogModel) => {
 
@@ -96,6 +220,7 @@ const mergeCatalogs = (baseCatalog: CatalogModel, newCatalog: CatalogModel): Cat
         const providers = uniqBy((current.providers || []).concat(result.providers || []), 'name')
         const {modules, aliases} = mergeModules(getFlattenedModules(current), result.modules || [], mergedAlises)
         const boms: BillOfMaterialEntry[] = uniqBy(getBoms(current).concat(result.boms || []), 'name')
+        const capabilities: CapabilityModel[] = uniqBy(getCapabilities(current).concat(result.capabilities || []), 'name')
         const metadata:CatalogV2Metadata = {
           name: 'Merged Catalog',
           ...result.metadata,
@@ -104,10 +229,15 @@ const mergeCatalogs = (baseCatalog: CatalogModel, newCatalog: CatalogModel): Cat
           flavors: uniqBy((isCatalogV2Model(current)? current.metadata?.flavors ?? [] : []).concat(result.metadata?.flavors ?? []), 'name'),
           useCases: uniqBy((isCatalogV2Model(current)? current.metadata?.useCases ?? [] : []).concat(result.metadata?.useCases ?? []), 'name'),
         };
-        return {kind: catalogKind, apiVersion: catalogApiV2Version, aliases, providers, modules, boms, metadata}
+
+        const newResult: CatalogV2Model = {kind: catalogKind, apiVersion: catalogApiV2Version, aliases, providers, modules, boms, metadata, capabilities}
+
+        return newResult;
       },
       {} as CatalogV2Model
-    )
+    ) as CatalogV2Model
+
+  return mergedCatalog
 }
 
 const getBoms = (catalog: CatalogModel): BillOfMaterialEntry[] => {
@@ -116,6 +246,14 @@ const getBoms = (catalog: CatalogModel): BillOfMaterialEntry[] => {
   }
 
   return catalog.boms || []
+}
+
+const getCapabilities = (catalog: CatalogModel): CapabilityModel[] => {
+  if (!isCatalogV2Model(catalog)) {
+    return []
+  }
+
+  return catalog.capabilities || []
 }
 
 const catalogUrlToPath = (catalogUrl: string): string => {

@@ -4,6 +4,7 @@ import {ModuleTemplate, ProviderModel, VersionedModule} from './module.model';
 import {findMatchingVersions, flatten, arrayOf, Optional} from '../util';
 import { BillOfMaterial } from '../model-impls'
 import { Solution } from './solution.model'
+import { CapabilityModel } from './capability.model'
 
 export interface CatalogCategoryModel<M = VersionedModule> {
   category: string;
@@ -43,6 +44,7 @@ export interface CatalogV2Model extends CustomResourceDefinition {
   aliases?: ModuleIdAlias[];
   boms: BillOfMaterialEntry[];
   metadata?: CatalogV2Metadata;
+  capabilities?: CapabilityModel[];
 }
 
 export interface CatalogV1Model extends CustomResourceDefinition {

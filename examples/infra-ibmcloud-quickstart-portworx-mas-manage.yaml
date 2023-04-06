@@ -1,0 +1,34 @@
+apiVersion: cloudnativetoolkit.dev/v2
+kind: Solution
+metadata:
+  name: infra-ibm-mas-manage
+  labels:
+    type: infrastructure
+    platform: ibm
+    flavor: quickstart
+  annotations:
+    displayName: "Infrastructure: IBM Cloud Quickstart"
+    description: Provisions the Quickstart reference architecture on IBM Cloud
+    files.cloudnativetoolkit.dev/diagram: diagram.png # filename (from files below, default diagram.png)
+    files.cloudnativetoolkit.dev/readme: README.md # filename (from files below, default README.md)
+    catalogurl/mas-manage: './mas-manage.yaml'
+spec:
+  version: v1.0.0
+  stack:
+    - name: 105-existing-openshift # this is the name of the layer in the
+      layer: infrastructure
+      description: IBM VPC and public Red Hat OpenShift server
+    - name: 200-openshift-gitops
+      layer: platform
+      description: Provisions OpenShift GitOps into an existing IBM cluster and bootstraps it to a gitops repository
+    - name: 210-ibm-portworx-storage
+      layer: storage
+      description: Installs Portworx in an IBM cluster
+    - name: mas-manage
+      layer: software
+      description: Provisions development tools in an OpenShift cluster
+
+  variables:
+    - name: gitops_repo_host
+    - name: gitops_repo_username
+    - name: gitops_repo_token

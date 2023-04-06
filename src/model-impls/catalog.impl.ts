@@ -26,6 +26,7 @@ import {
 } from '../models';
 import {BillOfMaterialNotFound, BillOfMaterialVersionNotFound} from '../errors';
 import {arrayOf, ArrayUtil, loadBillOfMaterialFromFile, LoggerApi, Optional} from '../util';
+import { CapabilityModel } from '../models/capability.model'
 
 export class Catalog implements CatalogV2Model {
   private logger: LoggerApi;
@@ -39,12 +40,14 @@ export class Catalog implements CatalogV2Model {
   public readonly flattenedAliases: DenormalizedModuleIdAliases;
   public readonly moduleIdAliases: ModuleIdAlias[];
   public readonly boms: BillOfMaterialEntry[];
+  public readonly capabilities: CapabilityModel[];
 
   constructor(values: CatalogV1Model | CatalogV2Model, filterValue?: {platform?: string, provider?: string}) {
     this.modules = getFlattenedModules(values)
     this.providers = values.providers || []
     this.filterValue = filterValue;
     this.boms = isCatalogV2Model(values) ? values.boms : []
+    this.capabilities = isCatalogV2Model(values) ? values.capabilities || [] : []
 
     this.moduleIdAliases = values.aliases || [];
     this.flattenedAliases = denormalizeModuleIdAliases(values.aliases);
