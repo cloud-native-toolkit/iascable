@@ -39,7 +39,7 @@ import {
   Solution,
   SolutionLayerModel,
   SolutionModel,
-  TerraformComponentModel,
+  TerraformComponentModel, TerragruntBackendModel,
   TerragruntBase,
   TerragruntLayer,
   Tile,
@@ -174,7 +174,7 @@ export class CatalogBuilder implements IascableApi {
     //   result.results.push(...clusterResult.results)
     // }
 
-    return bomBundleToSolutionBundle(solution, result, catalog.capabilities)
+    return bomBundleToSolutionBundle(solution, result, catalog.capabilities, buildBackendConfig(options))
   }
 
   async buildBom(catalog: Catalog, bom: BillOfMaterialModel, options?: IascableOptions): Promise<IascableBundle> {
@@ -510,11 +510,13 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
   _solution: Solution;
   _boms: BillOfMaterialModel[];
   capabilities: CapabilityModel[];
+  backend?: TerragruntBackendModel;
 
   constructor(params: IascableSolutionResultBase) {
     this.results = params.results
     this.billOfMaterial = applyLayerVersions(params.billOfMaterial, this.results)
     this.supportingFiles = params.supportingFiles || []
+    this.backend = params.backend;
 
     this._solution = Solution.fromModel(params.billOfMaterial)
 
@@ -536,7 +538,7 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
   }
 
   addTerragruntConfig(): void {
-    this.supportingFiles.push(new TerragruntBase())
+    this.supportingFiles.push(new TerragruntBase({backend: this.backend}))
     this.results
       .map(result => result.terraformComponent)
       .filter(terraformComponent => !!terraformComponent.billOfMaterial)
@@ -714,17 +716,25 @@ const hasUnmetClusterNeed = (bundle: IascableBundle): boolean => {
     !provides.map(provide => provide.name).includes('cluster')
 }
 
-const bomBundleToSolutionBundle = (solution: Solution, bundle: IascableBundle, capabilities: CapabilityModel[]): IascableBundle => {
+const bomBundleToSolutionBundle = (solution: Solution, bundle: IascableBundle, capabilities: CapabilityModel[], backend?: TerragruntBackendModel): IascableBundle => {
   const results: IascableBomResult[] = bundle.results
     .filter(isIascableBomResult)
     .map(r => Object.assign(r, {inSolution: true}))
   const solutionResults: IascableSolutionResult[] = bundle.results
     .filter(isIascableSolutionResult)
 
-  solutionResults.push(new IascableSolutionResultImpl({billOfMaterial: solution, results, capabilities}))
+  solutionResults.push(new IascableSolutionResultImpl({billOfMaterial: solution, results, capabilities, backend}))
 
   return new IascableBundleImpl({
     results: solutionResults,
     supportingFiles: bundle.supportingFiles
   })
+}
+
+const buildBackendConfig = ({backend, backendConfig}: {backend?: string, backendConfig?: unknown} = {}): TerragruntBackendModel | undefined => {
+  if (!backend) {
+    return
+  }
+
+  return {name: backend, config: backendConfig}
 }

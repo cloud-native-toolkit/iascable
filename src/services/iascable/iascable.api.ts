@@ -2,10 +2,10 @@ import {
   BillOfMaterialModel,
   CatalogFilter,
   OutputFile,
-  TerraformComponentModel,
+  TerraformComponentModel, TerragruntBackendModel,
   Tile,
   TileConfig
-} from '../../models';
+} from '../../models'
 import {DotGraphFile} from '../../models/graph.model';
 import {SolutionModel} from '../../models/solution.model';
 import {BundleWriter} from '../../util/bundle-writer';
@@ -41,6 +41,7 @@ export const isIascableBomResult = (result: IasableResult<any>): result is Iasca
 export interface IascableSolutionResultBase extends IasableResult<SolutionModel> {
   results: IascableBomResult[]
   capabilities: CapabilityModel[]
+  backend?: TerragruntBackendModel;
 }
 
 export interface IascableSolutionResult extends IascableSolutionResultBase, WritableBundle {
@@ -62,6 +63,8 @@ export interface IascableOptions {
   tileConfig?: TileConfig;
   filter?: CatalogFilter;
   interactive?: boolean;
+  backend?: string;
+  backendConfig?: unknown;
 }
 
 export abstract class IascableApi {

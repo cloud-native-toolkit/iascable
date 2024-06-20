@@ -2,6 +2,7 @@ import { Container } from 'typescript-ioc'
 import { Arguments, Argv, CommandBuilder, CommandModule } from 'yargs'
 import { join } from 'path'
 import uniq from 'lodash.uniq'
+import {promises} from 'fs';
 
 import { IascableInput } from './inputs/iascable.input'
 import { CommandLineInput } from './inputs/command-line.input'
@@ -75,7 +76,7 @@ export const builder: CommandBuilder<any, any> = (yargs: Argv<any>) => {
       type: 'array'
     })
     .option('tileDescription', {
-      description: 'The description of the tile.',
+      description: 'The description of the tile on IBM Cloud.',
       demandOption: false,
     })
     .option('flattenOutput', {
@@ -87,6 +88,16 @@ export const builder: CommandBuilder<any, any> = (yargs: Argv<any>) => {
     .option('debug', {
       type: 'boolean',
       describe: 'Flag to turn on more detailed output message',
+    })
+    .option('backend', {
+      alias: ['b'],
+      choices: ['kubernetes', 'cos'],
+      demandOption: false,
+      describe: 'The type of backend that should be included in the terraform. If not provided the backend will default to the filesystem'
+    })
+    .option('backendConfig', {
+      demandOption: false,
+      describe: 'JSON configuration values or @filename of JSON configuration for the defined backend. If backend value not defined then value is ignored'
     })
     .middleware(setupCatalogUrls(DEFAULT_CATALOG_URLS))
     .check((argv) => {
@@ -114,7 +125,7 @@ export const handler = async (argv: Arguments<BuilderArgs>) => {
 
   const catalogUrls: string[] = loadCatalogUrls(boms, argv.catalogUrls)
 
-  const options: IascableOptions = buildCatalogBuilderOptions(argv);
+  const options: IascableOptions = await buildCatalogBuilderOptions(argv);
 
   try {
     const result: IascableBundle = await cmd.buildBoms(catalogUrls, boms, options);
@@ -193,7 +204,7 @@ async function loadBoms(referenceNames?: string[], inputNames?: string[], names:
   return boms;
 }
 
-function buildCatalogBuilderOptions(input: IascableInput): IascableOptions {
+const buildCatalogBuilderOptions = async (input: IascableInput): Promise<IascableOptions> => {
   const tileConfig = {
     label: input.tileLabel,
     name: input.name,
@@ -207,7 +218,23 @@ function buildCatalogBuilderOptions(input: IascableInput): IascableOptions {
       provider: input.provider,
     },
     tileConfig: isTileConfig(tileConfig) ? tileConfig : undefined,
+    backend: input.backend,
+    backendConfig: await processBackendConfig(input.backendConfig),
   };
+}
+
+const processBackendConfig = async (configInput?: string): Promise<unknown | undefined> => {
+  if (!configInput) {
+    return
+  }
+
+  if (configInput.startsWith('@')) {
+    const configFile = configInput.slice(1)
+
+    configInput = await promises.readFile(configFile, 'utf8');
+  }
+
+  return JSON.parse(configInput)
 }
 
 export const iascableBuild: CommandModule = {

@@ -25,6 +25,11 @@ export interface TerragruntDependencyModel {
   outputs: string[]
 }
 
+export interface TerragruntBackendModel {
+  name: string;
+  config?: unknown;
+}
+
 export class TerragruntLayer implements TerragruntLayerModel, OutputFile {
   name: string = 'terragrunt.hcl';
   type: OutputFileType = OutputFileType.terraform;
@@ -184,6 +189,11 @@ export interface TerragruntBaseModel {
 export class TerragruntBase implements TerragruntBaseModel, OutputFile {
   name: string = 'terragrunt.hcl';
   type: OutputFileType = OutputFileType.terraform;
+  backend?: TerragruntBackendModel;
+
+  constructor({backend}: {backend?: TerragruntBackendModel} = {}) {
+    this.backend = backend;
+  }
 
   contents(): Promise<string | Buffer> {
     return Promise.resolve(`skip = true
@@ -205,6 +215,113 @@ terraform {
     ]
   }
 }
+${this.generateBackend()}
 `)
   }
+
+  generateBackend(): string {
+    if (!this.backend) {
+      return ''
+    }
+
+    const backend: TerragruntBackendBase = backends[this.backend.name]
+
+    if (!backend) {
+      console.log('Unknown backend configuration: ' + this.backend.name)
+      return ''
+    }
+
+    return backend.contents(this.backend.config)
+  }
+
+  generateBackendConfig(config: any, indent: string = ''): string {
+    return Object
+      .keys(config)
+      .map(key => `${indent}${key} = ${valueToString(config[key])}`)
+      .join('\n')
+  }
+}
+
+const valueToString = (value: any): string => {
+  if (typeof value === 'boolean') {
+    return value.toString()
+  }
+
+  return `"${value.toString()}"`
+}
+
+abstract class TerragruntBackendBase implements TerragruntBackendModel {
+  name: string;
+
+  constructor(name: string) {
+    this.name = name;
+  }
+
+  contents(backendConfig: unknown): string {
+    const config = this.buildConfig(backendConfig)
+
+    return `
+generate "backend" {
+  path      = "backend.tf"
+  if_exists = "overwrite_terragrunt"
+  contents  = <<EOF
+terraform {
+  backend "${this.name}" {
+${this.generateBackendConfig(config, '    ')}
+  }
+}
+EOF
+}
+`
+  }
+
+  abstract buildConfig(backendConfig: unknown): any;
+
+  generateBackendConfig(config: any, indent: string = ''): string {
+    return Object
+      .keys(config)
+      .map(key => `${indent}${key} = ${valueToString(config[key])}`)
+      .join('\n')
+  }
+}
+
+class TerragruntKubernetesBackend extends TerragruntBackendBase implements TerragruntBackendModel {
+  constructor() {
+    super('kubernetes')
+  }
+
+  buildConfig(backendConfig: unknown): any {
+    const config = Object.assign(
+      {
+        secret_suffix: '\${replace(replace(path_relative_to_include(), "/terraform", ""), "/", "-")}',
+        in_cluster_config: true,
+      },
+      backendConfig || {}
+    )
+
+    return config
+  }
+}
+
+class CosKubernetesBackend extends TerragruntBackendBase implements TerragruntBackendModel {
+  constructor() {
+    super('cos')
+  }
+
+  buildConfig(backendConfig: unknown): any {
+    const config = Object.assign(
+      {
+        prefix: '\${replace(replace(path_relative_to_include(), "/terraform", ""), "/", "-")}',
+        bucket: `bucket-for-terraform-state-${new Date().getTime()}`
+      },
+      backendConfig || {}
+    )
+
+    return config
+  }
+}
+
+const backends: {[key: string]: TerragruntBackendBase} = {
+  'kubernetes': new TerragruntKubernetesBackend(),
+  'cos': new CosKubernetesBackend(),
 }
