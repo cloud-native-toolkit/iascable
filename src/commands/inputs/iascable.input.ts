@@ -9,6 +9,8 @@ export interface IascableInput {
   name?: string[];
   tileDescription?: string;
   outDir?: string;
+  backend?: string;
+  backendConfig?: string;
 }
 
 export interface IascableDocsInput {
