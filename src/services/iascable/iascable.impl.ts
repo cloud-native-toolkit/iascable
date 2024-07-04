@@ -21,7 +21,7 @@ import {
   BillOfMaterialModuleById,
   BillOfMaterialModuleByName,
   BillOfMaterialVariable,
-  CustomResourceDefinition,
+  CustomResourceDefinition, DockerIgnoreFile,
   DotGraph,
   DotGraphFile,
   getAnnotation,
@@ -209,6 +209,7 @@ export class CatalogBuilder implements IascableApi {
       supportingFiles: [
         new UrlFile({name: 'launch.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/launch.sh', type: OutputFileType.executable}),
         new GitIgnoreFile(),
+        new DockerIgnoreFile(),
       ]
     })
   }
@@ -562,8 +563,13 @@ class IascableSolutionResultImpl implements IascableSolutionResult {
   }
 
   addSupportFiles(): void {
-    this.supportingFiles.push(new UrlFile({name: 'apply.sh', type: OutputFileType.executable, url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/apply-all-terragrunt-variables.sh'}))
+    this.supportingFiles.push(new UrlFile({name: 'configure-and-apply.sh', type: OutputFileType.executable, url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/apply-all-terragrunt-variables.sh'}))
+    this.supportingFiles.push(new UrlFile({name: 'configure.sh', url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/configure.sh', type: OutputFileType.executable}))
+    this.supportingFiles.push(new UrlFile({name: 'apply.sh', type: OutputFileType.executable, url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/apply-all-terragrunt.sh'}))
     this.supportingFiles.push(new UrlFile({name: 'destroy.sh', type: OutputFileType.executable, url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/destroy-all-terragrunt.sh'}))
+    this.supportingFiles.push(new UrlFile({name: '.gitignore', type: OutputFileType.executable, url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/gitignore'}))
+    this.supportingFiles.push(new UrlFile({name: 'Dockerfile', type: OutputFileType.executable, url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/Dockerfile'}))
+    this.supportingFiles.push(new UrlFile({name: '.dockerignore', type: OutputFileType.executable, url: 'https://raw.githubusercontent.com/cloud-native-toolkit/automation-solutions/main/common-files/dockerignore'}))
     this.supportingFiles.push(new SolutionBomReadmeFile(this.billOfMaterial))
   }
 

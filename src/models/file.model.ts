@@ -62,5 +62,20 @@ credentials.auto.tfvars
 .terraform/
 `);
   }
+}
 
+export class DockerIgnoreFile implements OutputFile {
+  name: string = '.dockerignore';
+  type: OutputFileType = OutputFileType.documentation;
+
+  private gitIgnore: OutputFile;
+
+  constructor() {
+    this.gitIgnore = new GitIgnoreFile();
+  }
+
+  contents(options?: { flatten?: boolean }): Promise<string | Buffer> {
+    return this.gitIgnore.contents()
+      .then(contents => contents + '\n\nlaunch.sh')
+  }
 }
